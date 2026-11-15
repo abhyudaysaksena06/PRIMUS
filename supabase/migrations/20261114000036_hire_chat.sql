@@ -107,8 +107,8 @@ begin
   if length(btrim(coalesce(p_body, ''))) = 0 or length(btrim(p_body)) > 500 then
     return app.reject(v_team.event_id, 'post_hire_message', 'BAD_LENGTH', 'Messages are 1 to 500 characters.');
   end if;
-  if not app.rate_limit(v_team.id, 'chat', 20, interval '1 minute') then
-    return app.fail('RATE_LIMITED', 'Too many messages in a minute.');
+  if not app.rate_limit(v_team.id, 'chat', 30, interval '1 minute') then
+    return app.fail('RATE_LIMITED', 'Too many messages in a minute. The limit is 30 per minute.');
   end if;
   insert into public.hire_messages (event_id, company_id, firm_team_id, team_id, body)
   values (v_team.event_id, p_company, p_firm, v_team.id, btrim(p_body))
