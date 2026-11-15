@@ -26,24 +26,44 @@ const COMMON: TeamSection[] = [
   { path: "/judging", label: "Judging" },
 ];
 
-export const TEAM_SECTIONS: Record<Track, readonly TeamSection[]> = {
-  PRODUCT: [HOME, { path: "/squad", label: "Squad" }, CRISIS_ROOM, FIRMS, HIRE_CHAT, RESCUE, CHAT, ...COMMON],
-  CONSULTING: [
-    HOME,
-    { path: "/squad", label: "Squad" },
-    CRISIS_ROOM,
-    FIRMS,
-    HIRE_CHAT,
-    RESCUE,
-    CHAT,
-    { path: "/calls", label: "Calls" },
-    { path: "/earnings", label: "Earnings" },
-    ...COMMON,
-  ],
-  FINANCE: [HOME, { path: "/trade", label: "Trade" }, CRISIS_ROOM, RESCUE, CHAT, ...COMMON],
-};
+export function getTeamSections(format: "CLASSIC" | "PRIMUS" = "PRIMUS"): Record<Track, readonly TeamSection[]> {
+  return {
+    PRODUCT: [
+      HOME,
+      { path: "/squad", label: "Squad" },
+      CRISIS_ROOM,
+      FIRMS,
+      HIRE_CHAT,
+      ...(format !== "PRIMUS" ? [RESCUE] : []),
+      CHAT,
+      ...COMMON,
+    ],
+    CONSULTING: [
+      HOME,
+      { path: "/squad", label: "Squad" },
+      CRISIS_ROOM,
+      FIRMS,
+      HIRE_CHAT,
+      ...(format !== "PRIMUS" ? [RESCUE] : []),
+      CHAT,
+      ...(format !== "PRIMUS" ? [{ path: "/calls", label: "Calls" }] : []),
+      format === "PRIMUS"
+        ? { path: "/firm-value", label: "Firm value" }
+        : { path: "/earnings", label: "Earnings" },
+      ...COMMON,
+    ],
+    FINANCE: [
+      HOME,
+      { path: "/trade", label: "Trade" },
+      CRISIS_ROOM,
+      ...(format !== "PRIMUS" ? [RESCUE] : []),
+      CHAT,
+      ...COMMON,
+    ],
+  };
+}
 
 /** May this track open this section? (Pages also check, so a typed address shows a clear notice.) */
 export function sectionAllowed(track: Track, path: string): boolean {
-  return TEAM_SECTIONS[track].some((s) => s.path === path);
+  return getTeamSections()[track].some((s) => s.path === path);
 }

@@ -4,7 +4,7 @@
 // Pure: the layout passes the phase and the track.
 
 import type { PhaseCode, Track } from "@msim/engine";
-import { TEAM_SECTIONS, type TeamSection } from "./sections";
+import { getTeamSections, type TeamSection } from "./sections";
 
 export type Stage = "BEFORE" | "ROUND_1" | "ROUND_2" | "ROUND_3" | "RESULTS";
 
@@ -181,7 +181,7 @@ export function sectionOf(path: string): string {
  */
 export function focusSections(track: Track, phase: PhaseCode, taskHref: string | null = null): TeamSection[] {
   const stage = stageOf(phase);
-  const all = TEAM_SECTIONS[track];
+  const all = getTeamSections()[track];
   if (stage === "RESULTS") return [...all];
   const allowed = new Set(pathsFor(track, phase));
   if (taskHref) allowed.add(sectionOf(taskHref));
@@ -195,7 +195,7 @@ export function focusSections(track: Track, phase: PhaseCode, taskHref: string |
 export function inFocus(track: Track, phase: PhaseCode, path: string, taskHref: string | null = null): boolean {
   const section = sectionOf(path);
   if (stageOf(phase) === "BEFORE") return true;
-  if (!TEAM_SECTIONS[track].some((s) => s.path === section)) return true;
+  if (!getTeamSections()[track].some((s) => s.path === section)) return true;
   return focusSections(track, phase, taskHref).some((s) => s.path === section);
 }
 
