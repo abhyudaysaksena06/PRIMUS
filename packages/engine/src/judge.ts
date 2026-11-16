@@ -200,6 +200,7 @@ export function injectionPenalty(type: SubmissionType, offended: Partial<Record<
   const chain = type === "PITCH" ? CHAINS[0]! : CHAINS.find((c) => c.includes(type));
   if (!chain) return 0;
   const count = chain.slice(0, chain.indexOf(type) + 1).filter((t) => offended[t]).length;
+  if(count == 1) return RULES.INJECTION_PENALTY_FIRST;
   return count >= 2 ? RULES.INJECTION_PENALTY : 0;
 }
 

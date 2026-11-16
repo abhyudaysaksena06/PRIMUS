@@ -335,41 +335,79 @@ as $$
 declare
   e public.engagements;
   v_company public.companies;
-  v_paid boolean;
+  v_sub public.submissions;
+  v_score int;
+  v_pct int;
+  v_firm_cash bigint;
+  v_refund_cash bigint;
+  v_firm_shares int;
   v_txn uuid;
   n int := 0;
 begin
   for e in select * from public.engagements where event_id = p_event and k = p_k and settled_at is null order by id for no key update loop
     select * into v_company from public.companies where id = e.company_id;
-    v_paid := (app.current_submission(e.company_id, app.advice_type(p_k))).id is not null;
+    v_sub := app.current_submission(e.company_id, app.advice_type(p_k));
+    v_score := null;
+    if v_sub.id is not null then
+      select score into v_score
+        from public.scores
+       where submission_id = v_sub.id
+         and status = 'RELEASED'
+       limit 1;
+    end if;
+
+    v_pct := case
+      when v_score is not null and v_score >= 50 then 100
+      when v_score is not null and v_score >= 30 then 50
+      else 0
+    end;
+
     v_txn := gen_random_uuid();
     perform 1 from public.teams where id in (e.firm_team_id, v_company.product_team_id) order by id for no key update;
+
     if e.cash_cents > 0 then
-      update public.teams set cash_cents = cash_cents + e.cash_cents
-       where id = case when v_paid then e.firm_team_id else v_company.product_team_id end;
+      v_firm_cash := (e.cash_cents * v_pct) / 100;
+      v_refund_cash := e.cash_cents - v_firm_cash;
+
+      if v_firm_cash > 0 then
+        update public.teams set cash_cents = cash_cents + v_firm_cash where id = e.firm_team_id;
+        insert into public.ledger_entries (event_id, txn_id, kind, team_id, company_id, cash_delta_cents, ref_table, ref_id, memo)
+        values (p_event, v_txn, 'ESCROW_RELEASE', e.firm_team_id, e.company_id, v_firm_cash, 'engagements', e.id,
+                format('Consulting fee received (%s%% for score %s)', v_pct, coalesce(v_score::text, 'none')));
+      end if;
+
+      if v_refund_cash > 0 then
+        update public.teams set cash_cents = cash_cents + v_refund_cash where id = v_company.product_team_id;
+        insert into public.ledger_entries (event_id, txn_id, kind, team_id, company_id, cash_delta_cents, ref_table, ref_id, memo)
+        values (p_event, v_txn, 'ESCROW_REFUND', v_company.product_team_id, e.company_id, v_refund_cash, 'engagements', e.id,
+                case when v_sub.id is null then 'Consulting fee refunded: no advice memo'
+                     else format('Consulting fee refunded (%s%% for score %s)', 100 - v_pct, coalesce(v_score::text, 'unreleased')) end);
+      end if;
+
       update public.events set exchange_cash_cents = exchange_cash_cents - e.cash_cents where id = p_event;
-      insert into public.ledger_entries (event_id, txn_id, kind, team_id, company_id, cash_delta_cents, ref_table, ref_id, memo) values
-        (p_event, v_txn, case when v_paid then 'ESCROW_RELEASE' else 'ESCROW_REFUND' end::public.ledger_kind, null, e.company_id,
-         -e.cash_cents, 'engagements', e.id, 'Escrow paid out'),
-        (p_event, v_txn, case when v_paid then 'ESCROW_RELEASE' else 'ESCROW_REFUND' end::public.ledger_kind,
-         case when v_paid then e.firm_team_id else v_company.product_team_id end, e.company_id, e.cash_cents, 'engagements', e.id,
-         case when v_paid then 'Consulting fee received' else 'Consulting fee refunded: no advice memo' end);
+      insert into public.ledger_entries (event_id, txn_id, kind, team_id, company_id, cash_delta_cents, ref_table, ref_id, memo)
+      values (p_event, v_txn, case when v_pct > 0 then 'ESCROW_RELEASE' else 'ESCROW_REFUND' end::public.ledger_kind,
+              null, e.company_id, -e.cash_cents, 'engagements', e.id, 'Escrow settled');
     end if;
-    if v_paid and e.shares > 0 then
-      -- Shares move only when earned (the company keeps them until then); never more than it still retains.
-      e.shares := least(e.shares, (select coalesce(sum(qty), 0) from public.holdings
-                                    where team_id = v_company.product_team_id and company_id = e.company_id and lot = 'RETAINED'));
-      update public.holdings set qty = qty - e.shares, updated_at = now()
+
+    v_firm_shares := (e.shares * v_pct) / 100;
+    if v_firm_shares > 0 then
+      v_firm_shares := least(v_firm_shares, (select coalesce(sum(qty), 0) from public.holdings
+                                              where team_id = v_company.product_team_id and company_id = e.company_id and lot = 'RETAINED'));
+      update public.holdings set qty = qty - v_firm_shares, updated_at = now()
        where team_id = v_company.product_team_id and company_id = e.company_id and lot = 'RETAINED';
       insert into public.holdings (event_id, team_id, company_id, lot, qty, cost_cents)
-      values (p_event, e.firm_team_id, e.company_id, 'FEE', e.shares, 0)
+      values (p_event, e.firm_team_id, e.company_id, 'FEE', v_firm_shares, 0)
       on conflict (team_id, company_id, lot) do update set qty = public.holdings.qty + excluded.qty, updated_at = now();
       insert into public.ledger_entries (event_id, txn_id, kind, team_id, company_id, lot, share_delta, ref_table, ref_id, memo) values
-        (p_event, v_txn, 'ESCROW_RELEASE', v_company.product_team_id, e.company_id, 'RETAINED', -e.shares, 'engagements', e.id, 'Fee shares paid'),
-        (p_event, v_txn, 'ESCROW_RELEASE', e.firm_team_id, e.company_id, 'FEE', e.shares, 'engagements', e.id, 'Fee shares received');
+        (p_event, v_txn, 'ESCROW_RELEASE', v_company.product_team_id, e.company_id, 'RETAINED', -v_firm_shares, 'engagements', e.id, 'Fee shares paid'),
+        (p_event, v_txn, 'ESCROW_RELEASE', e.firm_team_id, e.company_id, 'FEE', v_firm_shares, 'engagements', e.id, 'Fee shares received');
     end if;
-    update public.engagements set escrow = case when v_paid then 'RELEASED' else 'REFUNDED' end, settled_at = now(),
-           shares = case when v_paid then e.shares else shares end
+
+    update public.engagements
+       set escrow = case when v_pct > 0 then 'RELEASED' else 'REFUNDED' end,
+           settled_at = now(),
+           shares = case when v_pct > 0 then v_firm_shares else shares end
      where id = e.id;
     n := n + 1;
   end loop;
@@ -475,9 +513,8 @@ begin
       v_actions := v_actions || ('hiring closed ' || v_k);
     end if;
     if v_sub.due_closed_at is null and app.deadline_passed(p_event, ('DUE_' || v_k)::public.deadline_code) then
-      n := app.settle_engagements(p_event, v_k);
       update public.subrounds set due_closed_at = now() where event_id = p_event and subrounds.k = v_k;
-      v_actions := v_actions || ('escrow settled ' || v_k || ': ' || n);
+      v_actions := v_actions || ('due closed ' || v_k);
     end if;
     if v_sub.rated_at is null and app.deadline_passed(p_event, ('RATE_' || v_k)::public.deadline_code) then
       update public.engagements set rating = 3, rating_default = true, rated_at = now()
@@ -548,6 +585,16 @@ begin
 end
 $$;
 
+create or replace function app.min_words(p_type public.submission_type)
+returns int
+language sql immutable
+as $$
+  select case
+    when p_type::text like 'ADVICE_%' then 150
+    else 1
+  end;
+$$;
+
 create or replace function public.submit_for(p_company uuid, p_type public.submission_type)
 returns jsonb
 language plpgsql security definer set search_path = ''
@@ -583,8 +630,8 @@ begin
   if v_words = 0 then
     return app.reject(v_team.event_id, 'submit', 'EMPTY', 'Write something before submitting.', jsonb_build_object('type', p_type));
   end if;
-  if v_words > app.word_limit(p_type) then
-    return app.reject(v_team.event_id, 'submit', 'TOO_LONG', format('At most %s words (you have %s).', app.word_limit(p_type), v_words),
+  if v_words < app.min_words(p_type) then
+    return app.reject(v_team.event_id, 'submit', 'TOO_SHORT', 'An advice memo needs at least 150 words.',
                       jsonb_build_object('type', p_type, 'words', v_words));
   end if;
   update public.submissions set superseded_at = now() where company_id = p_company and type = p_type and superseded_at is null;

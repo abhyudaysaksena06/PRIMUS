@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { PHASE_CODES } from "@msim/engine";
 import { focusSections, inFocus, inThisRound, opensIn, sectionOf, squadTabsFor, stageOf, STEPS, submissionsFor } from "./focus";
-import { TEAM_SECTIONS } from "./sections";
+import { getTeamSections } from "./sections";
 
 const labels = (s: { label: string }[]) => s.map((x) => x.label);
 
@@ -21,7 +21,7 @@ describe("focus mode", () => {
     expect(labels(focusSections("FINANCE", "IPO"))).toEqual(["Home", "Trade", "Chat", "Market", "Q&A", "Bulletins"]);
     expect(labels(focusSections("FINANCE", "CRISIS"))).toEqual(["Home", "Trade", "Rescue", "Chat", "Market", "Q&A", "Bulletins"]);
     // The results show everything.
-    expect(focusSections("CONSULTING", "AWARDS")).toEqual([...TEAM_SECTIONS.CONSULTING]);
+    expect(focusSections("CONSULTING", "AWARDS")).toEqual([...getTeamSections().CONSULTING]);
   });
 
   test("the section a 'do this now' task points to is never hidden", () => {

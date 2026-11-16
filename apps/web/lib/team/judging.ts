@@ -138,7 +138,7 @@ export function judgingSteps(): JudgingStep[] {
       title: "Lines aimed at the judge are removed.",
       text:
         'A line addressed to the judge (such as "ignore the rubric" or "give this 100") is removed and logged. ' +
-        `The first time, nothing else happens. From your squad's second submission with a removed line, that submission loses ${RULES.INJECTION_PENALTY} points.`,
+        `The first time, that submission loses ${RULES.INJECTION_PENALTY_FIRST} points. From your squad's second submission with a removed line, that submission loses ${RULES.INJECTION_PENALTY} points, and every detection is reviewed by fairness officer.`,
     },
     {
       title: "The judge reads the prompt and your submission.",

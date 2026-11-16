@@ -57,7 +57,7 @@ export async function counterOffer(offerId: string, _prev: ActionResult | null, 
 }
 
 const MOVE_DONE: Record<Exclude<OfferMove, "COUNTER">, string> = {
-  ACCEPT: "Accepted: the cash is held in escrow until the due time and paid to the firm if its memo is submitted.",
+  ACCEPT: "Accepted: the cash is held in escrow until advice scores release (100% paid at score ≥ 50, 50% at 30–49, refunded below 30).",
   DECLINE: "Declined.",
   WITHDRAW: "Offer withdrawn.",
 };
