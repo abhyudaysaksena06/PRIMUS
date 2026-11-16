@@ -37,6 +37,9 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
   const p = data.profiles.get(f.team_id);
   const rank = data.firms.findIndex((x) => x.team_id === f.team_id) + 1;
   const k = currentSubround(ctx.status.phase, data.subrounds);
+  const openOffersCount = k !== null && mine
+  ? data.offers.filter((o) => o.company_id === mine.id && o.k === k && o.status === "OPEN").length
+  : 0;
   const nowMs = new Date(ctx.status.server_time).getTime();
   const hiring = hiringOpen(k, ctx.status.phase, data.deadlines, nowMs, pauseOf(ctx));
   const isMe = f.team_id === ctx.team.id;
@@ -148,6 +151,11 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
               </Link>
             </div>
           ) : null}
+          {mine && k !== null && hiring && !hiredNow ? (
+            <div className="mb-3 flex items-center justify-between text-xs font-mono text-muted">
+              <span>{openOffersCount} of {RULES.MAX_OPEN_OFFERS} offers open</span>
+            </div>
+          ) : null}
           {!mine ? (
             <Notice>Your company appears here once it is listed.</Notice>
           ) : k === null ? (
@@ -162,11 +170,15 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
             <Notice tone="red">This firm already has {FIRM_CLIENTS_PER_SUBROUND} clients this sub-round. Pick another firm.</Notice>
           ) : openOffer ? (
             <Notice tone="amber">Your offer to this firm is open: see it below. The firm can accept, decline or counter.</Notice>
+          ) : openOffersCount >= RULES.MAX_OPEN_OFFERS ? (
+            <Notice tone="amber">
+              You have {openOffersCount} of {RULES.MAX_OPEN_OFFERS} offers open. Withdraw or wait for one to close before sending another.
+            </Notice>
           ) : (
             <>
               <p className="mb-3 text-sm text-paper">
                 Offer {f.code} cash, shares or both. The firm can accept, decline or counter; each side counters at most three times. Accepting is binding: the
-                cash goes into escrow and is paid to the firm at the due time if its memo is in. Hiring closes at {clock(stepAt(data.deadlines, "HIRE", k))}.
+                cash goes into escrow until advice scores release (100% paid at score ≥ {RULES.ESCROW_FULL_SCORE}, 50% at {RULES.ESCROW_HALF_SCORE}–{RULES.ESCROW_FULL_SCORE - 1}, refunded below {RULES.ESCROW_HALF_SCORE}; advice memos require at least {RULES.ADVICE_MIN_WORDS} words). Hiring closes at {clock(stepAt(data.deadlines, "HIRE", k))}.
                 {band ? ` In Round 3 the fee must be worth ${money(band.min)}–${money(band.max)} (5–20% of your cash).` : ""}
               </p>
               <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit={`Send offer to ${f.code}`} resetOnSuccess>

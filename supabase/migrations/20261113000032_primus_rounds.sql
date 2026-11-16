@@ -495,7 +495,7 @@ returns void
 language plpgsql
 as $$
 begin
-  null;
+  perform app.settle_engagements(p_event, p_k);
 end
 $$;
 revoke all on function app.after_advice_release(uuid, int) from public, anon, authenticated;

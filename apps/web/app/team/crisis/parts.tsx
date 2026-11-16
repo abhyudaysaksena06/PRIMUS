@@ -278,6 +278,11 @@ export function OfferCard({ offer, side, hiring, counterpart }: { offer: OfferRo
         <span className="ml-auto font-mono text-xs text-muted">{clock(offer.updated_at)}</span>
       </div>
       {offer.note ? <p className="mt-1 whitespace-pre-wrap text-sm text-paper">“{offer.note}”</p> : null}
+      {offer.status === "OPEN" ? (
+        <p className="mt-1.5 text-xs text-muted">
+          Escrow rules: Advice memo requires at least {RULES.ADVICE_MIN_WORDS} words. At score release, 100% pays out at score ≥ {RULES.ESCROW_FULL_SCORE}, 50% at {RULES.ESCROW_HALF_SCORE}–{RULES.ESCROW_FULL_SCORE - 1}, and the rest refunds below {RULES.ESCROW_HALF_SCORE}.
+        </p>
+      ) : null}
       {moves.length ? (
         <div className="mt-2 flex flex-wrap items-start gap-2">
           {moves.includes("ACCEPT") ? (
