@@ -1,8 +1,10 @@
-"""Builds book.html: every PRIMUS problem statement and crisis card, in detail, for the game's three sectors (Luxury,
-FMCG, Energy) and two extra sectors (Aviation, Fintech) that are not in the upload files.
+"""Builds book.html: every PRIMUS problem statement and crisis card, in detail, for the game's sectors (today FMCG,
+Aviation and Luxury), optionally with extra sectors from the library.
 
 The card texts are read from the game's own files (seed/sectors/*.csv and prompts/MEMO.md), so the book always says
-exactly what teams see on screen. Usage: python3 -I build.py <repo root> <sector content .py> <out.html>
+exactly what teams see on screen. The game's sectors are whatever seed/sectors holds (pnpm sectors --pick …); extra
+sectors from seed/sectors/all can be added as a fourth argument (e.g. Energy,Fintech).
+Usage: python3 -I build.py <repo root> <sector content .py> <out.html> [extra sectors]
 """
 import csv
 import html
@@ -12,6 +14,7 @@ import sys
 from pathlib import Path
 
 ROOT, CONTENT, OUT = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
+EXTRAS = [x.strip() for x in sys.argv[4].split(",") if x.strip()] if len(sys.argv) > 4 else []
 HERE = Path(__file__).resolve().parent
 
 
@@ -37,34 +40,45 @@ context = {s["name"]: s for s in book.SECTORS}
 COLOUR = {"Luxury": ("#6d28d9", "#f4effe", "#e6dbfb"), "FMCG": ("#15803d", "#edf8f1", "#d3eedd"), "Energy": ("#b45309", "#fdf6e8", "#f6e4c2"),
           "Aviation": ("#0369a1", "#eaf4fb", "#cfe6f5"), "Fintech": ("#be185d", "#fdf0f6", "#f7d6e5")}
 CATEGORY = {"Operations": "#c2410c", "Market": "#1d4ed8", "Trust": "#be123c", "Money": "#4d7c0f"}
-SQUADS = {"Luxury": 17, "FMCG": 17, "Energy": 16}
+all_crises = list(csv.DictReader(open(ROOT / "seed/sectors/all/crisis-cards.csv", encoding="utf-8")))
+all_statements = list(csv.DictReader(open(ROOT / "seed/sectors/all/statements.csv", encoding="utf-8")))
+# The guidance for a Round 3 statement is kept by its number in the five-sector library; a game's files number them
+# again, so it is found by title.
+LIB_NO = {(x["sector"], x["title"]): int(x["number"]) for x in all_statements}
 
-assert [p["sector"] for p in problems] == ["Luxury", "FMCG", "Energy"], "problem deck order changed"
-assert len(crises) == 12 and len(statements) == 30, "deck sizes changed"
+IN_GAME = [p["sector"] for p in problems]
+N = len(IN_GAME)
+# The lottery splits 50 squads as equally as it can, the first sectors taking the extra squads.
+SQUADS = {name: 50 // N + (1 if i < 50 % N else 0) for i, name in enumerate(IN_GAME)}
+assert len(crises) == 4 * N and len(statements) == 10 * N, "deck sizes changed"
 
-# The game's three sectors come from the upload files; Aviation and Fintech from the case book, with their Round 3
-# statements numbered on from the game's 30.
 sectors_out = [{"name": p["sector"], "in_game": True, "problem": p,
                 "crises": [x for x in crises if x["sector"] == p["sector"]],
                 "statements": [x for x in statements if x["sector"] == p["sector"]]} for p in problems]
-next_no = 31
-all_crises = list(csv.DictReader(open(ROOT / "seed/sectors/all/crisis-cards.csv", encoding="utf-8")))
-all_statements = list(csv.DictReader(open(ROOT / "seed/sectors/all/statements.csv", encoding="utf-8")))
-for name in ("Aviation", "Fintech"):
-    cx = context[SECTOR_KEY[name]]
+all_problems = {p["sector"]: p for p in csv.DictReader(open(ROOT / "seed/sectors/all/problem-cards.csv", encoding="utf-8"))}
+for name in EXTRAS:
+    assert name in all_problems and name not in IN_GAME, name
     sectors_out.append({
         "name": name, "in_game": False,
-        "problem": {"number": None, "title": cx["title"], "body": cx["problem"]},
+        "problem": {"number": None, "title": all_problems[name]["title"], "body": all_problems[name]["body"]},
         "crises": [x for x in all_crises if x["sector"] == name],
         "statements": [x for x in all_statements if x["sector"] == name],
     })
-    next_no += 10
 for sec in sectors_out:
     assert len(sec["crises"]) == 4 and len(sec["statements"]) == 10, sec["name"]
     for c in sec["crises"]:
         assert (sec["name"], int(c["number"])) in details.CRISES, c
     for st in sec["statements"]:
-        assert int(st["number"]) in details.STATEMENTS, st
+        assert LIB_NO.get((sec["name"], st["title"])) in details.STATEMENTS, st
+
+
+def and_list(names):
+    names = list(names)
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+
+
+GAME = and_list(IN_GAME)
+SPLIT = and_list(f"{SQUADS[n]} {n}" for n in IN_GAME)
 
 CSS = """
 table.stmt td:nth-child(2) { width: 56%; }
@@ -137,7 +151,7 @@ thead { display: table-header-group; }
 def onscreen(sector, tag, title, body):
     c, bg, _ = COLOUR[sector]
     return (f'<div class="onscreen" style="--c:{c};--bg:{bg}"><span class="tag">{e(tag)}</span>'
-            f'<div class="title">{e(title)}</div><div>{e(body)}</div></div>')
+            f'<div class="title">{e(title)}</div><div>{e(body).replace(chr(10) * 2, "<br><br>")}</div></div>')
 
 
 def lower_first(text):
@@ -158,31 +172,33 @@ def rubric(rows):
 out = [f'<!doctype html><html><head><meta charset="utf-8"><title>PRIMUS · Problem statements and crises</title><style>{CSS}</style></head><body>']
 
 # ───────────── Cover ─────────────
-chips = "".join(f'<span class="chip" style="background:{COLOUR[s][0]}">{s}</span>' for s in ("Luxury", "FMCG", "Energy")) + \
-    '<span class="chips-sep">extra:</span>' + "".join(
-    f'<span class="chip" style="background:#fff;color:{COLOUR[s][0]};border:2px solid {COLOUR[s][0]};padding:3px 10px">{s}</span>'
-    for s in ("Aviation", "Fintech"))
+chips = "".join(f'<span class="chip" style="background:{COLOUR[s][0]}">{s}</span>' for s in IN_GAME) + (
+    ('<span class="chips-sep">extra:</span>' + "".join(
+        f'<span class="chip" style="background:#fff;color:{COLOUR[s][0]};border:2px solid {COLOUR[s][0]};padding:3px 10px">{s}</span>'
+        for s in EXTRAS)) if EXTRAS else "")
+n_all = len(sectors_out)
+extra_note = (f" <b>{e(and_list(EXTRAS))}</b> {'is an extra sector' if len(EXTRAS) == 1 else 'are extra sectors'} with the same parts; "
+              "their texts are marked <b>Card text</b>, because they are not in the files uploaded for the night "
+              "(<span class=\"small\">seed/sectors/all</span> holds every sector).") if EXTRAS else ""
 out.append(f"""
 <section class="cover">
-  <div class="kicker">PRIMUS · Market simulation</div>
+  <div class="kicker">PRIMUS 2026 · Market simulation · Product track</div>
   <h1>Problem statements<br>and crises</h1>
-  <div class="sub">Every problem statement and crisis card in the game, and two extra sectors, in detail: what each one asks
-  of the teams and how the answers are judged.</div>
+  <div class="sub">{e(GAME)}: every problem statement, crisis card and Round 3 problem in the game, in detail. What each one
+  asks of the teams, what a strong answer covers, and how it is judged.</div>
   <div class="chips">{chips}</div>
   <div class="stats">
-    <div class="stat"><b>5</b><span>Round 1 problem statements: the game's 3 sectors and 2 extra</span></div>
+    <div class="stat"><b>{n_all}</b><span>Round 1 problem statements, one per sector</span></div>
     <div class="stat"><b>1</b><span>Round 1 consulting case, the same for every firm</span></div>
-    <div class="stat"><b>20</b><span>Round 2 crisis cards, four per sector</span></div>
-    <div class="stat"><b>50</b><span>Round 3 problem statements, ten per sector</span></div>
+    <div class="stat"><b>{4 * n_all}</b><span>Round 2 crisis cards, four per sector, each with a twist</span></div>
+    <div class="stat"><b>{10 * n_all}</b><span>Round 3 problem statements, ten per sector, each a client brief</span></div>
   </div>
-  <div class="box"><b>How to read this book.</b> <b>Luxury, FMCG and Energy</b> are the game's three sectors: text marked
-  <b>On screen</b> is exactly what teams see (it comes from the files the organisers upload: <span class="small">seed/sectors/problem-cards.csv,
-  crisis-cards.csv and statements.csv</span>). <b>Aviation and Fintech</b> are two extra sectors with the same parts; their
-  texts are marked <b>Card text</b>, because they are not in the three-sector files uploaded today. They are ready to play:
-  <span class="small">seed/sectors/all</span> holds all five sectors, and <span class="small">pnpm sectors</span> writes the files for any mix. Everything around the cards is guidance for
-  organisers, judges and mentors: what each card means, what a strong answer covers and what moves the market.</div>
+  <div class="box"><b>How to read this book.</b> <b>{e(GAME)}</b> are the game's sectors: text marked <b>On screen</b> is
+  exactly what teams see (it comes from the files the organisers upload: <span class="small">seed/sectors/problem-cards.csv,
+  crisis-cards.csv and statements.csv</span>).{extra_note} Everything around the cards is guidance for organisers, judges
+  and mentors: what each card means, what a strong answer covers and what moves the market.</div>
   <div class="note"><b>Fairness.</b> {e(book.INTRO["fairness"])}</div>
-  <div class="foot">PRIMUS · Problem statements and crises · In the game: Luxury, FMCG and Energy · Extra: Aviation and Fintech · November 2026</div>
+  <div class="foot">PRIMUS 2026 · Problem statements and crises · {e(GAME)} · November 2026</div>
 </section>""")
 
 # ───────────── Contents and how the night uses them ─────────────
@@ -191,29 +207,21 @@ out.append("""
   <h2>Contents</h2>
   <ol class="toc">
     <li>How the night uses the statements and crises</li>
-    <li>Round 1 · The consulting case: Kaveri Fresh</li>
-    <li>Luxury: the problem statement, four crises, spare cards and ten Round 3 statements</li>
-    <li>FMCG: the problem statement, four crises, spare cards and ten Round 3 statements</li>
-    <li>Energy: the problem statement, four crises, spare cards and ten Round 3 statements</li>
-    <li>Aviation (extra sector): the problem statement, four crises, spare cards and ten Round 3 statements</li>
-    <li>Fintech (extra sector): the problem statement, four crises, spare cards and ten Round 3 statements</li>
+    <li>Round 1 · The consulting case: ElevenLabs, winning India's voices</li>
+""" + "".join(f"<li>{e(sec['name'])}{'' if sec['in_game'] else ' (extra sector)'}: the problem statement, four crises with their twists, spare cards and ten Round 3 statements</li>" for sec in sectors_out) + """
     <li>Appendix A · How every answer is judged (the rubrics)</li>
     <li>Appendix B · Organiser checklist</li>
   </ol>
   <h2 style="margin-top:18px">1 · How the night uses them</h2>
   <p>PRIMUS has three tracks. <b>Product</b> teams build a startup inside their sector and run it as a listed company.
   <b>Consulting</b> teams are firms that companies hire for advice. <b>Finance</b> teams are funds that invest in the companies
-  and trade their shares. At the squad draw the lottery gives every squad one of the three sectors, in equal shares
-  (17 Luxury, 17 FMCG and 16 Energy for 50 squads), and the squad keeps that sector all night.</p>
-  <p>Sections 6 and 7 add two extra sectors, <b>Aviation</b> and <b>Fintech</b>, with the same parts. They are not in the
-  three-sector files uploaded today, but they are ready to play: the platform takes 2 to 6 sectors, <b>seed/sectors/all</b>
-  holds all five (10 squads each), and <b>pnpm sectors --pick Luxury,FMCG,Aviation</b> writes the three upload files for any
-  mix, for example Aviation instead of Energy.</p>
+  and trade their shares. At the squad draw the lottery gives every squad one of the """ + str(N) + """ sectors, in equal shares
+  (""" + e(SPLIT) + """ for 50 squads), and the squad keeps that sector all night.</p>
   <table>
     <tr><th style="width:13%">Time</th><th style="width:17%">Round</th><th>What happens</th><th style="width:27%">What it moves</th></tr>
     <tr><td>21:00</td><td>Squad draw</td><td>Each squad's sector is drawn and its problem card is set.</td><td>Who competes with whom all night</td></tr>
     <tr><td>21:00–22:00</td><td>Round 1 · Foundation</td><td><b>Product</b> writes a PRD for a startup inside its sector's problem
-      statement (800 words, 7 sections). <b>Consulting</b> writes a memo on the Kaveri Fresh case (500 words, 6 sections).</td>
+      statement (800 words, 7 sections). <b>Consulting</b> writes a memo on the ElevenLabs case (500 words, 6 sections).</td>
       <td>The PRD score sets the IPO price; the memo score sets the firm's opening reputation and a bonus</td></tr>
     <tr><td>by 22:30</td><td>Round 1</td><td><b>Consulting</b> makes Call 1: BUY or SELL on each of its two companies.
       <b>Finance</b> reads the PRDs and bids in the IPO (until 22:45).</td><td>$2,500 per correct call; the opening share register</td></tr>
@@ -247,33 +255,40 @@ out.append("""
 # ───────────── The consulting case ─────────────
 out.append(f"""
 <section class="page">
-  <h2>2 · Round 1 · The consulting case: Kaveri Fresh</h2>
+  <h2>2 · Round 1 · The consulting case: ElevenLabs</h2>
   <p>Every Consulting firm, whatever its squad's sector, writes a recommendation memo on this one case, by 22:00. Because the
   case is the same for everyone, the memo score is a fair first measure of each firm, and it sets the reputation companies
   see when they hire in Round 2.</p>
   <div class="onscreen" style="--c:#334155;--bg:#f3f5f8"><span class="tag">On screen · the case</span>
-    <div class="title">Kaveri Fresh: the cold room is gone</div><div>{e(case)}</div></div>
+    <div class="title">ElevenLabs: winning India's voices</div><div>{e(case).replace(chr(10) * 2, "<br><br>")}</div></div>
   <h3>The facts at a glance</h3>
   <table class="kpi">
-    <tr><td>The business</td><td>Bengaluru start-up delivering fruit and vegetables from 40 farms to 220 restaurants; 35 staff.</td></tr>
-    <tr><td>Money</td><td>₹1.2 crore in the bank; ₹18 lakh a month gross profit on ₹1.5 crore of sales.</td></tr>
-    <tr><td>What happened</td><td>On Monday its only cold-storage partner, holding 60% of its stock overnight, shut after a fire.</td></tr>
-    <tr><td>Without a cold room</td><td>Only a day's stock fits in its six refrigerated vans, and about a third of what it buys spoils.</td></tr>
-    <tr><td>Customers at risk</td><td>Two of its five largest customers, 30% of sales together, will switch if deliveries are late a second week.</td></tr>
-    <tr><td>Options in the case</td><td>Its own cold room: ₹45 lakh and three months to build. Rented space: about twice the old rate, and 25 km further from the city.</td></tr>
-    <tr><td>Deadline</td><td>The founders want one recommendation by Friday.</td></tr>
+    <tr><td>The company</td><td>ElevenLabs, the AI voice company: text to speech, dubbing into other languages, voice agents that answer calls.</td></tr>
+    <tr><td>India so far</td><td>Hindi and eight other Indian languages launched six months ago; ₹8 crore a year of revenue, mostly from 300 business customers.</td></tr>
+    <tr><td>Individuals</td><td>4 lakh signed up, but only 1.2% pay (4% in other markets): dollar prices feel expensive and a local rival is free with ads.</td></tr>
+    <tr><td>Budget and target</td><td>A team of 25 with ₹20 crore to spend this year; the board wants ₹30 crore a year from India within 12 months, or India is scaled back.</td></tr>
+    <tr><td>Offer A · ed-tech</td><td>₹6 crore a year to dub 10,000 hours of lessons into 6 languages, if ElevenLabs serves no other ed-tech company and keeps all data in India (education is 40% of today's India revenue).</td></tr>
+    <tr><td>Offer B · telecom</td><td>₹12 crore a year guaranteed to offer a basic voice plan to 5 crore subscribers, under the telecom's own name.</td></tr>
+    <tr><td>Offer C · price cut</td><td>Indian plans at ₹199 a month, in the hope that many more individuals pay.</td></tr>
+    <tr><td>Trust</td><td>A state election in four months; the press asks how cloned voices of politicians will be stopped; rules on labelling AI voices are being drafted.</td></tr>
+    <tr><td>Deadline</td><td>One recommendation by Friday, including how ElevenLabs handles voice cloning.</td></tr>
   </table>
+  <p class="small muted">The case is hypothetical: the numbers and offers are invented for the game and are not ElevenLabs' real figures or plans.</p>
   <p><b>The memo (500 words) has six sections:</b> diagnosis · options and trade-offs · recommendation · the numbers · risks ·
   next steps. The judge scores them out of 25, 20, 20, 15, 10 and 10 (Appendix A).</p>
   <h3>What a strong memo does</h3>
   <ul>
-    <li><b>Diagnosis:</b> names the root cause (one storage partner and no backup) and what it costs each week: the spoilage,
-      and the two customers bringing 30% of sales, about ₹45 lakh of a ₹1.5 crore month.</li>
-    <li><b>Options:</b> compares at least two options on cost, time and risk, and pairs a short-term bridge (this week) with the
-      long-term fix (the next three months).</li>
-    <li><b>Recommendation:</b> makes one clear choice that follows from the analysis, and says what it gives up and why that is acceptable.</li>
-    <li><b>Numbers:</b> works out the costs and the money at risk correctly, and checks that the plan fits ₹1.2 crore of cash.</li>
-    <li><b>Risks and next steps:</b> a plan for each main risk, and this week's actions with owners and dates.</li>
+    <li><b>Diagnosis:</b> names the gap (₹8 crore today against ₹30 crore in 12 months) and the root cause: a product priced and
+      branded for other markets, with trust in AI voices at risk in an election season.</li>
+    <li><b>Options:</b> works out what each offer is worth and costs: A brings ₹6 crore but closes the rest of education
+      (40% of today's revenue); B brings ₹12 crore guaranteed but hides the brand and the users; C's value depends on how many more
+      individuals pay (at ₹199 a month, every 1% of 4 lakh users paying is about ₹96 lakh a year).</li>
+    <li><b>Recommendation:</b> one clear path, possibly a combination, that can plausibly reach ₹30 crore within ₹20 crore, and
+      says what it gives up and why.</li>
+    <li><b>Voice cloning:</b> a concrete safeguard before the election (consent checks, labels or watermarks, blocking
+      politicians' voices, a fast takedown) and how it fits the coming rules.</li>
+    <li><b>Numbers, risks and next steps:</b> the path to the target month by month, a plan for each main risk, and this
+      week's actions with owners and dates.</li>
   </ul>
   <p class="muted small">The standard is what a strong student team can write in under an hour.</p>
 </section>""")
@@ -289,7 +304,7 @@ for n, sec in enumerate(sectors_out, start=3):
     out.append(f'<section class="page" style="--c:{c};--bg:{bg}">')
     if in_game:
         out.append(f'<div class="band"><div class="kick">Section {n} · Sector</div><div class="name">{e(sector)}</div>'
-                   f'<div class="meta">{e(prob["title"])} · problem card {e(prob["number"])} of 3 · about {SQUADS[sector]} squads of 50</div></div>')
+                   f'<div class="meta">{e(prob["title"])} · problem card {e(prob["number"])} of {N} · about {SQUADS[sector]} squads of 50</div></div>')
     else:
         out.append(f'<div class="band"><div class="kick">Section {n} · Extra sector</div><div class="name">{e(sector)}</div>'
                    f'<div class="meta">{e(prob["title"])} · ready to play: seed/sectors/all, or pnpm sectors for any mix</div></div>')
@@ -344,7 +359,7 @@ for n, sec in enumerate(sectors_out, start=3):
         brief = "".join(f'<div class="small" style="font-weight:normal;margin-top:2px"><b>{e(line.split(": ", 1)[0])}:</b> {e(line.split(": ", 1)[1])}</div>'
                         for line in s.get("body", "").split("\n") if ": " in line and not line.startswith(sector))
         out.append(f'<tr><td>{e(s["number"])}</td><td><b>{e(s["title"])}</b>{brief}<div class="small muted" style="font-weight:normal">'
-                   f'Up to {e(s["cap"])} companies</div></td><td>{e(details.STATEMENTS[int(s["number"])])}</td></tr>')
+                   f'Up to {e(s["cap"])} companies</div></td><td>{e(details.STATEMENTS[LIB_NO[(sector, s["title"])]])}</td></tr>')
     out.append('</table>')
     out.append('<h3>What Finance teams should watch in this sector</h3><table><tr><th style="width:30%">Signal</th><th>Why</th></tr>'
                + "".join(f"<tr><td><b>{e(a)}</b></td><td>{e(b)}</td></tr>" for a, b in ctx["finance"]) + "</table>")
@@ -363,7 +378,7 @@ out.append('<h3>Round 1 · The PRD (Product, 800 words)</h3>' + rubric([
     ("Clarity", "A PRD that is well organised, specific and easy to act on, with no filler", 15),
 ]))
 out.append('<h3>Round 1 · The consulting memo (Consulting, 500 words)</h3>' + rubric([
-    ("Diagnosis", "What went wrong, why it matters and what it costs Kaveri each week, using the case's facts", 25),
+    ("Diagnosis", "The real problem, why it matters and what is at stake for ElevenLabs in India, using the case's facts", 25),
     ("Options", "Two or more real options, with what each one costs, gains and risks", 20),
     ("Recommendation", "One clear choice that follows from the diagnosis and options, with the reason", 20),
     ("Numbers", "Costs, revenue at risk, cash and timing that are correct and add up", 15),
@@ -405,7 +420,7 @@ out.append("""
 <section class="page"><h2>Appendix B · Organiser checklist</h2>
 <h3>Before the squad draw</h3>
 <table class="kpi">
-  <tr><td>Problem deck</td><td>Upload <b>problem-cards.csv</b> on the Content page (3 cards, one per sector). The lottery splits the squads equally between the sectors.</td></tr>
+  <tr><td>Problem deck</td><td>Upload <b>problem-cards.csv</b> on the Content page (""" + str(N) + """ cards, one per sector). The lottery splits the squads equally between the sectors.</td></tr>
   <tr><td>Crisis deck</td><td>Upload <b>crisis-cards.csv</b> (4 cards per sector, numbered 1–4: Operations, Market, Trust, Money). Both decks lock at the draw.</td></tr>
   <tr><td>Check the numbers</td><td>Every number on the crisis cards is invented for the game. Read each card once more before the night.</td></tr>
   <tr><td>Round 3 statements</td><td>Upload <b>statements.csv</b> (10 per sector, cap 5 each) before Round 3 starts at 04:45; the draft starts once they are in. They can be replaced until the first pick.</td></tr>
@@ -420,12 +435,12 @@ out.append("""
 <h3>The files</h3>
 <table>
   <tr><th style="width:30%">File</th><th>What it holds</th></tr>
-  <tr><td>seed/sectors/problem-cards.csv</td><td>The three Round 1 problem statements (sections 3–5 of this book)</td></tr>
-  <tr><td>seed/sectors/crisis-cards.csv</td><td>The twelve Round 2 crisis cards</td></tr>
-  <tr><td>seed/sectors/statements.csv</td><td>The thirty Round 3 statements</td></tr>
-  <tr><td>prompts/MEMO.md</td><td>The Kaveri Fresh case and the memo rubric</td></tr>
-  <tr><td>seed/sectors/all/</td><td>The same three files with all five sectors: 5 problem cards, 20 crisis cards and 50 statements (sections 3–7 of this book)</td></tr>
-  <tr><td>pnpm sectors --pick Luxury,FMCG,Aviation</td><td>Writes the three files for any mix of 2 to 6 sectors into out/sectors/…, checked with the Content page's own rules</td></tr>
+  <tr><td>seed/sectors/problem-cards.csv</td><td>The Round 1 problem statements, one per sector (""" + e(GAME) + """)</td></tr>
+  <tr><td>seed/sectors/crisis-cards.csv</td><td>The Round 2 crisis cards, four per sector</td></tr>
+  <tr><td>seed/sectors/statements.csv</td><td>The Round 3 statements, ten per sector</td></tr>
+  <tr><td>prompts/MEMO.md</td><td>The ElevenLabs case and the memo rubric</td></tr>
+  <tr><td>seed/sectors/all/</td><td>The same three files with every sector in the library (FMCG, Aviation, Luxury, Energy, Fintech)</td></tr>
+  <tr><td>pnpm sectors --pick FMCG,Aviation,Luxury</td><td>Writes the three files for any mix of 2 to 6 sectors into out/sectors/…, checked with the Content page's own rules</td></tr>
 </table>
 </section>""")
 
