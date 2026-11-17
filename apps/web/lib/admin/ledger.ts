@@ -42,7 +42,7 @@ export const LEDGER_KIND_LABELS: Record<LedgerKind, string> = {
   BONUS_DEAL: "Deal bonus",
   CALL_EARNINGS: "Call earnings",
   CORRECTION: "Correction",
-  PRACTICE: "Practice market result",
+  PRACTICE: "Practice market prize",
   INJECTION: "Round 3 money",
 };
 

@@ -17,8 +17,9 @@ export const metadata: Metadata = { title: "Practice market" };
 const tone = (n: number) => (n > 0 ? "text-phosphor" : n < 0 ? "text-danger-soft" : "");
 
 // The Round 1 practice market (PRIMUS): each fund trades $60,000 on six made-up companies while the PRDs are written
-// and read. Prices move every few seconds and with the news; orders fill at once. It closes when the IPO opens, and the
-// result is added to the fund's cash when Round 2 starts. The page re-reads itself every few seconds while it is open.
+// and read. Prices move every few seconds and with the news; orders fill at once. It closes when the IPO opens. The
+// practice money stays here; when Round 2 starts the 3 funds worth the most win a prize in their fund cash. The page
+// re-reads itself every few seconds while it is open.
 export default async function PracticePage() {
   const ctx = await loadTeamContext();
   if (!sectionAllowed(ctx.team.track, "/practice")) {
@@ -40,8 +41,8 @@ export default async function PracticePage() {
   if (state === "NOT_YET" || data.stocks.length === 0) {
     return (
       <Notice tone="blue">
-        The practice market opens when Round 1 starts. Your fund gets {money(RULES.PRACTICE_CASH)} to trade six made-up companies until the IPO opens. Whatever
-        it is worth at the end is added to your fund cash when Round 2 starts.
+        The practice market opens when Round 1 starts. Your fund gets {money(RULES.PRACTICE_CASH)} to trade six made-up companies until the IPO opens. The{" "}
+        {RULES.PRACTICE_WINNERS} funds worth the most at the close win {money(RULES.PRACTICE_PRIZE)} each for Round 2.
       </Notice>
     );
   }
@@ -60,19 +61,21 @@ export default async function PracticePage() {
       {state === "OPEN" ? (
         <Notice tone="green">
           Practice market is <b>open</b>: buy and sell at the current price; orders fill at once. Prices move every few seconds and with the news. It closes
-          when the IPO opens, and your result is added to your fund cash when Round 2 starts.
+          when the IPO opens. The practice money stays here, but the {RULES.PRACTICE_WINNERS} funds worth the most at the close win{" "}
+          {money(RULES.PRACTICE_PRIZE)} each in their fund cash when Round 2 starts (you must make at least one trade).
         </Notice>
       ) : state === "CLOSED" ? (
         <Notice tone="amber">
-          The practice market is closed. Your holdings are valued at the last prices, and the total ({money(totals.value)}) is added to your fund cash when
-          Round 2 starts.
+          The practice market is closed. Your holdings are valued at the last prices ({money(totals.value)} in all). The {RULES.PRACTICE_WINNERS} funds worth
+          the most win {money(RULES.PRACTICE_PRIZE)} each when Round 2 starts.
         </Notice>
       ) : (
         <Notice tone="green">
           <span data-testid="practice-settled">
-            Settled
-            {data.account?.settledAt ? ` at ${clock(data.account.settledAt)}` : ""}: {money(finalValue ?? 0)} from the practice market was added to your fund
-            cash ({signedMoney((finalValue ?? 0) - start)} on the {money(start)} you were given). It counts in your final return.
+            The practice market is over: you finished at {money(finalValue ?? 0)} ({signedMoney((finalValue ?? 0) - start)} on {money(start)}).{" "}
+            {data.account?.rank
+              ? `You placed #${data.account.rank}: ${money(data.account.prize)} was added to your fund cash${data.account.settledAt ? ` at ${clock(data.account.settledAt)}` : ""}.`
+              : `Only the top ${RULES.PRACTICE_WINNERS} funds won a prize; the practice money stays in the practice market.`}
           </span>
         </Notice>
       )}

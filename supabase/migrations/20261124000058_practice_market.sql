@@ -6,14 +6,15 @@
 -- few steps, so a fund that reads the news can profit. Orders fill at once at the current price (BUY and SELL only;
 -- no shorts, no fees). The market closes when the IPO opens; open positions are valued at the last prices.
 --
--- When Round 2 starts (PRESSURE), each fund's practice result (cash plus holdings at the last prices) is added to its
--- fund cash, on top of the $500,000 it was given. The $60,000 counts as money the fund was given, so its Round 1
--- profit or loss counts in its final return.
+-- The practice money stays in the practice market: it is never added to the fund. When Round 2 starts (PRESSURE), the
+-- funds are ranked by their practice result (cash plus holdings at the last prices; only funds that traded at least
+-- once; ties to the lower team code), and the top 3 each receive a $50,000 prize in their fund cash. The prize is not
+-- capital received, so it counts as gain in the final return.
 --
 --   public.practice_stocks / practice_prices / practice_news   the simulated market (every team of the event reads it)
 --   public.practice_accounts / practice_holdings / practice_trades   each fund's own (the fund and staff read them)
 --   public.practice_trade(stock, side, qty)   a fund's order
---   app.practice_tick(event)   from the heartbeat: opens the accounts, moves the prices, settles into Round 2
+--   app.practice_tick(event)   from the heartbeat: opens the accounts, moves the prices, pays the top 3 in Round 2
 --
 -- events.practice_enabled turns it off for an event (set it to false before BUILD).
 
@@ -68,6 +69,8 @@ create table if not exists public.practice_accounts (
   grant_cents bigint not null,
   cash_cents bigint not null check (cash_cents >= 0),
   final_value_cents bigint,
+  rank integer,         -- 1–3 for the prize winners
+  prize_cents bigint not null default 0,
   settled_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -118,9 +121,13 @@ revoke all on public.practice_stocks, public.practice_prices, public.practice_ne
 grant select on public.practice_stocks, public.practice_prices, public.practice_news, public.practice_accounts,
   public.practice_holdings, public.practice_trades to authenticated;
 
--- The money each fund gets for the practice market.
+-- The money each fund gets for the practice market, the prize for each of the top funds, and how many win it.
 create or replace function app.practice_grant()
 returns bigint language sql immutable as $$ select 6000000::bigint $$; -- $60,000
+create or replace function app.practice_prize()
+returns bigint language sql immutable as $$ select 5000000::bigint $$; -- $50,000
+create or replace function app.practice_winners()
+returns integer language sql immutable as $$ select 3 $$;
 
 -- Is the practice market open for trading now?
 create or replace function app.practice_open(p_event public.events)
@@ -224,7 +231,8 @@ begin
 end
 $$;
 
--- Round 2 has started: every fund's practice result (cash plus holdings at the last prices) goes into its fund cash.
+-- Round 2 has started: every practice account is valued at the last prices, and the top 3 funds (that traded at
+-- least once) each receive the prize in their fund cash, paid by the exchange.
 create or replace function app.practice_settle(p_event uuid)
 returns integer
 language plpgsql
@@ -233,6 +241,7 @@ declare
   v_txn uuid := gen_random_uuid();
   v_total bigint;
   v_n int;
+  v_list text;
 begin
   update public.practice_accounts a set
       final_value_cents = a.cash_cents + coalesce((
@@ -241,28 +250,38 @@ begin
       settled_at = now()
    where a.event_id = p_event and a.settled_at is null;
   get diagnostics v_n = row_count;
-  select coalesce(sum(final_value_cents), 0) into v_total from public.practice_accounts
-   where event_id = p_event and settled_at = now();
+  update public.practice_accounts a set rank = r.n, prize_cents = app.practice_prize()
+    from (select a2.team_id, row_number() over (order by a2.final_value_cents desc, t.code collate "C") as n
+            from public.practice_accounts a2 join public.teams t on t.id = a2.team_id
+           where a2.event_id = p_event and a2.settled_at = now()
+             and exists (select 1 from public.practice_trades x where x.team_id = a2.team_id)) r
+   where a.team_id = r.team_id and r.n <= app.practice_winners();
+  select coalesce(sum(prize_cents), 0) into v_total from public.practice_accounts
+   where event_id = p_event and settled_at = now() and rank is not null;
   if v_total > 0 then
     insert into public.ledger_entries (event_id, txn_id, kind, team_id, cash_delta_cents, memo)
-    select p_event, v_txn, 'PRACTICE', a.team_id, a.final_value_cents,
-           'Round 1 practice market result (from ' || to_char(a.grant_cents / 100.0, 'FM$999,999,990') || ')'
-      from public.practice_accounts a where a.event_id = p_event and a.settled_at = now() and a.final_value_cents > 0;
+    select p_event, v_txn, 'PRACTICE', a.team_id, a.prize_cents, 'Practice market prize: #' || a.rank
+      from public.practice_accounts a where a.event_id = p_event and a.settled_at = now() and a.rank is not null;
     insert into public.ledger_entries (event_id, txn_id, kind, team_id, cash_delta_cents, memo)
     values (p_event, v_txn, 'PRACTICE', null, -v_total, 'Paid by the exchange');
-    update public.teams t set cash_cents = t.cash_cents + a.final_value_cents
+    update public.teams t set cash_cents = t.cash_cents + a.prize_cents
       from public.practice_accounts a
-     where a.team_id = t.id and a.event_id = p_event and a.settled_at = now() and a.final_value_cents > 0;
+     where a.team_id = t.id and a.event_id = p_event and a.settled_at = now() and a.rank is not null;
     update public.events set exchange_cash_cents = exchange_cash_cents - v_total where id = p_event;
     insert into public.public_ledger (event_id, txn_id, kind, label, cash_cents)
-    values (p_event, v_txn, 'PRACTICE', 'Round 2: every fund''s practice market result was added to its cash', v_total);
+    values (p_event, v_txn, 'PRACTICE', 'Practice market prizes for the top funds', v_total);
   end if;
   update public.events set practice_settled_at = now() where id = p_event;
   if v_n > 0 then
+    select string_agg(a.rank || '. ' || t.name || ' (' || to_char(a.final_value_cents / 100.0, 'FM$999,999,990') || ')', ', ' order by a.rank)
+      into v_list
+      from public.practice_accounts a join public.teams t on t.id = a.team_id
+     where a.event_id = p_event and a.settled_at = now() and a.rank is not null;
     insert into public.bulletins (event_id, kind, title, body, published_at)
-    values (p_event, 'GENERAL', 'Practice market settled',
-            'Round 2 has started. Each fund''s practice market result (its cash plus its shares at the last prices) '
-            || 'has been added to its fund cash.', now());
+    values (p_event, 'GENERAL', 'Practice market winners',
+            case when v_list is null then 'The practice market has closed. No fund traded, so no prize was paid.'
+                 else 'The practice market has closed. Top funds: ' || v_list || '. Each received '
+                      || to_char(app.practice_prize() / 100.0, 'FM$999,999,990') || ' in its fund cash.' end, now());
   end if;
   return v_n;
 end
@@ -294,7 +313,7 @@ begin
         insert into public.bulletins (event_id, kind, title, body, published_at)
         values (p_event, 'GENERAL', 'Practice market open',
                 'Finance funds: you each have $60,000 to trade a practice market of six companies until the IPO opens. '
-                || 'Watch the news. Your result is added to your fund cash when Round 2 starts.', now());
+                || 'Watch the news. The 3 funds worth the most at the close win $50,000 each for Round 2.', now());
         v_out := v_out || 'practice market opened'::text;
       else
         -- One step every 20 seconds (every 2 seconds in a fast rehearsal).
@@ -400,19 +419,9 @@ revoke all on function public.practice_trade(uuid, text, integer) from public, a
 grant execute on function public.practice_trade(uuid, text, integer) to authenticated;
 
 revoke all on function app.practice_tick(uuid), app.practice_step(uuid, integer), app.practice_settle(uuid),
-  app.practice_list(uuid), app.practice_grant(), app.practice_open(public.events), app.practice_z()
+  app.practice_list(uuid), app.practice_grant(), app.practice_prize(), app.practice_winners(), app.practice_open(public.events),
+  app.practice_z()
   from public, anon, authenticated;
-
--- Finance: return on all money received, the practice market's $60,000 included.
-select app.patch_functions(
-  '    from (select l.team_id, sum(l.cash_delta_cents) as capital from public.ledger_entries l
-           where l.event_id = p_event and l.kind in (''STARTING_CASH'', ''INJECTION'') and l.team_id is not null group by l.team_id) x',
-  '    from (select y.team_id, sum(y.amount) as capital from (
-            select l.team_id, l.cash_delta_cents as amount from public.ledger_entries l
-             where l.event_id = p_event and l.kind in (''STARTING_CASH'', ''INJECTION'') and l.team_id is not null
-            union all
-            select a.team_id, a.grant_cents from public.practice_accounts a
-             where a.event_id = p_event and a.settled_at is not null) y group by y.team_id) x');
 
 create or replace function public.schema_version()
 returns text

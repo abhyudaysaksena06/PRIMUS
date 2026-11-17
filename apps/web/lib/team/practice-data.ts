@@ -25,6 +25,9 @@ export interface PracticeData {
     cash: number;
     grant: number;
     finalValue: number | null;
+    /** 1–3 for the prize winners, else null. */
+    rank: number | null;
+    prize: number;
     settledAt: string | null;
   } | null;
   holdings: PracticeHolding[];
@@ -54,7 +57,7 @@ export async function loadPractice(sb: SupabaseClient, ctx: TeamContext): Promis
     sb.from("practice_stocks").select("id, symbol, name, sector, blurb, open_cents, price_cents").eq("event_id", eventId).order("symbol"),
     sb.from("practice_prices").select("stock_id, step, price_cents").eq("event_id", eventId).gte("step", fromStep).order("step"),
     sb.from("practice_news").select("id, step, stock_id, headline, move_bp, at").eq("event_id", eventId).order("id", { ascending: false }).limit(12),
-    sb.from("practice_accounts").select("cash_cents, grant_cents, final_value_cents, settled_at").eq("team_id", ctx.team.id).maybeSingle(),
+    sb.from("practice_accounts").select("cash_cents, grant_cents, final_value_cents, rank, prize_cents, settled_at").eq("team_id", ctx.team.id).maybeSingle(),
     sb.from("practice_holdings").select("stock_id, qty, cost_cents").eq("team_id", ctx.team.id),
     sb.from("practice_trades").select("id, stock_id, side, qty, price_cents, at").eq("team_id", ctx.team.id).order("id", { ascending: false }).limit(15),
   ]);
@@ -62,6 +65,8 @@ export async function loadPractice(sb: SupabaseClient, ctx: TeamContext): Promis
     cash_cents: string | number;
     grant_cents: string | number;
     final_value_cents: string | number | null;
+    rank: number | null;
+    prize_cents: string | number;
     settled_at: string | null;
   } | null;
   return {
@@ -74,6 +79,8 @@ export async function loadPractice(sb: SupabaseClient, ctx: TeamContext): Promis
           cash: cents(acct.cash_cents),
           grant: cents(acct.grant_cents),
           finalValue: acct.final_value_cents === null ? null : cents(acct.final_value_cents),
+          rank: acct.rank,
+          prize: cents(acct.prize_cents),
           settledAt: acct.settled_at,
         }
       : null,
