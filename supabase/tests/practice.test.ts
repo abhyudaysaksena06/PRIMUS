@@ -46,6 +46,10 @@ describe("practice market", () => {
     expect(await n.call(fundA, "practice_trade", nvrb.id, "SELL", 1)).toMatchObject({ ok: false, code: "NOT_ENOUGH_SHARES" });
     expect(await n.ok(fundA, "practice_trade", nvrb.id, "BUY", 100)).toMatchObject({ side: "BUY", qty: 100, price_cents: price });
     await n.ok(fundA, "practice_trade", nvrb.id, "SELL", 40);
+    // B trades and ends where it started; C never trades.
+    const grfr = stocks.find((s) => s.symbol === "GRFR")!;
+    await n.ok(n.team(b.f_code), "practice_trade", grfr.id, "BUY", 10);
+    await n.ok(n.team(b.f_code), "practice_trade", grfr.id, "SELL", 10);
     expect(await n.one("select qty, cost_cents::int as cost from practice_holdings where team_id = $1", [n.teamId(a.f_code)])).toEqual({
       qty: 60,
       cost: 60 * price,
@@ -61,7 +65,7 @@ describe("practice market", () => {
     expect(seen).toEqual({
       accounts: [{ team_id: n.teamId(b.f_code) }],
       stocks: 6,
-      trades: 0,
+      trades: 2,
     });
 
     // A step: every stock gets a new price row.
@@ -96,22 +100,28 @@ describe("practice market", () => {
     await n.advanceTo("IPO");
     expect(await n.call(fundA, "practice_trade", nvrb.id, "BUY", 1)).toMatchObject({ ok: false, code: "PRACTICE_CLOSED" });
 
-    // Round 2: the results are added to the funds' cash, once.
+    // Round 2: the practice money stays behind; the top funds that traded (here A and B; C never traded) get $50,000.
+    const c = sq[2]!;
     const cashOf = async (code: string) => Number((await n.one("select cash_cents from teams where id = $1", [n.teamId(code)])).cash_cents);
-    const cashBefore = await cashOf(a.f_code);
-    const cashBeforeB = await cashOf(b.f_code);
+    const before = { a: await cashOf(a.f_code), b: await cashOf(b.f_code), c: await cashOf(c.f_code) };
     const lastPrice = Number((await n.one("select price_cents from practice_stocks where id = $1", [nvrb.id])).price_cents);
     await n.advanceTo("PRESSURE");
     await n.ok(n.lead, "tick", n.eventId);
     await n.ok(n.lead, "tick", n.eventId);
-    const expected = 6_000_000 - 60 * price + 60 * lastPrice;
-    expect(Number((await n.one("select final_value_cents from practice_accounts where team_id = $1", [n.teamId(a.f_code)])).final_value_cents)).toBe(expected);
-    expect(Number((await n.one("select cash_cents from teams where id = $1", [n.teamId(a.f_code)])).cash_cents)).toBe(cashBefore + expected);
-    expect(await cashOf(b.f_code)).toBe(cashBeforeB + 6_000_000); // B never traded: its $60,000 back
+    const valueA = 6_000_000 - 60 * price + 60 * lastPrice;
+    const acct = async (code: string) =>
+      n.one("select final_value_cents::bigint as v, rank, prize_cents::int as prize from practice_accounts where team_id = $1", [n.teamId(code)]);
+    expect(Number((await acct(a.f_code)).v)).toBe(valueA);
+    expect(Number((await acct(b.f_code)).v)).toBe(6_000_000);
+    expect(await cashOf(a.f_code)).toBe(before.a + 5_000_000);
+    expect(await cashOf(b.f_code)).toBe(before.b + 5_000_000);
+    expect(await cashOf(c.f_code)).toBe(before.c);
+    const aWins = valueA > 6_000_000 || (valueA === 6_000_000 && a.f_code < b.f_code);
+    expect([(await acct(a.f_code)).rank, (await acct(b.f_code)).rank, (await acct(c.f_code)).rank]).toEqual(aWins ? [1, 2, null] : [2, 1, null]);
     expect(
       (await n.one("select count(*)::int as c from ledger_entries where event_id = $1 and kind = 'PRACTICE' and team_id is not null", [n.eventId])).c,
-    ).toBe(3);
-    expect((await n.one("select count(*)::int as c from bulletins where event_id = $1 and title = 'Practice market settled'", [n.eventId])).c).toBe(1);
+    ).toBe(2);
+    expect((await n.one("select body from bulletins where event_id = $1 and title = 'Practice market winners'", [n.eventId])).body).toContain("$50,000");
     expect(await n.q("select message from error_log where event_id = $1 and source = 'practice'", [n.eventId])).toEqual([]);
     await n.checkInvariants();
   });

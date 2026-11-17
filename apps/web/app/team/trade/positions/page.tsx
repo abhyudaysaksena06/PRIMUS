@@ -26,11 +26,13 @@ export default async function PositionsPage() {
   const [data, series, given] = await Promise.all([
     loadTradeData(ctx, { orders: "pending" }),
     loadPortfolioSeries(ctx.event.id, ctx.team.id),
-    // What else the fund was given: the practice market's money once settled, and the Round 3 money.
-    Promise.all([
-      sb.from("practice_accounts").select("grant_cents").eq("team_id", ctx.team.id).not("settled_at", "is", null).maybeSingle<{ grant_cents: number | string }>(),
-      sb.from("ledger_entries").select("cash_delta_cents").eq("team_id", ctx.team.id).eq("kind", "INJECTION"),
-    ]).then(([p, i]) => cents(p.data?.grant_cents ?? 0) + (i.data ?? []).reduce((t, r) => t + cents(r.cash_delta_cents as number | string), 0)),
+    // What else the fund was given: the Round 3 money (a practice market prize is a gain, not money given).
+    sb
+      .from("ledger_entries")
+      .select("cash_delta_cents")
+      .eq("team_id", ctx.team.id)
+      .eq("kind", "INJECTION")
+      .then((i) => (i.data ?? []).reduce((t, r) => t + cents(r.cash_delta_cents as number | string), 0)),
   ]);
   const closed = data.marketClosedAt !== null;
   const lines = positionLines(data.holdings, data.companies, closed);

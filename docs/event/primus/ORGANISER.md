@@ -27,7 +27,7 @@
 | Time | What |
 |---|---|
 | 21:00 | Squad draw (sectors drawn) |
-| 21:10 | Practice market opens for Finance funds ($60,000 each; closes at 22:30, added to their cash at 22:45) |
+| 21:10 | Practice market opens for Finance funds ($60,000 each; closes at 22:30; at 22:45 the top 3 funds get $50,000 each) |
 | 22:00 | PRDs and crisis memos due; Reading |
 | 22:30 | IPO bids |
 | 22:45, 00:15, 01:45, 03:15 | Crises 1–4 (each: hiring 20 min, writing until +65, ratings until +80, release, last trading round) |

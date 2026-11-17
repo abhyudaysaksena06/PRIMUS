@@ -12,7 +12,7 @@ Status: **built** = merged on this branch with tests; **next** = being built; **
 | --- | --- | --- |
 | PRD (Product) | built | Submission type `PITCH`: seven sections, 800 words, rubric 20/20/15/15/15/15 (`prompts/PITCH.md`). Sets the IPO price as before. |
 | Crisis memo (Consultancy) | built | Submission type `MEMO`: the same standalone case for every firm (in `prompts/MEMO.md`), 500 words, rubric 25/20/20/15/10/10. Closes with the PRD. Moves no price; released from READING; final once released. Pays the firm $500 × (score − 50), clamped to −$10,000…+$25,000. |
-| Finance practice market | built | Round 1 (BUILD and READING): every fund gets $60,000 to trade a simulated market of six made-up companies (random-walk prices every 20 s, news headlines that move a stock and trend it for 10 steps; BUY/SELL fill at once, no shorts or fees). Closes at the IPO; at the start of PRESSURE each fund's result (cash + holdings at the last prices) is added to its fund cash, and the $60,000 counts as capital received. Migration 058; `events.practice_enabled` turns it off. |
+| Finance practice market | built | Round 1 (BUILD and READING): every fund gets $60,000 to trade a simulated market of six made-up companies (random-walk prices every 20 s, news headlines that move a stock and trend it for 10 steps; BUY/SELL fill at once, no shorts or fees). Closes at the IPO. The practice money is never added to the fund: at the start of PRESSURE the funds that traded are ranked by practice value (cash + holdings at the last prices; ties to the lower team code) and the top 3 each get a $50,000 prize in their fund cash (a gain, not capital received). Migration 058; `events.practice_enabled` turns it off. |
 
 Squads are still drawn by lottery (1 Product + 1 Consulting + 1 Finance per company): the Finance team stays tied to its
 company (it may not trade it) and the Consulting team's memo is stored with the squad. From Round 2 consultants are
@@ -52,7 +52,7 @@ Trading rounds run all through `PRESSURE` and `SATURATION` (15-minute windows, �
 | --- | --- | --- |
 | Product | Retained shares × closing price + cash | Higher average AI score |
 | Consultancy | Firm value: cash (fees and bonuses) + fee shares × closing price | Higher average client rating |
-| Finance | Final value ÷ all capital received (the $500,000, the $60,000 practice money and the Round 3 injection) − 1 | Smaller largest single position |
+| Finance | Final value ÷ all capital received (the $500,000 and the Round 3 injection) − 1; a practice market prize counts as gain | Smaller largest single position |
 
 ## Three team portals
 

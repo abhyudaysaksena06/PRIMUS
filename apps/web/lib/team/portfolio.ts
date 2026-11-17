@@ -109,7 +109,7 @@ export interface PortfolioTotals {
   unpriced: number;
 }
 
-/** `start`: all the money the fund was given (the $500,000, and on a PRIMUS night the practice market and the Round 3 money once received). */
+/** `start`: all the money the fund was given (the $500,000, and on a PRIMUS night the Round 3 money once received). */
 export function portfolioTotals(cash: number, lines: readonly PositionLine[], start: number = RULES.START_CASH_FINANCE): PortfolioTotals {
   const priced = lines.filter((l) => l.price !== null);
   const byCompany = new Map<string, Holding>();
