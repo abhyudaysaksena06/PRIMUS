@@ -1,7 +1,8 @@
 # PRIMUS go-live report (600 people)
 
 What was improved in the last pass, how the AI judge works, what the deployment and security tests found, and the
-checklist to run before the night. The step-by-step setup is in [DEPLOY.md](DEPLOY.md).
+checklist to run before the night. The step-by-step setup is in [DEPLOY.md](DEPLOY.md); the short path to your own
+domain is [DEPLOY-OWN-DOMAIN.md](DEPLOY-OWN-DOMAIN.md), and `pnpm preflight --slug <event>` checks a deployment.
 
 ## 1. What changed
 
@@ -35,7 +36,7 @@ checklist to run before the night. The step-by-step setup is in [DEPLOY.md](DEPL
    are submitted automatically. The organiser's To do now list says "Start judging the …".
 2. **Start judging.** Every answer is queued for **3 independent runs**. A judge console (the organiser's browser on
    the Judge page) or the laptop worker takes runs from the queue.
-3. **Each run** sends Claude (default **Claude Opus 5.5**, backup **Claude Sonnet 5.5**) the published rubric for that
+3. **Each run** sends Claude (default **Claude Haiku 5.5** in both slots, about $5 for the night) the published rubric for that
    kind of answer (`prompts/*.md`, whose SHA is stored with every run) and the answer with its context:
    - PRD: the sector brief the squad was dealt;
    - crisis plan: the company's PRD, its crisis card (with the twist), and the hired firm's memo, or a note that it
@@ -104,5 +105,5 @@ re-read their page at once.
    `pnpm load-test --slug <reh>` (realtime) and `pnpm app-load-test --base https://<staging> --slug <reh> --burst 1.2`.
    Bar: clearing under 5 s, every screen served within 10 s, 0 errors.
 6. Run a real calibration batch and a full bot rehearsal (`pnpm rehearse --slug <reh> --autopilot`).
-7. Upload the decks (`seed/sectors/` or `pnpm sectors --pick …`) before the squad draw; the To do now list reminds you.
+7. Upload the decks before the squad draw: `pnpm upload-decks --slug live-2026` (from `seed/sectors/`); the To do now list reminds you.
 8. Print the login cards (`pnpm cards`): each now has its QR code.
