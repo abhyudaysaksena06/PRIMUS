@@ -102,7 +102,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     }
   }
   const taskHref = next?.href ?? null;
-  const sections = focusSections(team.track, status.phase, taskHref);
+  const sections = focusSections(team.track, status.phase, taskHref, event.format);
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <EventChannel eventId={event.id} teamId={team.id} spreadMs={1200}>

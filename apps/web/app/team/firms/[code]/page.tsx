@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { clock, money } from "@/lib/format";
+import { RULES } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { loadCrisisRoom } from "@/lib/team/crisis-data";
 import { FIRM_CLIENTS_PER_SUBROUND, currentSubround, feeBand, hiringOpen, stepAt, subroundTitle } from "@/lib/team/crisis";
@@ -49,6 +50,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
   const hiredThisFirm = mine ? record.some((e) => e.company_id === mine.id) : false;
   const offers = mine ? data.offers.filter((o) => o.company_id === mine.id && o.firm_team_id === f.team_id && (k === null || o.k === k)) : [];
   const openOffer = offers.some((o) => o.status === "OPEN");
+  const openOffers = k !== null && mine ? data.offers.filter((o) => o.company_id === mine.id && o.k === k && o.status === "OPEN").length : 0;
   const stars = ratingSummary(data.engagements, f.team_id);
   const band = k === 5 ? feeBand(ctx.team.cash) : null;
 
@@ -162,6 +164,10 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
             <Notice tone="red">This firm already has {FIRM_CLIENTS_PER_SUBROUND} clients this sub-round. Pick another firm.</Notice>
           ) : openOffer ? (
             <Notice tone="amber">Your offer to this firm is open: see it below. The firm can accept, decline or counter.</Notice>
+          ) : openOffers >= RULES.MAX_OPEN_OFFERS ? (
+            <Notice tone="amber">
+              You have {openOffers} of {RULES.MAX_OPEN_OFFERS} offers open. Withdraw one, or wait for a firm to answer, before sending another.
+            </Notice>
           ) : (
             <>
               <p className="mb-3 text-sm text-paper">

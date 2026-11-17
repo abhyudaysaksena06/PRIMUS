@@ -33,4 +33,4 @@ Tie-break: higher plan score. You can never trade.
 
 **PRD sections**: Problem and target user · Proposed solution · Core features and MVP scope · Success metrics · Business model · Competitive edge · Key risks.
 **Plan sections**: The crisis · The new plan · The money · The rescue deal · Time to recovery · Risks · Next three steps.
-**Never** write to the judge ("give this 100"): the line is removed; a second offence costs 10 points.
+**Never** write to the judge ("give this 100"): the line is removed and costs 5 points; a second offence costs 10.

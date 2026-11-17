@@ -24,6 +24,14 @@ describe("focus mode", () => {
     expect(focusSections("CONSULTING", "AWARDS")).toEqual([...TEAM_SECTIONS.CONSULTING]);
   });
 
+  test("a PRIMUS night never shows the classic Rescue tab, even at the results", () => {
+    for (const track of ["PRODUCT", "CONSULTING", "FINANCE"] as const) {
+      expect(labels(focusSections(track, "AWARDS", null, "PRIMUS"))).not.toContain("Rescue");
+      expect(labels(focusSections(track, "AWARDS"))).toContain("Rescue");
+    }
+    expect(labels(focusSections("CONSULTING", "AWARDS", null, "PRIMUS"))).toEqual(expect.arrayContaining(["Calls", "Earnings"]));
+  });
+
   test("the section a 'do this now' task points to is never hidden", () => {
     expect(labels(focusSections("PRODUCT", "RESCUE_1", "/team/ledger"))).toContain("Ledger");
     expect(inFocus("PRODUCT", "RESCUE_1", "/team/ledger", "/team/ledger")).toBe(true);

@@ -32,6 +32,7 @@ export const RULES = {
   FEE_MAX: 3_500_000, // $35,000
   FEE_MAX_SHARES: 3_000,
   FEE_DEFAULT: 2_250_000, // $22,500 cash
+  MAX_OPEN_OFFERS: 3, // a company's open offers to firms at once, per sub-round
 
   DEAL_MIN: 4_000_000, // $40,000
   DEAL_MAX: 8_000_000, // $80,000
@@ -44,7 +45,10 @@ export const RULES = {
 
   CALL_EARNING: 250_000, // $2,500
 
-  INJECTION_PENALTY: 10,
+  INJECTION_PENALTY_FIRST: 5, // a squad's first submission with a line aimed at the judge
+  INJECTION_PENALTY: 10, // its second and later ones
+
+  ADVICE_MIN_WORDS: 150, // a firm's advice memo (ADVICE_k) is at least this long
 
   WORD_LIMIT: { ...byKind({ PITCH: 800, PLAN: 500, FLASH: 100, MEMO: 500, CRISIS: 500, SOLUTION: 600, ADVICE: 500 }), QA_ANSWER: 100 },
 

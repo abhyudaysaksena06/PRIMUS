@@ -105,8 +105,9 @@ describe("judgingSteps", () => {
     expect(finalScore({ type: "PLAN", median: 78, dealSignedInTime: false }).final).toBe(50);
     expect(all()).toContain("A rescue plan without a fully signed deal by 03:00 is capped at 50.");
 
-    expect(injectionPenalty("PITCH", { PITCH: true })).toBe(0);
+    expect(injectionPenalty("PITCH", { PITCH: true })).toBe(RULES.INJECTION_PENALTY_FIRST);
     expect(injectionPenalty("PLAN", { PITCH: true, PLAN: true })).toBe(RULES.INJECTION_PENALTY);
+    expect(all()).toContain(`The first time, that submission loses ${RULES.INJECTION_PENALTY_FIRST} points.`);
     expect(all()).toContain(`From your squad's second submission with a removed line, that submission loses ${RULES.INJECTION_PENALTY} points.`);
 
     expect(finalScore({ type: "FLASH", median: null }).final).toBe(0);

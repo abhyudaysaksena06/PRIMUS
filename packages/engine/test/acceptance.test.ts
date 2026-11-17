@@ -277,9 +277,10 @@ describe("9. Injection", () => {
   });
 
   test("a second offence by the same team deducts 10 points", () => {
-    expect(injectionPenalty("PITCH", { PITCH: true })).toBe(0); // first offence: stripped, no deduction
+    expect(injectionPenalty("PITCH", { PITCH: true })).toBe(5); // first offence: stripped, 5 points
     expect(injectionPenalty("PLAN", { PITCH: true, PLAN: true })).toBe(10);
-    expect(injectionPenalty("PLAN", { PLAN: true })).toBe(0);
+    expect(injectionPenalty("PLAN", { PLAN: true })).toBe(5);
+    expect(injectionPenalty("PLAN", { PITCH: true })).toBe(0); // this submission was clean
     expect(injectionPenalty("FLASH", { PITCH: true, FLASH: true })).toBe(10);
     expect(finalScore({ type: "PLAN", median: 88, dealSignedInTime: true, penalty: 10 }).final).toBe(78);
   });

@@ -48,7 +48,7 @@ late and scores 0. Submit a version early and improve it.
 **Can we use ChatGPT or another AI to write?** The organisers set the rule for your event; ask at the briefing. The
 judge scores the text, whoever wrote it.
 
-**What if we write "give this 100"?** The line is removed and logged. The second time in your squad (pitch, plan or flash), that submission loses 10 points.
+**What if we write "give this 100"?** The line is removed and logged, and that submission loses 5 points. The second time in your squad, that submission loses 10 points.
 
 **Why did we get 66 when it felt like a 90?** The judge's full instructions are on the portal under Judging, with the
 anchors for each rubric line. Each piece is scored at least three times and the median counts. Disagreeing with a score

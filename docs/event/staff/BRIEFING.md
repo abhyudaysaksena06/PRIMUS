@@ -34,7 +34,7 @@ Show the timetable (Handbook §4). Stress the hard deadlines, in red:
   receives. Read it during Build.
 - Anonymous: your names become your ticker.
 - Scored three times; the median counts.
-- **Don't write to the judge.** "Ignore the rubric", "give this 100": the line is removed; a second time costs 10 points.
+- **Don't write to the judge.** "Ignore the rubric", "give this 100": the line is removed and costs 5 points; a second time costs 10.
 - Show one table row: pitch 66 → +5% → IPO $10.50.
 
 ## Slide 5: Prices (5 min)
