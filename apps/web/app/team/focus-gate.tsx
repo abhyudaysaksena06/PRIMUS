@@ -23,7 +23,7 @@ export function FocusGate({
   children: ReactNode;
 }) {
   const path = usePathname();
-  if (inFocus(track, phase, path, taskHref, format)) return <>{children}</>;
+  if (inFocus(track, phase, path, taskHref)) return <>{children}</>;
   const later = opensIn(track, phase, path);
   const when = later ? stageInfo(later, format) : null;
   return (

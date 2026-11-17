@@ -5,8 +5,7 @@ import { loadTeamContext } from "@/lib/team/context";
 import { fundContext, loadTradeData } from "@/lib/team/trade-data";
 import { companyPosition, fundSummary } from "@/lib/team/trade";
 import { FUND_LOT_HINTS, FUND_LOT_LABELS, collateralView, meterPct, portfolioTotals, positionLines } from "@/lib/team/portfolio";
-import { bp, cents, clock, count, money, signedMoney } from "@/lib/format";
-import { supabaseServer } from "@/lib/supabase/server";
+import { bp, clock, count, money, signedMoney } from "@/lib/format";
 import { Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
 import { LineChart } from "@/components/ui/line-chart";
 import { loadPortfolioSeries } from "@/lib/team/portfolio-history-data";
@@ -22,21 +21,10 @@ export default async function PositionsPage() {
   const ctx = await loadTeamContext();
   const gate = tradeGate(ctx);
   if (gate) return gate;
-  const sb = await supabaseServer();
-  const [data, series, given] = await Promise.all([
-    loadTradeData(ctx, { orders: "pending" }),
-    loadPortfolioSeries(ctx.event.id, ctx.team.id),
-    // What else the fund was given: the Round 3 money (a practice market prize is a gain, not money given).
-    sb
-      .from("ledger_entries")
-      .select("cash_delta_cents")
-      .eq("team_id", ctx.team.id)
-      .eq("kind", "INJECTION")
-      .then((i) => (i.data ?? []).reduce((t, r) => t + cents(r.cash_delta_cents as number | string), 0)),
-  ]);
+  const [data, series] = await Promise.all([loadTradeData(ctx, { orders: "pending" }), loadPortfolioSeries(ctx.event.id, ctx.team.id)]);
   const closed = data.marketClosedAt !== null;
   const lines = positionLines(data.holdings, data.companies, closed);
-  const totals = portfolioTotals(ctx.team.cash, lines, RULES.START_CASH_FINANCE + given);
+  const totals = portfolioTotals(ctx.team.cash, lines);
   const fctx = fundContext(ctx, data);
   const summary = fundSummary(fctx);
   const coll = collateralView(fctx);

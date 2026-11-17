@@ -6,7 +6,7 @@ import { loginAsStaff } from "./support/login";
 
 test.describe.configure({ mode: "serial" });
 
-// Team codes are unique across events and this spec shares the prefix U with display-takeovers: one at a time, each
+// Team codes are unique across events and this spec shares the prefix U with display-takeovers and team-practice: one at a time, each
 // purging the other's event first.
 let ev: E2eEvent;
 let lock: pg.PoolClient | undefined;
@@ -15,6 +15,7 @@ test.beforeAll(async () => {
   lock = await e2ePool().connect();
   await lock.query("select pg_advisory_lock(hashtext('e2e-common-U'))");
   await lock.query("select public.purge_event($1)", ["e2e-display-takeovers"]);
+  await lock.query("select public.purge_event($1)", ["e2e-team-practice"]);
   ev = await seedE2eEvent({ slug: "e2e-run", prefix: "U", format: "PRIMUS" });
   await ev.n.org("set_seed_commitment", ev.n.eventId, sha256Hex(sha256Hex("e2e-run")));
 });
