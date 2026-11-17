@@ -42,8 +42,12 @@ test("in Round 1 a fund trades the candlestick market and a top finish wins the 
   test.setTimeout(240_000);
   await drawn(ev);
   await ev.n.advanceTo("BUILD");
-  // The market started ten minutes ago, so the chart has twenty candles.
-  await ev.n.q("update phases set started_at = now() - interval '10 minutes' where event_id = $1 and code = 'BUILD'", [ev.n.eventId]);
+  // The market started ten minutes ago, so the chart has twenty candles. BUILD is also held open for an hour, so a
+  // tick cannot end Round 1 while the terminal is being read (the test ends it itself, below).
+  await ev.n.q(
+    "update phases set started_at = now() - interval '10 minutes', starts_at = now() - interval '10 minutes', ends_at = now() + interval '1 hour' where event_id = $1 and code = 'BUILD'",
+    [ev.n.eventId],
+  );
 
   await loginAsTeam(page, ev, fund);
   await page.goto("/team");
