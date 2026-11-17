@@ -32,15 +32,6 @@ describe("focus mode", () => {
     expect(labels(focusSections("CONSULTING", "AWARDS", null, "PRIMUS"))).toEqual(expect.arrayContaining(["Calls", "Earnings"]));
   });
 
-  test("PRIMUS Finance funds see the practice market in Round 1 only; a classic night never shows it", () => {
-    expect(labels(focusSections("FINANCE", "BUILD", null, "PRIMUS"))).toEqual(["Home", "Practice market", "Trade", "Chat", "Market", "Q&A", "Bulletins"]);
-    expect(labels(focusSections("FINANCE", "PRESSURE", null, "PRIMUS"))).not.toContain("Practice market");
-    expect(labels(focusSections("FINANCE", "AWARDS", null, "PRIMUS"))).toContain("Practice market");
-    expect(labels(focusSections("FINANCE", "BUILD"))).not.toContain("Practice market");
-    expect(inFocus("FINANCE", "READING", "/team/practice", null, "PRIMUS")).toBe(true);
-    expect(inFocus("FINANCE", "PRESSURE", "/team/practice", null, "PRIMUS")).toBe(false);
-  });
-
   test("the section a 'do this now' task points to is never hidden", () => {
     expect(labels(focusSections("PRODUCT", "RESCUE_1", "/team/ledger"))).toContain("Ledger");
     expect(inFocus("PRODUCT", "RESCUE_1", "/team/ledger", "/team/ledger")).toBe(true);

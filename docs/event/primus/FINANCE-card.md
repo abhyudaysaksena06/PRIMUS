@@ -1,12 +1,12 @@
 # PRIMUS · Finance fund card (F01–F50)
 
-**You are an investment fund with $500,000.** In Round 1 you also get $60,000 for the practice market. At 04:45 you receive $250,000 more.
+**You are an investment fund with $500,000.** At 04:45 you receive $250,000 more.
 **Score = your return on all the money you were given.** Tie-break: a smaller largest single position.
 You may never trade your own squad's company.
 
 | When | Do | Rule |
 |---|---|---|
-| 21:10–22:30 | **Practice market** | $60,000 on six made-up companies; BUY or SELL fills at once at the current price. Watch the news. The 3 funds worth the most at 22:30 win $50,000 each in their fund cash at 22:45. |
+| 21:10–22:00 | **Practice market** (Trade → Practice) | $100,000 of practice money on 30-second candlestick charts named after the Product teams. The practice money stays there, but the **3 funds worth the most win $50,000 each** in real cash before the IPO. Trade at least once to be ranked. |
 | 22:00–22:30 | **Read the PRDs, ask questions** | The pitch book and the Q&A board. |
 | 22:30–22:45 | **IPO bids** | Up to 4,000 shares per company, at its IPO price. |
 | 22:45–06:30 | **Trade** in each trading round | BUY, SELL, SHORT or COVER. Every order fills at the round's new price. Long cap 4,000 shares; short cap 2,000; shorts lock 150% collateral. |
@@ -16,6 +16,8 @@ You may never trade your own squad's company.
 | 07:10 | Awards | |
 
 **Tips**
+- Read the candles: ▲ bullish and ▼ bearish patterns (hammer, engulfing, breakout…) are marked on every chart.
+- While a round is open, the chart shows the price it **would clear at** with the orders so far.
 - The Market page shows the **sector race**: which sector's companies are rising since the IPO.
 - Who hired which firm, and for how much, is public in the crisis room.
 - Spread your bets: your largest single position decides a tie.

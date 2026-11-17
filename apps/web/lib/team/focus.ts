@@ -125,7 +125,7 @@ const PRIMUS_JOB: Record<Track, Partial<Record<Stage, string>>> = {
     ROUND_3: "Get hired, write your memo and help your client's solution.",
   },
   FINANCE: {
-    ROUND_1: "Trade the practice market with $60,000 (the top 3 win $50,000), read the PRDs, then bid in the IPO.",
+    ROUND_1: "Trade the practice market for a $50,000 prize, then read the PRDs, ask questions and bid in the IPO.",
     ROUND_2: "Read each crisis, then trade: prices move after every crisis.",
     ROUND_3: "Invest your fresh capital and finish with the highest return.",
   },
@@ -152,7 +152,7 @@ const ROUND_PATHS: Record<Track, Record<Stage, readonly string[]>> = {
   },
   FINANCE: {
     BEFORE: ["", "/bulletins", "/judging"],
-    ROUND_1: ["", "/practice", "/trade", "/chat", "/qa", "/market", "/bulletins"],
+    ROUND_1: ["", "/trade", "/chat", "/qa", "/market", "/bulletins"],
     ROUND_2: ["", "/rescue", "/trade", "/chat", "/qa", "/market", "/bulletins"],
     ROUND_3: ["", "/trade", "/chat", "/qa", "/market", "/bulletins"],
     RESULTS: [], // every section, for the results
@@ -166,9 +166,8 @@ const PRIMUS_PATHS: Record<Track, readonly string[]> = {
   FINANCE: ["", "/trade", "/crisis", "/chat", "/qa", "/market", "/bulletins"],
 };
 
-/** Sections that exist only on a classic night, and only on a PRIMUS night. */
+/** Sections that exist only on a classic night. */
 const CLASSIC_ONLY = new Set(["/rescue"]);
-const PRIMUS_ONLY = new Set(["/practice"]);
 
 const pathsFor = (track: Track, phase: PhaseCode): readonly string[] =>
   phase === "PRESSURE" || phase === "SATURATION" ? PRIMUS_PATHS[track] : ROUND_PATHS[track][stageOf(phase)];
@@ -185,9 +184,8 @@ export function sectionOf(path: string): string {
  */
 export function focusSections(track: Track, phase: PhaseCode, taskHref: string | null = null, format: EventFormat = "CLASSIC"): TeamSection[] {
   const stage = stageOf(phase);
-  // A PRIMUS night has no classic rescue (its Round 2 is the crisis room), and a classic night no practice market.
-  const hidden = format === "PRIMUS" ? CLASSIC_ONLY : PRIMUS_ONLY;
-  const all = TEAM_SECTIONS[track].filter((s) => !hidden.has(s.path));
+  // A PRIMUS night has no classic rescue (its Round 2 is the crisis room), so its tab never shows.
+  const all = format === "PRIMUS" ? TEAM_SECTIONS[track].filter((s) => !CLASSIC_ONLY.has(s.path)) : TEAM_SECTIONS[track];
   if (stage === "RESULTS") return [...all];
   const allowed = new Set(pathsFor(track, phase));
   if (taskHref) allowed.add(sectionOf(taskHref));
@@ -198,11 +196,11 @@ export function focusSections(track: Track, phase: PhaseCode, taskHref: string |
  * May this page be shown now? Only the rounds hide pages: before the game every page shows its own "opens at …"
  * notice, and a section that is not this track's at all keeps its own explanation (say, "Product teams never trade").
  */
-export function inFocus(track: Track, phase: PhaseCode, path: string, taskHref: string | null = null, format: EventFormat = "CLASSIC"): boolean {
+export function inFocus(track: Track, phase: PhaseCode, path: string, taskHref: string | null = null): boolean {
   const section = sectionOf(path);
   if (stageOf(phase) === "BEFORE") return true;
   if (!TEAM_SECTIONS[track].some((s) => s.path === section)) return true;
-  return focusSections(track, phase, taskHref, format).some((s) => s.path === section);
+  return focusSections(track, phase, taskHref).some((s) => s.path === section);
 }
 
 /** The first stage (from now on) that shows this section, for "this opens in …". */

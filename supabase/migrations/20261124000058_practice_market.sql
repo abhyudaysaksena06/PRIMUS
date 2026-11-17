@@ -1,427 +1,362 @@
--- The Round 1 practice market for Finance funds (PRIMUS).
+-- The Round 1 practice market (PRIMUS): while Product teams write their PRDs (phase BUILD), Finance teams trade a
+-- scripted market named after the 50 Product teams, with $100,000 of practice money each. Prices tick every 5 seconds
+-- along paths with candlestick patterns planted in them (generated in packages/engine/src/candles.ts and stored here
+-- by the server, with the service role, when Round 1 starts). A tick is readable only once its time has come. When
+-- Round 1 ends (entering READING), each fund's practice profit, capped at $50,000 and never a loss, is paid into its
+-- real cash as a PRACTICE_EDGE ledger entry: an edge, not capital received (the return is measured on capital).
 --
--- While the companies are being built (BUILD) and read (READING), the funds have no shares to trade yet. Each fund is
--- given $60,000 to trade a separate, simulated market of six made-up companies: prices move on their own every few
--- seconds (a random walk with a shared market move), and news headlines move a stock and give it a trend for the next
--- few steps, so a fund that reads the news can profit. Orders fill at once at the current price (BUY and SELL only;
--- no shorts, no fees). The market closes when the IPO opens; open positions are valued at the last prices.
---
--- The practice money stays in the practice market: it is never added to the fund. When Round 2 starts (PRESSURE), the
--- funds are ranked by their practice result (cash plus holdings at the last prices; only funds that traded at least
--- once; ties to the lower team code), and the top 3 each receive a $50,000 prize in their fund cash. The prize is not
--- capital received, so it counts as gain in the final return.
---
---   public.practice_stocks / practice_prices / practice_news   the simulated market (every team of the event reads it)
---   public.practice_accounts / practice_holdings / practice_trades   each fund's own (the fund and staff read them)
---   public.practice_trade(stock, side, qty)   a fund's order
---   app.practice_tick(event)   from the heartbeat: opens the accounts, moves the prices, pays the top 3 in Round 2
---
--- events.practice_enabled turns it off for an event (set it to false before BUILD).
+-- And, for the real market: each trading round's high and low. While a round is open, every order changes the
+-- company's indicative price (the clearing rule applied to the orders so far); round_ranges keeps the round's open,
+-- high, low and latest indicative price, so the trading screen can show it moving and the candles get real wicks.
 
-alter type public.ledger_kind add value if not exists 'PRACTICE';
+alter type public.ledger_kind add value if not exists 'PRACTICE_EDGE';
 
-alter table public.events
-  add column if not exists practice_enabled boolean not null default true,
-  add column if not exists practice_step integer not null default -1,
-  add column if not exists practice_stepped_at timestamptz,
-  add column if not exists practice_settled_at timestamptz;
+-- ───────────────────────────── Practice market ─────────────────────────────
 
-create table if not exists public.practice_stocks (
-  id uuid primary key default gen_random_uuid(),
-  event_id uuid not null references public.events (id) on delete cascade,
-  symbol text not null,
-  name text not null,
-  sector text not null,
-  blurb text not null,
-  open_cents integer not null check (open_cents > 0),
-  price_cents integer not null check (price_cents > 0),
-  vol_bp integer not null,     -- noise per step, basis points
-  beta_pct integer not null,   -- how much of the market move it takes, percent
-  trend_bp integer not null default 0, -- extra move per step after news
-  trend_until integer not null default -1, -- the last step the trend applies to
-  unique (event_id, symbol)
-);
-
-create table if not exists public.practice_prices (
-  stock_id uuid not null references public.practice_stocks (id) on delete cascade,
-  event_id uuid not null references public.events (id) on delete cascade,
-  step integer not null,
-  price_cents integer not null,
-  at timestamptz not null default now(),
-  primary key (stock_id, step)
-);
-create index if not exists practice_prices_event on public.practice_prices (event_id, step);
-
-create table if not exists public.practice_news (
-  id bigint generated always as identity primary key,
-  event_id uuid not null references public.events (id) on delete cascade,
-  step integer not null,
-  stock_id uuid references public.practice_stocks (id) on delete cascade, -- null: news for the whole market
-  headline text not null,
-  move_bp integer not null,
-  at timestamptz not null default now()
-);
-create index if not exists practice_news_event on public.practice_news (event_id, id desc);
-
-create table if not exists public.practice_accounts (
-  team_id uuid primary key references public.teams (id) on delete cascade,
-  event_id uuid not null references public.events (id) on delete cascade,
-  grant_cents bigint not null,
-  cash_cents bigint not null check (cash_cents >= 0),
-  final_value_cents bigint,
-  rank integer,         -- 1–3 for the prize winners
-  prize_cents bigint not null default 0,
+create table public.practice_markets (
+  event_id uuid primary key references public.events (id) on delete cascade,
+  starts_at timestamptz not null,
+  tick_seconds int not null default 5 check (tick_seconds between 1 and 60),
+  steps int not null check (steps > 0),
   settled_at timestamptz,
   created_at timestamptz not null default now()
 );
 
-create table if not exists public.practice_holdings (
-  team_id uuid not null references public.practice_accounts (team_id) on delete cascade,
-  stock_id uuid not null references public.practice_stocks (id) on delete cascade,
-  qty integer not null check (qty >= 0),
-  cost_cents bigint not null default 0, -- what the shares held now cost in total
-  primary key (team_id, stock_id)
-);
-
-create table if not exists public.practice_trades (
-  id bigint generated always as identity primary key,
+-- One row per ticker (a Product team) and tick.
+create table public.practice_ticks (
   event_id uuid not null references public.events (id) on delete cascade,
-  team_id uuid not null references public.practice_accounts (team_id) on delete cascade,
-  stock_id uuid not null references public.practice_stocks (id) on delete cascade,
-  side text not null check (side in ('BUY', 'SELL')),
-  qty integer not null check (qty > 0),
-  price_cents integer not null,
-  step integer not null,
-  at timestamptz not null default now()
+  ticker_team_id uuid not null references public.teams (id) on delete cascade,
+  step int not null check (step >= 0),
+  at timestamptz not null,
+  price_cents int not null check (price_cents > 0),
+  primary key (ticker_team_id, step)
 );
-create index if not exists practice_trades_team on public.practice_trades (team_id, id desc);
+create index practice_ticks_event_at_idx on public.practice_ticks (event_id, at);
+-- Every fund's terminal reads the newest tick of all the tickers every 5 seconds, by step.
+create index practice_ticks_event_step_idx on public.practice_ticks (event_id, step);
 
-alter table public.practice_stocks enable row level security;
-alter table public.practice_prices enable row level security;
-alter table public.practice_news enable row level security;
+create table public.practice_accounts (
+  team_id uuid primary key references public.teams (id) on delete cascade,
+  event_id uuid not null references public.events (id) on delete cascade,
+  cash_cents bigint not null,
+  trades int not null default 0,
+  equity_cents bigint,
+  -- 1..app.practice_winners() for the prize winners, null for everyone else.
+  rank int,
+  edge_cents bigint,
+  updated_at timestamptz not null default now()
+);
+create index practice_accounts_event_idx on public.practice_accounts (event_id);
+
+create table public.practice_positions (
+  team_id uuid not null references public.teams (id) on delete cascade,
+  ticker_team_id uuid not null references public.teams (id) on delete cascade,
+  event_id uuid not null references public.events (id) on delete cascade,
+  qty int not null default 0 check (qty between -2000 and 4000),
+  primary key (team_id, ticker_team_id)
+);
+
+create table public.practice_trades (
+  id bigserial primary key,
+  event_id uuid not null references public.events (id) on delete cascade,
+  team_id uuid not null references public.teams (id) on delete cascade,
+  ticker_team_id uuid not null references public.teams (id) on delete cascade,
+  type public.order_type not null,
+  qty int not null check (qty > 0),
+  price_cents int not null,
+  created_at timestamptz not null default now()
+);
+create index practice_trades_team_idx on public.practice_trades (team_id, created_at desc);
+
+alter table public.practice_markets enable row level security;
+alter table public.practice_ticks enable row level security;
 alter table public.practice_accounts enable row level security;
-alter table public.practice_holdings enable row level security;
+alter table public.practice_positions enable row level security;
 alter table public.practice_trades enable row level security;
 
-create policy practice_stocks_read on public.practice_stocks for select to authenticated
-  using ((select app.is_staff()) or event_id = (select app.my_event_id()));
-create policy practice_prices_read on public.practice_prices for select to authenticated
-  using ((select app.is_staff()) or event_id = (select app.my_event_id()));
-create policy practice_news_read on public.practice_news for select to authenticated
-  using ((select app.is_staff()) or event_id = (select app.my_event_id()));
+grant select on public.practice_markets, public.practice_ticks, public.practice_accounts, public.practice_positions,
+  public.practice_trades to authenticated;
+
+create policy practice_markets_read on public.practice_markets for select to authenticated
+  using ((select app.sees_all_events()) or event_id = (select app.my_event_id()));
+-- Never a tick from the future: the path is scripted, so it must not be readable before its time.
+create policy practice_ticks_read on public.practice_ticks for select to authenticated
+  using (at <= now() and ((select app.sees_all_events()) or event_id = (select app.my_event_id())));
+-- Every fund's practice result is public within the event (the leaderboard); positions and trades are its own.
 create policy practice_accounts_read on public.practice_accounts for select to authenticated
-  using ((select app.is_staff()) or team_id = (select app.my_team_id()));
-create policy practice_holdings_read on public.practice_holdings for select to authenticated
+  using ((select app.sees_all_events()) or event_id = (select app.my_event_id()));
+create policy practice_positions_read on public.practice_positions for select to authenticated
   using ((select app.is_staff()) or team_id = (select app.my_team_id()));
 create policy practice_trades_read on public.practice_trades for select to authenticated
   using ((select app.is_staff()) or team_id = (select app.my_team_id()));
 
-revoke all on public.practice_stocks, public.practice_prices, public.practice_news, public.practice_accounts,
-  public.practice_holdings, public.practice_trades from anon, authenticated;
-grant select on public.practice_stocks, public.practice_prices, public.practice_news, public.practice_accounts,
-  public.practice_holdings, public.practice_trades to authenticated;
-
--- The money each fund gets for the practice market, the prize for each of the top funds, and how many win it.
-create or replace function app.practice_grant()
-returns bigint language sql immutable as $$ select 6000000::bigint $$; -- $60,000
-create or replace function app.practice_prize()
-returns bigint language sql immutable as $$ select 5000000::bigint $$; -- $50,000
-create or replace function app.practice_winners()
-returns integer language sql immutable as $$ select 3 $$;
-
--- Is the practice market open for trading now?
-create or replace function app.practice_open(p_event public.events)
-returns boolean
+-- The latest price of a ticker at a time (the last tick at or before it).
+create or replace function app.practice_price(p_ticker uuid, p_at timestamptz default now())
+returns int
 language sql stable
 as $$
-  select p_event.format = 'PRIMUS' and p_event.practice_enabled and not p_event.paused
-     and p_event.current_phase in ('BUILD', 'READING') and p_event.practice_settled_at is null
-     and p_event.practice_step >= 0
+  select t.price_cents from public.practice_ticks t
+   where t.ticker_team_id = p_ticker and t.at <= p_at order by t.step desc limit 1
 $$;
+revoke all on function app.practice_price(uuid, timestamptz) from public, anon, authenticated;
 
--- A standard normal draw (sum of 12 uniforms − 6).
-create or replace function app.practice_z()
-returns double precision language sql volatile as $$
-  select (random() + random() + random() + random() + random() + random()
-        + random() + random() + random() + random() + random() + random()) - 6
-$$;
-
--- The six made-up companies, created when the market opens.
-create or replace function app.practice_list(p_event uuid)
-returns void
-language sql
-as $$
-  insert into public.practice_stocks (event_id, symbol, name, sector, blurb, open_cents, price_cents, vol_bp, beta_pct)
-  values
-    (p_event, 'NVRB', 'Novar Robotics', 'Technology', 'Warehouse robots for e-commerce. Fast growth, big swings.', 4200, 4200, 90, 140),
-    (p_event, 'GRFR', 'Greenfield Foods', 'FMCG', 'Packaged snacks and drinks. Steady and dull.', 1850, 1850, 35, 60),
-    (p_event, 'SKRT', 'SkyRoute Airways', 'Aviation', 'A low-cost airline. Moves with fuel prices and travel demand.', 2700, 2700, 70, 120),
-    (p_event, 'LUMR', 'Maison Lumière', 'Luxury', 'Handbags and watches. Sensitive to how rich shoppers feel.', 12000, 12000, 50, 100),
-    (p_event, 'VGRD', 'Volt Grid Energy', 'Energy', 'Solar farms and power lines. Long contracts, slow moves.', 3500, 3500, 45, 70),
-    (p_event, 'CRDP', 'Cardinal Pay', 'Fintech', 'A payments app. Cheap, risky, and loved by traders.', 980, 980, 120, 160)
-  on conflict (event_id, symbol) do nothing
-$$;
-
--- One step of the market: the shared market move, each stock's own noise and trend, and sometimes a headline.
-create or replace function app.practice_step(p_event uuid, p_step integer)
-returns void
-language plpgsql
+-- Stores the scripted paths (server only, with the service role). Rows: [{"ticker": "<team id>", "prices": [..]}],
+-- every path the same length; tick k is at p_starts_at + k × tick seconds. Once per event: a second call is a no-op.
+create or replace function public.practice_prepare(p_event uuid, p_starts_at timestamptz, p_tick_seconds int, p_rows jsonb)
+returns jsonb
+language plpgsql security definer set search_path = ''
 as $$
 declare
-  v_market double precision := app.practice_z() * 25; -- basis points, shared
-  s public.practice_stocks;
-  v_move double precision;
-  v_news_stock uuid;
-  v_news_move integer := 0;
-  v_good boolean;
-  v_name text;
-  v_headline text;
-  v_market_news integer := 0;
-begin
-  -- About one headline every 12 steps (every ~4 minutes on the night); one in five is about the whole market.
-  if random() < 0.085 then
-    v_good := random() < 0.5;
-    if random() < 0.2 then
-      v_market_news := (case when v_good then 1 else -1 end) * (100 + floor(random() * 150))::int;
-      v_headline := case when v_good
-        then (array['The central bank surprises with a rate cut',
-                    'Inflation falls faster than expected',
-                    'Foreign investors pour money into Indian shares',
-                    'Strong festive-season sales lift the whole market'])[1 + floor(random() * 4)::int]
-        else (array['The central bank raises rates to fight inflation',
-                    'Global markets slide on recession fears',
-                    'Oil jumps 8% overnight; investors turn cautious',
-                    'A big fund is selling everything: prices slip across the board'])[1 + floor(random() * 4)::int] end;
-      insert into public.practice_news (event_id, step, stock_id, headline, move_bp)
-      values (p_event, p_step, null, v_headline, v_market_news);
-    else
-      select id, name into v_news_stock, v_name from public.practice_stocks
-       where event_id = p_event order by random() limit 1;
-      v_news_move := (case when v_good then 1 else -1 end) * (300 + floor(random() * 500))::int;
-      v_headline := replace(case when v_good
-        then (array['{n} beats its quarterly earnings estimates',
-                    '{n} wins a large government contract',
-                    'Analysts upgrade {n} to Buy',
-                    '{n} launches a product to strong early demand',
-                    'Rumour: a bigger rival wants to buy {n}'])[1 + floor(random() * 5)::int]
-        else (array['{n} misses earnings and cuts its forecast',
-                    'The regulator opens an investigation into {n}',
-                    '{n} recalls a product after safety complaints',
-                    'The CFO of {n} resigns without warning',
-                    'A short-seller publishes a report attacking {n}'])[1 + floor(random() * 5)::int] end, '{n}', v_name);
-      insert into public.practice_news (event_id, step, stock_id, headline, move_bp)
-      values (p_event, p_step, v_news_stock, v_headline, v_news_move);
-      -- The news keeps working for the next 10 steps: about half as much again.
-      update public.practice_stocks set trend_bp = v_news_move / 20, trend_until = p_step + 10 where id = v_news_stock;
-    end if;
-  end if;
-
-  for s in select * from public.practice_stocks where event_id = p_event loop
-    v_move := v_market * s.beta_pct / 100.0 + app.practice_z() * s.vol_bp
-            + case when p_step <= s.trend_until then s.trend_bp else 0 end
-            + case when s.id = v_news_stock then v_news_move else 0 end
-            + v_market_news * s.beta_pct / 100.0;
-    v_move := greatest(-2500, least(2500, v_move)); -- at most ±25% in one step
-    update public.practice_stocks
-       set price_cents = greatest(100, round(price_cents * (1 + v_move / 10000.0))::int)
-     where id = s.id
-    returning * into s;
-    insert into public.practice_prices (stock_id, event_id, step, price_cents) values (s.id, p_event, p_step, s.price_cents);
-  end loop;
-end
-$$;
-
--- Round 2 has started: every practice account is valued at the last prices, and the top 3 funds (that traded at
--- least once) each receive the prize in their fund cash, paid by the exchange.
-create or replace function app.practice_settle(p_event uuid)
-returns integer
-language plpgsql
-as $$
-declare
-  v_txn uuid := gen_random_uuid();
-  v_total bigint;
-  v_n int;
-  v_list text;
-begin
-  update public.practice_accounts a set
-      final_value_cents = a.cash_cents + coalesce((
-        select sum(h.qty::bigint * s.price_cents) from public.practice_holdings h
-          join public.practice_stocks s on s.id = h.stock_id where h.team_id = a.team_id), 0),
-      settled_at = now()
-   where a.event_id = p_event and a.settled_at is null;
-  get diagnostics v_n = row_count;
-  update public.practice_accounts a set rank = r.n, prize_cents = app.practice_prize()
-    from (select a2.team_id, row_number() over (order by a2.final_value_cents desc, t.code collate "C") as n
-            from public.practice_accounts a2 join public.teams t on t.id = a2.team_id
-           where a2.event_id = p_event and a2.settled_at = now()
-             and exists (select 1 from public.practice_trades x where x.team_id = a2.team_id)) r
-   where a.team_id = r.team_id and r.n <= app.practice_winners();
-  select coalesce(sum(prize_cents), 0) into v_total from public.practice_accounts
-   where event_id = p_event and settled_at = now() and rank is not null;
-  if v_total > 0 then
-    insert into public.ledger_entries (event_id, txn_id, kind, team_id, cash_delta_cents, memo)
-    select p_event, v_txn, 'PRACTICE', a.team_id, a.prize_cents, 'Practice market prize: #' || a.rank
-      from public.practice_accounts a where a.event_id = p_event and a.settled_at = now() and a.rank is not null;
-    insert into public.ledger_entries (event_id, txn_id, kind, team_id, cash_delta_cents, memo)
-    values (p_event, v_txn, 'PRACTICE', null, -v_total, 'Paid by the exchange');
-    update public.teams t set cash_cents = t.cash_cents + a.prize_cents
-      from public.practice_accounts a
-     where a.team_id = t.id and a.event_id = p_event and a.settled_at = now() and a.rank is not null;
-    update public.events set exchange_cash_cents = exchange_cash_cents - v_total where id = p_event;
-    insert into public.public_ledger (event_id, txn_id, kind, label, cash_cents)
-    values (p_event, v_txn, 'PRACTICE', 'Practice market prizes for the top funds', v_total);
-  end if;
-  update public.events set practice_settled_at = now() where id = p_event;
-  if v_n > 0 then
-    select string_agg(a.rank || '. ' || t.name || ' (' || to_char(a.final_value_cents / 100.0, 'FM$999,999,990') || ')', ', ' order by a.rank)
-      into v_list
-      from public.practice_accounts a join public.teams t on t.id = a.team_id
-     where a.event_id = p_event and a.settled_at = now() and a.rank is not null;
-    insert into public.bulletins (event_id, kind, title, body, published_at)
-    values (p_event, 'GENERAL', 'Practice market winners',
-            case when v_list is null then 'The practice market has closed. No fund traded, so no prize was paid.'
-                 else 'The practice market has closed. Top funds: ' || v_list || '. Each received '
-                      || to_char(app.practice_prize() / 100.0, 'FM$999,999,990') || ' in its fund cash.' end, now());
-  end if;
-  return v_n;
-end
-$$;
-
--- From the heartbeat (PRIMUS events). Any failure is logged and never stops the rest of the tick.
-create or replace function app.practice_tick(p_event uuid)
-returns text[]
-language plpgsql
-as $$
-declare
+  v_steps int;
   v_event public.events;
-  v_every interval;
-  v_out text[] := '{}';
-  v_n int;
 begin
-  select * into v_event from public.events where id = p_event;
-  if v_event.format <> 'PRIMUS' or not v_event.practice_enabled or v_event.practice_settled_at is not null then
-    return v_out;
+  select * into v_event from public.events where id = p_event for no key update;
+  if v_event.id is null then
+    return app.fail('NO_EVENT', 'No such event.');
   end if;
-  begin
-    if v_event.current_phase in ('BUILD', 'READING') then
-      if v_event.practice_step < 0 then
-        perform app.practice_list(p_event);
-        insert into public.practice_prices (stock_id, event_id, step, price_cents)
-        select id, event_id, 0, price_cents from public.practice_stocks where event_id = p_event
-        on conflict do nothing;
-        update public.events set practice_step = 0, practice_stepped_at = now() where id = p_event;
-        insert into public.bulletins (event_id, kind, title, body, published_at)
-        values (p_event, 'GENERAL', 'Practice market open',
-                'Finance funds: you each have $60,000 to trade a practice market of six companies until the IPO opens. '
-                || 'Watch the news. The 3 funds worth the most at the close win $50,000 each for Round 2.', now());
-        v_out := v_out || 'practice market opened'::text;
-      else
-        -- One step every 20 seconds (every 2 seconds in a fast rehearsal).
-        v_every := make_interval(secs => greatest(2, 20.0 / greatest(v_event.clock_speed, 1)));
-        if now() >= v_event.practice_stepped_at + v_every then
-          perform app.practice_step(p_event, v_event.practice_step + 1);
-          -- No broadcast: every message re-reads every screen of the night; the practice page refreshes itself.
-          update public.events set practice_step = practice_step + 1, practice_stepped_at = now() where id = p_event;
-        end if;
-      end if;
-      -- Every admitted fund has an account (a team admitted late gets one too).
-      insert into public.practice_accounts (team_id, event_id, grant_cents, cash_cents)
-      select t.id, p_event, app.practice_grant(), app.practice_grant() from public.teams t
-       where t.event_id = p_event and t.track = 'FINANCE' and app.team_admitted(t.id)
-      on conflict (team_id) do nothing;
-    elsif v_event.current_phase in ('PRESSURE', 'SATURATION', 'CLOSE', 'SETTLEMENT', 'APPEALS', 'AWARDS')
-          and v_event.practice_step >= 0 then
-      v_n := app.practice_settle(p_event);
-      v_out := v_out || ('practice settled ' || v_n);
-    end if;
-  exception when others then
-    insert into public.error_log (event_id, source, message, context)
-    values (p_event, 'practice', sqlerrm, jsonb_build_object('sqlstate', sqlstate));
-  end;
-  return v_out;
+  if exists (select 1 from public.practice_markets where event_id = p_event) then
+    return app.ok(jsonb_build_object('already', true));
+  end if;
+  if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) = 0 then
+    return app.fail('BAD_CONTENT', 'No practice prices.');
+  end if;
+  v_steps := jsonb_array_length(p_rows -> 0 -> 'prices');
+  if exists (select 1 from jsonb_array_elements(p_rows) r
+              where jsonb_array_length(r -> 'prices') <> v_steps
+                 or not exists (select 1 from public.teams t where t.id = (r ->> 'ticker')::uuid and t.event_id = p_event and t.track = 'PRODUCT')) then
+    return app.fail('BAD_CONTENT', 'Every path must be the same length and name a Product team of this event.');
+  end if;
+  insert into public.practice_markets (event_id, starts_at, tick_seconds, steps) values (p_event, p_starts_at, p_tick_seconds, v_steps);
+  insert into public.practice_ticks (event_id, ticker_team_id, step, at, price_cents)
+  select p_event, (r ->> 'ticker')::uuid, p.ord - 1, p_starts_at + make_interval(secs => (p.ord - 1) * p_tick_seconds), p.price::int
+    from jsonb_array_elements(p_rows) r
+   cross join lateral jsonb_array_elements_text(r -> 'prices') with ordinality as p(price, ord);
+  return app.ok(jsonb_build_object('steps', v_steps, 'tickers', jsonb_array_length(p_rows)));
 end
 $$;
+revoke all on function public.practice_prepare(uuid, timestamptz, int, jsonb) from public, anon, authenticated;
+grant execute on function public.practice_prepare(uuid, timestamptz, int, jsonb) to service_role;
 
-select app.patch_functions(
-  '    v_actions := v_actions || app.primus_tick(p_event);',
-  '    v_actions := v_actions || app.primus_tick(p_event);
-    v_actions := v_actions || app.practice_tick(p_event);');
+-- The prize the top practice funds win, and how many win it. Kept in the database so the SQL and the engine agree.
+create or replace function app.practice_prize() returns bigint language sql immutable as $$ select 5000000::bigint $$;
+create or replace function app.practice_winners() returns integer language sql immutable as $$ select 3 $$;
+revoke all on function app.practice_prize() from public, anon, authenticated;
+revoke all on function app.practice_winners() from public, anon, authenticated;
 
--- A fund's order on the practice market: fills at once at the current price.
-create or replace function public.practice_trade(p_stock uuid, p_side text, p_qty integer)
+-- A fund's practice equity at a time: cash plus every position at its latest price.
+create or replace function app.practice_equity(p_team uuid, p_at timestamptz default now())
+returns bigint
+language sql stable
+as $$
+  select a.cash_cents + coalesce((select sum(p.qty::bigint * coalesce(app.practice_price(p.ticker_team_id, p_at), 0))
+                                    from public.practice_positions p where p.team_id = a.team_id and p.qty <> 0), 0)
+    from public.practice_accounts a where a.team_id = p_team
+$$;
+revoke all on function app.practice_equity(uuid, timestamptz) from public, anon, authenticated;
+
+-- A practice trade at the current price, filled at once. BUY and SELL work the long side, SHORT and COVER the short
+-- side (a company is held long or short, not both). Limits: 4,000 shares long and 2,000 short per company, and the
+-- cash left must cover 150% of every short at the current price.
+create or replace function public.practice_trade(p_ticker uuid, p_type public.order_type, p_qty integer)
 returns jsonb
 language plpgsql security definer set search_path = ''
 as $$
 declare
   v_team public.teams;
   v_event public.events;
-  v_stock public.practice_stocks;
+  v_market public.practice_markets;
   v_acct public.practice_accounts;
-  v_held public.practice_holdings;
-  v_cost bigint;
+  v_pos int;
+  v_new int;
+  v_price int;
+  v_cash bigint;
+  v_shorts bigint;
 begin
   if app.my_team_id() is null then
     raise exception 'only a team can trade' using errcode = '42501';
   end if;
-  if app.too_fast(app.my_team_id()) then
-    return app.fail('RATE_LIMITED', app.too_fast_message());
+  if not app.rate_limit(app.my_team_id(), 'practice', 30, interval '10 seconds') then
+    return app.fail('RATE_LIMITED', 'Too many trades at once. Wait a few seconds.');
   end if;
-  select * into v_team from public.teams where id = app.my_team_id();
-  select * into v_event from public.events where id = v_team.event_id;
+  v_team := app.lock_caller_team();
   if v_team.track <> 'FINANCE' then
-    return app.fail('NOT_A_FUND', 'Only Finance teams trade on the practice market.');
+    return app.fail('NOT_FINANCE', 'Only Finance teams trade in the practice market.');
   end if;
-  if not app.practice_open(v_event) then
-    return app.fail('PRACTICE_CLOSED', 'The practice market is not open now.');
+  select * into v_event from public.events where id = v_team.event_id;
+  select * into v_market from public.practice_markets where event_id = v_team.event_id;
+  if v_market.event_id is null or v_event.current_phase <> 'BUILD' or v_market.settled_at is not null or v_event.paused then
+    return app.fail('PRACTICE_CLOSED', 'The practice market is open during Round 1 only.');
   end if;
-  if p_side not in ('BUY', 'SELL') then
-    return app.fail('NO_SIDE', 'Choose BUY or SELL.');
+  if p_qty is null or p_qty < 1 or p_qty > 4000 then
+    return app.fail('BAD_QTY', 'Trade between 1 and 4,000 shares.');
   end if;
-  if p_qty is null or p_qty < 1 or p_qty > 100000 then
-    return app.fail('BAD_QUANTITY', 'Enter 1 to 100,000 shares.');
+  v_price := app.practice_price(p_ticker);
+  if v_price is null or not exists (select 1 from public.teams t where t.id = p_ticker and t.event_id = v_team.event_id and t.track = 'PRODUCT') then
+    return app.fail('NO_PRICE', 'That company has no price yet.');
   end if;
-  select * into v_stock from public.practice_stocks where id = p_stock and event_id = v_event.id for share;
-  if v_stock.id is null then
-    return app.fail('NO_STOCK', 'Choose a practice stock.');
-  end if;
-  insert into public.practice_accounts (team_id, event_id, grant_cents, cash_cents)
-  values (v_team.id, v_event.id, app.practice_grant(), app.practice_grant())
-  on conflict (team_id) do nothing;
+
+  insert into public.practice_accounts (team_id, event_id, cash_cents)
+  values (v_team.id, v_team.event_id, 10000000) on conflict (team_id) do nothing;
   select * into v_acct from public.practice_accounts where team_id = v_team.id for update;
-  select * into v_held from public.practice_holdings where team_id = v_team.id and stock_id = p_stock for update;
-  v_cost := p_qty::bigint * v_stock.price_cents;
-  if p_side = 'BUY' then
-    if v_cost > v_acct.cash_cents then
-      return app.fail('NO_CASH', format('That costs %s; you have %s in practice cash.',
-        to_char(v_cost / 100.0, 'FM$999,999,990.00'), to_char(v_acct.cash_cents / 100.0, 'FM$999,999,990.00')));
-    end if;
-    update public.practice_accounts set cash_cents = cash_cents - v_cost where team_id = v_team.id;
-    insert into public.practice_holdings (team_id, stock_id, qty, cost_cents) values (v_team.id, p_stock, p_qty, v_cost)
-    on conflict (team_id, stock_id) do update set qty = practice_holdings.qty + excluded.qty,
-                                                   cost_cents = practice_holdings.cost_cents + excluded.cost_cents;
-  else
-    if coalesce(v_held.qty, 0) < p_qty then
-      return app.fail('NOT_ENOUGH_SHARES', format('You hold %s shares of %s.', coalesce(v_held.qty, 0), v_stock.symbol));
-    end if;
-    update public.practice_accounts set cash_cents = cash_cents + v_cost where team_id = v_team.id;
-    update public.practice_holdings
-       set qty = qty - p_qty,
-           cost_cents = case when qty = p_qty then 0 else cost_cents - (cost_cents * p_qty / qty) end
-     where team_id = v_team.id and stock_id = p_stock;
+  select coalesce((select qty from public.practice_positions where team_id = v_team.id and ticker_team_id = p_ticker), 0) into v_pos;
+
+  case p_type
+    when 'BUY' then
+      if v_pos < 0 then return app.fail('COVER_FIRST', 'You are short this company: COVER first.'); end if;
+      v_new := v_pos + p_qty;
+      if v_new > 4000 then return app.fail('LIMIT', 'At most 4,000 shares of one company.'); end if;
+      v_cash := v_acct.cash_cents - p_qty::bigint * v_price;
+    when 'SELL' then
+      if p_qty > v_pos then return app.fail('NOT_HELD', 'You can sell only shares you hold (' || greatest(v_pos, 0) || ').'); end if;
+      v_new := v_pos - p_qty;
+      v_cash := v_acct.cash_cents + p_qty::bigint * v_price;
+    when 'SHORT' then
+      if v_pos > 0 then return app.fail('SELL_FIRST', 'You hold this company: SELL first.'); end if;
+      v_new := v_pos - p_qty;
+      if v_new < -2000 then return app.fail('LIMIT', 'At most 2,000 shares short of one company.'); end if;
+      v_cash := v_acct.cash_cents + p_qty::bigint * v_price;
+    when 'COVER' then
+      if p_qty > -v_pos then return app.fail('NOT_SHORT', 'You can cover only shares you are short (' || greatest(-v_pos, 0) || ').'); end if;
+      v_new := v_pos + p_qty;
+      v_cash := v_acct.cash_cents - p_qty::bigint * v_price;
+  end case;
+
+  -- The cash left must cover 150% of every short (this one included) at the current prices.
+  select coalesce(sum(-q.qty::bigint * coalesce(app.practice_price(q.ticker_team_id), 0)), 0) into v_shorts
+    from (select ticker_team_id, qty from public.practice_positions where team_id = v_team.id and ticker_team_id <> p_ticker
+          union all select p_ticker, v_new) q
+   where q.qty < 0;
+  if v_cash < 0 or v_cash < (v_shorts * 3) / 2 then
+    return app.fail('NO_CASH', 'Not enough practice cash for that (shorts need 150% cover).');
   end if;
-  insert into public.practice_trades (event_id, team_id, stock_id, side, qty, price_cents, step)
-  values (v_event.id, v_team.id, p_stock, p_side, p_qty, v_stock.price_cents, v_event.practice_step);
-  return app.ok(jsonb_build_object('side', p_side, 'qty', p_qty, 'symbol', v_stock.symbol, 'price_cents', v_stock.price_cents,
-                                   'total_cents', v_cost));
+
+  insert into public.practice_positions (team_id, ticker_team_id, event_id, qty) values (v_team.id, p_ticker, v_team.event_id, v_new)
+  on conflict (team_id, ticker_team_id) do update set qty = excluded.qty;
+  update public.practice_accounts set cash_cents = v_cash, trades = trades + 1, updated_at = now() where team_id = v_team.id;
+  insert into public.practice_trades (event_id, team_id, ticker_team_id, type, qty, price_cents)
+  values (v_team.event_id, v_team.id, p_ticker, p_type, p_qty, v_price);
+  return app.ok(jsonb_build_object('price', v_price, 'position', v_new, 'cash', v_cash,
+                                   'equity', app.practice_equity(v_team.id)));
 end
 $$;
-revoke all on function public.practice_trade(uuid, text, integer) from public, anon;
-grant execute on function public.practice_trade(uuid, text, integer) to authenticated;
+revoke all on function public.practice_trade(uuid, public.order_type, integer) from public, anon;
+grant execute on function public.practice_trade(uuid, public.order_type, integer) to authenticated;
 
-revoke all on function app.practice_tick(uuid), app.practice_step(uuid, integer), app.practice_settle(uuid),
-  app.practice_list(uuid), app.practice_grant(), app.practice_prize(), app.practice_winners(), app.practice_open(public.events),
-  app.practice_z()
-  from public, anon, authenticated;
+-- Closes the practice market (on entering READING): every fund's equity at the last price, then the funds that
+-- traded at least once are ranked by it (ties to the lower team code) and the top 3 are each paid a $50,000 prize
+-- into their real cash by the exchange. The practice money itself stays in the practice market. Once.
+create or replace function app.settle_practice(p_event uuid)
+returns void
+language plpgsql
+as $$
+declare
+  v_txn uuid := gen_random_uuid();
+  v_total bigint;
+  v_market public.practice_markets;
+begin
+  select * into v_market from public.practice_markets where event_id = p_event for update;
+  if v_market.event_id is null or v_market.settled_at is not null then
+    return;
+  end if;
+  update public.practice_accounts a set equity_cents = app.practice_equity(a.team_id), edge_cents = 0, rank = null, updated_at = now()
+   where a.event_id = p_event;
+  -- Only the funds that traded are ranked; the prize is the same for each winner.
+  update public.practice_accounts a set rank = r.n, edge_cents = app.practice_prize()
+    from (select a2.team_id, row_number() over (order by a2.equity_cents desc, t.code collate "C") as n
+            from public.practice_accounts a2 join public.teams t on t.id = a2.team_id
+           where a2.event_id = p_event and a2.trades > 0) r
+   where a.team_id = r.team_id and r.n <= app.practice_winners();
+  insert into public.ledger_entries (event_id, txn_id, kind, team_id, cash_delta_cents, memo)
+  select p_event, v_txn, 'PRACTICE_EDGE', a.team_id, a.edge_cents, 'Round 1 practice market: prize for finishing #' || a.rank
+    from public.practice_accounts a where a.event_id = p_event and a.edge_cents > 0;
+  select coalesce(sum(edge_cents), 0) into v_total from public.practice_accounts where event_id = p_event and edge_cents > 0;
+  if v_total > 0 then
+    insert into public.ledger_entries (event_id, txn_id, kind, team_id, cash_delta_cents, memo)
+    values (p_event, v_txn, 'PRACTICE_EDGE', null, -v_total, 'Paid by the exchange');
+    update public.teams t set cash_cents = t.cash_cents + a.edge_cents
+      from public.practice_accounts a where a.team_id = t.id and a.event_id = p_event and a.edge_cents > 0;
+    update public.events set exchange_cash_cents = exchange_cash_cents - v_total where id = p_event;
+    insert into public.public_ledger (event_id, txn_id, kind, label, cash_cents)
+    values (p_event, v_txn, 'PRACTICE_EDGE', 'Round 1 practice market: prizes for the top funds', v_total);
+  end if;
+  update public.practice_markets set settled_at = now() where event_id = p_event;
+  insert into public.bulletins (event_id, kind, title, body, published_at)
+  select p_event, 'GENERAL', 'The practice market has closed',
+         case when w.names is null
+           then 'The practice market is closed. No fund traded, so no prize was won.'
+           else 'The practice market is closed. The top ' || app.practice_winners() || ' funds each win $50,000 in real cash for the IPO: ' || w.names || '.'
+         end, now()
+    from (select string_agg(t.code || ' (#' || a.rank || ')', ', ' order by a.rank) as names
+            from public.practice_accounts a join public.teams t on t.id = a.team_id
+           where a.event_id = p_event and a.rank is not null) w;
+end
+$$;
+revoke all on function app.settle_practice(uuid) from public, anon, authenticated;
+
+select app.patch_functions(
+  '    when ''READING'' then perform app.default_tickers(p_event);',
+  '    when ''READING'' then perform app.default_tickers(p_event); perform app.settle_practice(p_event);');
+
+-- ───────────────────────────── Real market: each round's high and low ─────────────────────────────
+
+create table public.round_ranges (
+  round_id uuid not null references public.rounds (id) on delete cascade,
+  company_id uuid not null references public.companies (id) on delete cascade,
+  event_id uuid not null references public.events (id) on delete cascade,
+  open_cents int not null,
+  high_cents int not null,
+  low_cents int not null,
+  last_cents int not null,
+  updated_at timestamptz not null default now(),
+  primary key (round_id, company_id)
+);
+create index round_ranges_event_idx on public.round_ranges (event_id);
+alter table public.round_ranges enable row level security;
+grant select on public.round_ranges to authenticated;
+create policy round_ranges_read on public.round_ranges for select to authenticated
+  using ((select app.sees_all_events()) or event_id = (select app.my_event_id()));
+
+-- After every order change in an open round: the company's indicative price (the clearing rule on the pending
+-- orders) and the round's high and low so far. The clearing itself (which fills the orders) is skipped.
+create or replace function app.track_round_range()
+returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_round uuid := coalesce(new.round_id, old.round_id);
+  v_company uuid := coalesce(new.company_id, old.company_id);
+  v_event uuid := coalesce(new.event_id, old.event_id);
+  v_open int;
+  v_price int;
+begin
+  if coalesce(current_setting('app.price_writer', true), '') = 'CLEARING' then
+    return null;
+  end if;
+  if not exists (select 1 from public.rounds r where r.id = v_round and r.status = 'OPEN') then
+    return null;
+  end if;
+  select c.market_price into v_open from public.companies c where c.id = v_company;
+  if v_open is null then
+    return null;
+  end if;
+  insert into public.round_ranges (round_id, company_id, event_id, open_cents, high_cents, low_cents, last_cents)
+  values (v_round, v_company, v_event, v_open, v_open, v_open, v_open) on conflict do nothing;
+  perform 1 from public.round_ranges where round_id = v_round and company_id = v_company for update;
+  -- After the lock, so an order committed while waiting is counted.
+  select app.clearing_price(v_open, coalesce(sum(case when o.type in ('BUY', 'COVER') then o.qty else -o.qty end), 0))
+    into v_price
+    from public.orders o where o.round_id = v_round and o.company_id = v_company and o.status = 'PENDING';
+  update public.round_ranges
+     set last_cents = v_price, high_cents = greatest(high_cents, v_price), low_cents = least(low_cents, v_price), updated_at = now()
+   where round_id = v_round and company_id = v_company;
+  return null;
+end
+$$;
+revoke all on function app.track_round_range() from public, anon, authenticated;
+
+create trigger orders_track_range
+  after insert or update of qty, status or delete on public.orders
+  for each row execute function app.track_round_range();
 
 create or replace function public.schema_version()
 returns text
