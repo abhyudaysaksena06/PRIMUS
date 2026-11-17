@@ -4,8 +4,16 @@ import { RULES } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { fundContext, loadTradeData } from "@/lib/team/trade-data";
 import { companyPosition, fundSummary } from "@/lib/team/trade";
-import { FUND_LOT_HINTS, FUND_LOT_LABELS, collateralView, meterPct, portfolioTotals, positionLines } from "@/lib/team/portfolio";
-import { bp, clock, count, money, signedMoney } from "@/lib/format";
+import {
+  FUND_LOT_HINTS,
+  FUND_LOT_LABELS,
+  collateralView,
+  meterPct,
+  portfolioTotals,
+  positionLines,
+} from "@/lib/team/portfolio";
+import { bp, cents, clock, count, money, signedMoney } from "@/lib/format";
+import { supabaseServer } from "@/lib/supabase/server";
 import { Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
 import { LineChart } from "@/components/ui/line-chart";
 import { loadPortfolioSeries } from "@/lib/team/portfolio-history-data";
@@ -21,10 +29,39 @@ export default async function PositionsPage() {
   const ctx = await loadTeamContext();
   const gate = tradeGate(ctx);
   if (gate) return gate;
-  const [data, series] = await Promise.all([loadTradeData(ctx, { orders: "pending" }), loadPortfolioSeries(ctx.event.id, ctx.team.id)]);
+  const sb = await supabaseServer();
+  const [data, series, given] = await Promise.all([
+    loadTradeData(ctx, { orders: "pending" }),
+    loadPortfolioSeries(ctx.event.id, ctx.team.id),
+    // What else the fund was given: the practice market's money once settled, and the Round 3 money.
+    Promise.all([
+      sb
+        .from("practice_accounts")
+        .select("grant_cents")
+        .eq("team_id", ctx.team.id)
+        .not("settled_at", "is", null)
+        .maybeSingle<{ grant_cents: number | string }>(),
+      sb
+        .from("ledger_entries")
+        .select("cash_delta_cents")
+        .eq("team_id", ctx.team.id)
+        .eq("kind", "INJECTION"),
+    ]).then(
+      ([p, i]) =>
+        cents(p.data?.grant_cents ?? 0) +
+        (i.data ?? []).reduce(
+          (t, r) => t + cents(r.cash_delta_cents as number | string),
+          0,
+        ),
+    ),
+  ]);
   const closed = data.marketClosedAt !== null;
   const lines = positionLines(data.holdings, data.companies, closed);
-  const totals = portfolioTotals(ctx.team.cash, lines);
+  const totals = portfolioTotals(
+    ctx.team.cash,
+    lines,
+    RULES.START_CASH_FINANCE + given,
+  );
   const fctx = fundContext(ctx, data);
   const summary = fundSummary(fctx);
   const coll = collateralView(fctx);
@@ -38,32 +75,75 @@ export default async function PositionsPage() {
     <div className="space-y-4">
       {closed ? (
         <Notice>
-          The market closed at {clock(data.marketClosedAt)}: every short was covered at the closing price, and positions are valued at closing prices.
+          The market closed at {clock(data.marketClosedAt)}: every short was
+          covered at the closing price, and positions are valued at closing
+          prices.
         </Notice>
       ) : null}
 
       <Panel title="Portfolio">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Stat label="Portfolio value" value={<span data-testid="portfolio-value">{money(totals.value)}</span>} hint={`Cash + long − short, at ${priceWord} prices`} />
+          <Stat
+            label="Portfolio value"
+            value={
+              <span data-testid="portfolio-value">{money(totals.value)}</span>
+            }
+            hint={`Cash + long − short, at ${priceWord} prices`}
+          />
           <Stat
             label={`Return on ${money(totals.start)}`}
-            value={<span data-testid="portfolio-return">{bp(totals.returnBp)}</span>}
-            hint={<span data-testid="portfolio-gain">{signedMoney(totals.gain)}</span>}
+            value={
+              <span data-testid="portfolio-return">{bp(totals.returnBp)}</span>
+            }
+            hint={
+              <span data-testid="portfolio-gain">
+                {signedMoney(totals.gain)}
+              </span>
+            }
           />
           <Stat label="Cash" value={money(totals.cash)} />
-          <Stat label="Long shares" value={money(totals.longValue)} hint="Exchange and squad lots" />
-          <Stat label="Short shares" value={money(totals.shortValue)} hint={closed ? "Covered at the close" : "What covering would cost"} />
-          <Stat label={closed ? "Profit and loss at closing prices" : "Unrealised profit and loss"} value={<span data-testid="portfolio-pnl">{signedMoney(totals.unrealised)}</span>} />
+          <Stat
+            label="Long shares"
+            value={money(totals.longValue)}
+            hint="Exchange and squad lots"
+          />
+          <Stat
+            label="Short shares"
+            value={money(totals.shortValue)}
+            hint={closed ? "Covered at the close" : "What covering would cost"}
+          />
+          <Stat
+            label={
+              closed
+                ? "Profit and loss at closing prices"
+                : "Unrealised profit and loss"
+            }
+            value={
+              <span data-testid="portfolio-pnl">
+                {signedMoney(totals.unrealised)}
+              </span>
+            }
+          />
         </div>
         {totals.unpriced > 0 ? (
           <p className="mt-2 text-xs text-muted">
-            {count(totals.unpriced)} {totals.unpriced === 1 ? "line has" : "lines have"} no price until the IPO prices are released and {totals.unpriced === 1 ? "is" : "are"} not counted.
+            {count(totals.unpriced)}{" "}
+            {totals.unpriced === 1 ? "line has" : "lines have"} no price until
+            the IPO prices are released and{" "}
+            {totals.unpriced === 1 ? "is" : "are"} not counted.
           </p>
         ) : null}
         {series.length >= 2 ? (
           <div className="mt-4">
-            <h3 className="mb-1 text-sm font-semibold text-paper">Your fund&apos;s value after each step</h3>
-            <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
+            <h3 className="mb-1 text-sm font-semibold text-paper">
+              Your fund&apos;s value after each step
+            </h3>
+            <LineChart
+              points={series}
+              label="Your fund's value by step"
+              mainName="Portfolio value (cash + long − short)"
+              testId="portfolio-chart"
+            />
           </div>
         ) : null}
       </Panel>
@@ -72,24 +152,46 @@ export default async function PositionsPage() {
         {lines.length === 0 ? (
           <p className="text-sm text-muted">No shares yet.</p>
         ) : (
-          <Table head={["Company", "Shares", "Value", "Profit and loss", `Price (${priceWord})`, "Avg cost"]} label="Positions">
+          <Table
+            head={[
+              "Company",
+              "Shares",
+              "Value",
+              "Profit and loss",
+              `Price (${priceWord})`,
+              "Avg cost",
+            ]}
+            label="Positions"
+          >
             {lines.map((l) => (
               <tr key={l.key} data-testid={`position-${l.ticker}-${l.lot}`}>
                 <Td>
-                  <Link href={`/team/market/${l.ticker}`} className="font-mono font-semibold underline-offset-2 hover:underline">
+                  <Link
+                    href={`/team/market/${l.ticker}`}
+                    className="font-mono font-semibold underline-offset-2 hover:underline"
+                  >
                     {l.ticker}
                   </Link>{" "}
-                  <span className="text-xs text-muted" title={FUND_LOT_HINTS[l.lot]}>
+                  <span
+                    className="text-xs text-muted"
+                    title={FUND_LOT_HINTS[l.lot]}
+                  >
                     {FUND_LOT_LABELS[l.lot]}
                   </span>
                 </Td>
                 <Td mono className="text-right">
                   {count(l.qty)}
                 </Td>
-                <Td mono className={`text-right ${l.value !== null && l.value < 0 ? "text-danger-soft" : ""}`}>
+                <Td
+                  mono
+                  className={`text-right ${l.value !== null && l.value < 0 ? "text-danger-soft" : ""}`}
+                >
                   {l.value === null ? "—" : money(l.value)}
                 </Td>
-                <Td mono className={`text-right ${l.pnl === null ? "" : l.pnl < 0 ? "text-danger-soft" : l.pnl > 0 ? "text-phosphor" : ""}`}>
+                <Td
+                  mono
+                  className={`text-right ${l.pnl === null ? "" : l.pnl < 0 ? "text-danger-soft" : l.pnl > 0 ? "text-phosphor" : ""}`}
+                >
                   {l.pnl === null ? "—" : signedMoney(l.pnl)}
                 </Td>
                 <Td mono className="text-right">
@@ -105,12 +207,20 @@ export default async function PositionsPage() {
         <dl className="mt-3 space-y-1 text-xs text-muted">
           {(["EXCHANGE", "SQUAD", "SHORT"] as const).map((lot) => (
             <div key={lot}>
-              <dt className="inline font-semibold text-paper">{FUND_LOT_LABELS[lot]}:</dt> <dd className="inline">{FUND_LOT_HINTS[lot]}</dd>
+              <dt className="inline font-semibold text-paper">
+                {FUND_LOT_LABELS[lot]}:
+              </dt>{" "}
+              <dd className="inline">{FUND_LOT_HINTS[lot]}</dd>
             </div>
           ))}
           <div>
-            <dt className="inline font-semibold text-paper">Profit and loss:</dt>{" "}
-            <dd className="inline">long lots: value − what they cost; shorts: what the sale brought in − what covering costs now.</dd>
+            <dt className="inline font-semibold text-paper">
+              Profit and loss:
+            </dt>{" "}
+            <dd className="inline">
+              long lots: value − what they cost; shorts: what the sale brought
+              in − what covering costs now.
+            </dd>
           </div>
         </dl>
       </Panel>
@@ -119,34 +229,60 @@ export default async function PositionsPage() {
         <div className="space-y-4 text-sm">
           {closed ? (
             <Notice>
-              <span data-testid="collateral-status">The market has closed: every short was covered at the closing price and no more orders are taken.</span>
+              <span data-testid="collateral-status">
+                The market has closed: every short was covered at the closing
+                price and no more orders are taken.
+              </span>
             </Notice>
           ) : coll.blocked ? (
             <Notice tone="red">
               <span data-testid="collateral-status">
-                Blocked: your cash ({money(coll.cash)}) is below your locked collateral ({money(coll.locked)}), short by {money(coll.deficit)}. New buys and shorts are
-                refused until cash covers it; sells and covers are always allowed. Nothing is sold for you before the close.
+                Blocked: your cash ({money(coll.cash)}) is below your locked
+                collateral ({money(coll.locked)}), short by{" "}
+                {money(coll.deficit)}. New buys and shorts are refused until
+                cash covers it; sells and covers are always allowed. Nothing is
+                sold for you before the close.
               </span>
             </Notice>
           ) : (
             <Notice tone="green">
-              <span data-testid="collateral-status">Your cash covers your collateral: new buys and shorts are allowed.</span>
+              <span data-testid="collateral-status">
+                Your cash covers your collateral: new buys and shorts are
+                allowed.
+              </span>
             </Notice>
           )}
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
-            <Fact label="Collateral locked" value={money(coll.locked)} testId="collateral-locked" />
-            <Fact label="Required at current prices" value={money(coll.required)} testId="collateral-required" />
-            <Fact label="Reserved by open orders" value={money(summary.reserved)} />
+            <Fact
+              label="Collateral locked"
+              value={money(coll.locked)}
+              testId="collateral-locked"
+            />
+            <Fact
+              label="Required at current prices"
+              value={money(coll.required)}
+              testId="collateral-required"
+            />
+            <Fact
+              label="Reserved by open orders"
+              value={money(summary.reserved)}
+            />
             <Fact label="Available cash" value={money(summary.available)} />
           </dl>
           <p className="text-xs text-muted">
-            Collateral is 150% of each short&apos;s value (shares short × current price), locked out of your cash and recalculated at every price change.
+            Collateral is 150% of each short&apos;s value (shares short ×
+            current price), locked out of your cash and recalculated at every
+            price change.
           </p>
           <div>
             <div className="flex flex-wrap justify-between gap-x-3 text-sm">
               <span className="font-medium text-paper">Short exposure</span>
-              <span className="font-mono tabular-nums" data-testid="exposure-of-cap">
-                {money(summary.shortExposureWithPending)} of {money(RULES.SHORT_EXPOSURE_LIMIT)}
+              <span
+                className="font-mono tabular-nums"
+                data-testid="exposure-of-cap"
+              >
+                {money(summary.shortExposureWithPending)} of{" "}
+                {money(RULES.SHORT_EXPOSURE_LIMIT)}
               </span>
             </div>
             <div
@@ -155,18 +291,35 @@ export default async function PositionsPage() {
               aria-label="Short exposure of the $250,000 limit"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}
+              aria-valuenow={meterPct(
+                summary.shortExposureWithPending,
+                RULES.SHORT_EXPOSURE_LIMIT,
+              )}
             >
-              <div className="h-full bg-phosphor-deep" style={{ width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%` }} />
+              <div
+                className="h-full bg-phosphor-deep"
+                style={{
+                  width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%`,
+                }}
+              />
             </div>
             <p className="mt-1 text-xs text-muted">
               Open shorts {money(summary.shortExposure)}
-              {summary.shortExposureWithPending > summary.shortExposure ? ` + pending shorts ${money(summary.shortExposureWithPending - summary.shortExposure)}` : ""}, at
-              current prices.
+              {summary.shortExposureWithPending > summary.shortExposure
+                ? ` + pending shorts ${money(summary.shortExposureWithPending - summary.shortExposure)}`
+                : ""}
+              , at current prices.
             </p>
           </div>
           {limitCompanies.length > 0 ? (
-            <Table head={["Company", "Long, with pending buys", "Short, with pending shorts"]} label="Limits per company">
+            <Table
+              head={[
+                "Company",
+                "Long, with pending buys",
+                "Short, with pending shorts",
+              ]}
+              label="Limits per company"
+            >
               {limitCompanies.map((c) => {
                 const p = companyPosition(fctx, c.id);
                 return (
@@ -175,10 +328,12 @@ export default async function PositionsPage() {
                       {c.ticker}
                     </Td>
                     <Td mono className="text-right">
-                      {count(p.exchangeQty + p.pending.BUY)} of {count(RULES.LONG_LIMIT)}
+                      {count(p.exchangeQty + p.pending.BUY)} of{" "}
+                      {count(RULES.LONG_LIMIT)}
                     </Td>
                     <Td mono className="text-right">
-                      {count(p.shortQty + p.pending.SHORT)} of {count(RULES.SHORT_LIMIT)}
+                      {count(p.shortQty + p.pending.SHORT)} of{" "}
+                      {count(RULES.SHORT_LIMIT)}
                     </Td>
                   </tr>
                 );
@@ -191,7 +346,15 @@ export default async function PositionsPage() {
   );
 }
 
-function Fact({ label, value, testId }: { label: string; value: string; testId?: string }) {
+function Fact({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: string;
+  testId?: string;
+}) {
   return (
     <div className="min-w-0">
       <dt className="text-xs text-muted">{label}</dt>

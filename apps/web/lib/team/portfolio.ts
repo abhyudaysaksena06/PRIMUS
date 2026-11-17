@@ -30,9 +30,12 @@ export const FUND_LOT_LABELS: Record<FundLot, string> = {
 };
 
 export const FUND_LOT_HINTS: Record<FundLot, string> = {
-  EXCHANGE: "Bought at the IPO and on the exchange; counts towards the 4,000-share limit.",
-  SQUAD: "Seed shares and the rescue deal's shares in your squad's company; never traded, outside the 4,000-share limit.",
-  SHORT: "Sold short; covered with Cover orders, or at the closing price at the close.",
+  EXCHANGE:
+    "Bought at the IPO and on the exchange; counts towards the 4,000-share limit.",
+  SQUAD:
+    "Seed shares and the rescue deal's shares in your squad's company; never traded, outside the 4,000-share limit.",
+  SHORT:
+    "Sold short; covered with Cover orders, or at the closing price at the close.",
 };
 
 export interface PositionLine {
@@ -55,22 +58,48 @@ export interface PositionLine {
 }
 
 /** Lines with shares, ordered by ticker and then EXCHANGE, SQUAD, SHORT. */
-export function positionLines(holdings: readonly HoldingRow[], companies: readonly TradeCompanyRow[], closed: boolean): PositionLine[] {
+export function positionLines(
+  holdings: readonly HoldingRow[],
+  companies: readonly TradeCompanyRow[],
+  closed: boolean,
+): PositionLine[] {
   const byId = new Map(companies.map((c) => [c.id, c]));
   const lines: PositionLine[] = [];
   for (const h of holdings) {
-    if (h.qty <= 0 || (h.lot !== "EXCHANGE" && h.lot !== "SQUAD" && h.lot !== "SHORT")) continue;
+    if (
+      h.qty <= 0 ||
+      (h.lot !== "EXCHANGE" && h.lot !== "SQUAD" && h.lot !== "SHORT")
+    )
+      continue;
     const c = byId.get(h.company_id);
     const cost = cents(h.cost_cents);
-    const price = (closed ? (c?.closing_price ?? c?.market_price) : c?.market_price) ?? null;
+    const price =
+      (closed ? (c?.closing_price ?? c?.market_price) : c?.market_price) ??
+      null;
     const short = h.lot === "SHORT";
     let value: number | null = null;
     let pnl: number | null = null;
     if (price !== null) {
       value = short ? -mul(h.qty, price) : mul(h.qty, price);
       const p = short
-        ? positionPnl({ exchangeQty: 0, exchangeCost: 0, shortQty: h.qty, shortProceeds: cost }, price)
-        : positionPnl({ exchangeQty: h.qty, exchangeCost: cost, shortQty: 0, shortProceeds: 0 }, price);
+        ? positionPnl(
+            {
+              exchangeQty: 0,
+              exchangeCost: 0,
+              shortQty: h.qty,
+              shortProceeds: cost,
+            },
+            price,
+          )
+        : positionPnl(
+            {
+              exchangeQty: h.qty,
+              exchangeCost: cost,
+              shortQty: 0,
+              shortProceeds: 0,
+            },
+            price,
+          );
       pnl = short ? p.short : p.long;
     }
     lines.push({
@@ -87,7 +116,10 @@ export function positionLines(holdings: readonly HoldingRow[], companies: readon
       pnl,
     });
   }
-  return lines.sort((a, b) => a.ticker.localeCompare(b.ticker) || LOT_ORDER[a.lot] - LOT_ORDER[b.lot]);
+  return lines.sort(
+    (a, b) =>
+      a.ticker.localeCompare(b.ticker) || LOT_ORDER[a.lot] - LOT_ORDER[b.lot],
+  );
 }
 
 export interface PortfolioTotals {
@@ -109,23 +141,35 @@ export interface PortfolioTotals {
   unpriced: number;
 }
 
-export function portfolioTotals(cash: number, lines: readonly PositionLine[]): PortfolioTotals {
+/** `start`: all the money the fund was given (the $500,000, and on a PRIMUS night the practice market and the Round 3 money once received). */
+export function portfolioTotals(
+  cash: number,
+  lines: readonly PositionLine[],
+  start: number = RULES.START_CASH_FINANCE,
+): PortfolioTotals {
   const priced = lines.filter((l) => l.price !== null);
   const byCompany = new Map<string, Holding>();
   const prices: Record<string, number> = {};
   for (const l of priced) {
-    const h = byCompany.get(l.companyId) ?? { companyId: l.companyId, longQty: 0, shortQty: 0 };
+    const h = byCompany.get(l.companyId) ?? {
+      companyId: l.companyId,
+      longQty: 0,
+      shortQty: 0,
+    };
     byCompany.set(l.companyId, h);
     if (l.lot === "SHORT") h.shortQty += l.qty;
     else h.longQty += l.qty;
     prices[l.companyId] = l.price!;
   }
   const value = financeValue(cash, [...byCompany.values()], prices);
-  const start = RULES.START_CASH_FINANCE;
   return {
     cash,
-    longValue: priced.filter((l) => l.lot !== "SHORT").reduce((s, l) => s + l.value!, 0),
-    shortValue: priced.filter((l) => l.lot === "SHORT").reduce((s, l) => s - l.value!, 0),
+    longValue: priced
+      .filter((l) => l.lot !== "SHORT")
+      .reduce((s, l) => s + l.value!, 0),
+    shortValue: priced
+      .filter((l) => l.lot === "SHORT")
+      .reduce((s, l) => s - l.value!, 0),
     value,
     start,
     gain: value - start,
