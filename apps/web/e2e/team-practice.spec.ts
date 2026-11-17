@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type pg from "pg";
+import { candleTicks, practiceCandles, PRACTICE } from "@msim/engine";
+import { service } from "../../../supabase/tests/helpers";
 import { e2ePool, seedE2eEvent, type E2eEvent } from "./support/event";
 import { drawn } from "./support/game";
 import { loginAsTeam } from "./support/login";
@@ -42,12 +44,16 @@ test("in Round 1 a fund trades the candlestick market and a top finish wins the 
   test.setTimeout(240_000);
   await drawn(ev);
   await ev.n.advanceTo("BUILD");
-  // The market started ten minutes ago, so the chart has twenty candles. BUILD is also held open for an hour, so a
-  // tick cannot end Round 1 while the terminal is being read (the test ends it itself, below).
-  await ev.n.q(
-    "update phases set started_at = now() - interval '10 minutes', starts_at = now() - interval '10 minutes', ends_at = now() + interval '1 hour' where event_id = $1 and code = 'BUILD'",
-    [ev.n.eventId],
-  );
+  // BUILD is held open for an hour, so a tick cannot end Round 1 while the terminal is being read (the test ends it
+  // itself, below).
+  await ev.n.q("update phases set started_at = now() - interval '10 minutes', starts_at = now() - interval '10 minutes', ends_at = now() + interval '1 hour' where event_id = $1 and code = 'BUILD'", [
+    ev.n.eventId,
+  ]);
+  // The market is stored here rather than by the first page read: it started ten minutes ago, so the chart opens on
+  // twenty candles, and the page has no long write to do before it can render.
+  const products = await ev.n.q("select id, code from teams where event_id = $1 and track = 'PRODUCT' order by code", [ev.n.eventId]);
+  const rows = products.map((p) => ({ ticker: p.id, prices: practiceCandles(`${ev.n.eventId}:${p.code}`, 40).flatMap((c) => candleTicks(c)) }));
+  await ev.n.ok(service, "practice_prepare", ev.n.eventId, new Date(Date.now() - 600_000).toISOString(), PRACTICE.tickSeconds, JSON.stringify(rows));
 
   await loginAsTeam(page, ev, fund);
   await page.goto("/team");
