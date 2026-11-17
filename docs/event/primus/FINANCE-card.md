@@ -1,11 +1,12 @@
 # PRIMUS · Finance fund card (F01–F50)
 
-**You are an investment fund with $500,000.** At 04:45 you receive $250,000 more.
+**You are an investment fund with $500,000.** In Round 1 you also get $60,000 for the practice market. At 04:45 you receive $250,000 more.
 **Score = your return on all the money you were given.** Tie-break: a smaller largest single position.
 You may never trade your own squad's company.
 
 | When | Do | Rule |
 |---|---|---|
+| 21:10–22:30 | **Practice market** | $60,000 on six made-up companies; BUY or SELL fills at once at the current price. Watch the news. What it is worth at 22:30 is added to your fund cash at 22:45. |
 | 22:00–22:30 | **Read the PRDs, ask questions** | The pitch book and the Q&A board. |
 | 22:30–22:45 | **IPO bids** | Up to 4,000 shares per company, at its IPO price. |
 | 22:45–06:30 | **Trade** in each trading round | BUY, SELL, SHORT or COVER. Every order fills at the round's new price. Long cap 4,000 shares; short cap 2,000; shorts lock 150% collateral. |

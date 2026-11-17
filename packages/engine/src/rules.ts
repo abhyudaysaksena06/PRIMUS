@@ -11,6 +11,7 @@ export const RULES = {
   BASE_PRICE: 1_000, // IPO price = $10.00 × (1 + pitch tier)
 
   START_CASH_FINANCE: 50_000_000, // $500,000
+  PRACTICE_CASH: 6_000_000, // $60,000 per fund for the Round 1 practice market (PRIMUS); its result is added in Round 2
 
   IPO_MAX_PER_COMPANY: 4_000,
   IPO_ROUND_TO: 10,

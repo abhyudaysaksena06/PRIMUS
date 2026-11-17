@@ -23,6 +23,8 @@ export const LEDGER_KINDS = [
   "BONUS_DEAL",
   "CALL_EARNINGS",
   "CORRECTION",
+  "PRACTICE",
+  "INJECTION",
 ] as const;
 export type LedgerKind = (typeof LEDGER_KINDS)[number];
 
@@ -40,9 +42,12 @@ export const LEDGER_KIND_LABELS: Record<LedgerKind, string> = {
   BONUS_DEAL: "Deal bonus",
   CALL_EARNINGS: "Call earnings",
   CORRECTION: "Correction",
+  PRACTICE: "Practice market result",
+  INJECTION: "Round 3 money",
 };
 
-export const isLedgerKind = (k: string): k is LedgerKind => (LEDGER_KINDS as readonly string[]).includes(k);
+export const isLedgerKind = (k: string): k is LedgerKind =>
+  (LEDGER_KINDS as readonly string[]).includes(k);
 
 export const PAGE_SIZE = 50;
 
@@ -90,7 +95,8 @@ export interface LedgerRow {
 export function bigCents(v: Cents | bigint | null | undefined): bigint {
   if (typeof v === "bigint") return v;
   if (typeof v === "number" && Number.isSafeInteger(v)) return BigInt(v);
-  if (typeof v === "string" && /^-?\d+$/.test(v.trim())) return BigInt(v.trim());
+  if (typeof v === "string" && /^-?\d+$/.test(v.trim()))
+    return BigInt(v.trim());
   throw new Error(`not a whole number of cents: ${String(v)}`);
 }
 
@@ -121,7 +127,10 @@ export function signedCount(n: number): string {
 export const shortTxn = (id: string) => id.slice(0, 8);
 
 /** A company's ticker, or (before the pitch sets one) its Product team's code. */
-export function companyLabel(c: CompanyRef | undefined, teams: ReadonlyMap<string, TeamRef>): string {
+export function companyLabel(
+  c: CompanyRef | undefined,
+  teams: ReadonlyMap<string, TeamRef>,
+): string {
   if (!c) return "—";
   return c.ticker ?? `${teams.get(c.product_team_id)?.code ?? "?"}’s company`;
 }
@@ -138,7 +147,8 @@ export interface LedgerQuery {
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+const first = (v: string | string[] | undefined) =>
+  (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
 
 export function parseLedgerQuery(sp: SearchParams): LedgerQuery {
   const page = first(sp.page);
@@ -152,9 +162,19 @@ export function parseLedgerQuery(sp: SearchParams): LedgerQuery {
 }
 
 /** The address of the ledger with `patch` applied; a changed filter goes back to page 1. */
-export function ledgerHref(base: string, q: LedgerQuery, patch: Partial<LedgerQuery> = {}): string {
-  const filterChanged = (["team", "kind", "ticker"] as const).some((k) => k in patch && patch[k] !== q[k]);
-  const next = { ...q, ...patch, page: patch.page ?? (filterChanged ? 1 : q.page) };
+export function ledgerHref(
+  base: string,
+  q: LedgerQuery,
+  patch: Partial<LedgerQuery> = {},
+): string {
+  const filterChanged = (["team", "kind", "ticker"] as const).some(
+    (k) => k in patch && patch[k] !== q[k],
+  );
+  const next = {
+    ...q,
+    ...patch,
+    page: patch.page ?? (filterChanged ? 1 : q.page),
+  };
   const params = new URLSearchParams();
   if (next.team) params.set("team", next.team);
   if (next.kind) params.set("kind", next.kind);
@@ -173,8 +193,18 @@ export interface ResolvedFilter {
   problems: string[];
 }
 
-export function resolveFilter(q: LedgerQuery, teams: readonly TeamRef[], companies: readonly CompanyRef[]): ResolvedFilter {
-  const out: ResolvedFilter = { teamId: null, exchange: false, kind: null, companyId: null, problems: [] };
+export function resolveFilter(
+  q: LedgerQuery,
+  teams: readonly TeamRef[],
+  companies: readonly CompanyRef[],
+): ResolvedFilter {
+  const out: ResolvedFilter = {
+    teamId: null,
+    exchange: false,
+    kind: null,
+    companyId: null,
+    problems: [],
+  };
   if (q.team === EXCHANGE) out.exchange = true;
   else if (q.team) {
     const t = teams.find((x) => x.code === q.team);
@@ -204,12 +234,19 @@ export interface Paging {
 }
 
 /** The page to show (a page past the end shows the last one). */
-export function paging(total: number, requested: number, size = PAGE_SIZE): Paging {
+export function paging(
+  total: number,
+  requested: number,
+  size = PAGE_SIZE,
+): Paging {
   const pages = Math.max(1, Math.ceil(total / size));
   const page = Math.min(Math.max(1, requested), pages);
   const from = (page - 1) * size;
   const to = from + size - 1;
-  const label = total === 0 ? "No rows" : `Rows ${count(from + 1)}–${count(Math.min(total, to + 1))} of ${count(total)}`;
+  const label =
+    total === 0
+      ? "No rows"
+      : `Rows ${count(from + 1)}–${count(Math.min(total, to + 1))} of ${count(total)}`;
   return { page, pages, from, to, label };
 }
 
@@ -241,7 +278,11 @@ export interface LedgerRefs {
   rounds: ReadonlyMap<string, number>;
 }
 
-export function ledgerRefs(teams: readonly TeamRef[], companies: readonly CompanyRef[], rounds: readonly RoundRef[]): LedgerRefs {
+export function ledgerRefs(
+  teams: readonly TeamRef[],
+  companies: readonly CompanyRef[],
+  rounds: readonly RoundRef[],
+): LedgerRefs {
   return {
     teams: new Map(teams.map((t) => [t.id, t])),
     companies: new Map(companies.map((c) => [c.id, c])),
@@ -249,7 +290,10 @@ export function ledgerRefs(teams: readonly TeamRef[], companies: readonly Compan
   };
 }
 
-export function ledgerLines(rows: readonly LedgerRow[], refs: LedgerRefs): LedgerLine[] {
+export function ledgerLines(
+  rows: readonly LedgerRow[],
+  refs: LedgerRefs,
+): LedgerLine[] {
   return rows.map((r) => {
     const cash = bigCents(r.cash_delta_cents);
     const round = r.round_id ? refs.rounds.get(r.round_id) : undefined;
@@ -262,12 +306,17 @@ export function ledgerLines(rows: readonly LedgerRow[], refs: LedgerRefs): Ledge
       kindLabel: isLedgerKind(r.kind) ? LEDGER_KIND_LABELS[r.kind] : r.kind,
       party: r.team_id ? (refs.teams.get(r.team_id)?.code ?? "?") : "Exchange",
       exchange: !r.team_id,
-      ticker: r.company_id ? companyLabel(refs.companies.get(r.company_id), refs.teams) : "",
+      ticker: r.company_id
+        ? companyLabel(refs.companies.get(r.company_id), refs.teams)
+        : "",
       lot: r.lot ?? "",
       cash: cash === 0n ? "" : signedMoney(cash),
       cashSign: cash > 0n ? 1 : cash < 0n ? -1 : 0,
       shares: r.share_delta ? signedCount(r.share_delta) : "",
-      price: r.price_cents === null || r.price_cents === undefined ? "" : money(r.price_cents),
+      price:
+        r.price_cents === null || r.price_cents === undefined
+          ? ""
+          : money(r.price_cents),
       round: round === undefined ? "" : String(round),
       memo: r.memo ?? "",
     };
@@ -314,7 +363,10 @@ export function checkBooks(
   companies: readonly CompanyRef[] = [],
 ): BooksResult {
   const txnCash = new Map<string, { kind: string; cash: bigint }>();
-  const txnShares = new Map<string, { txn: string; kind: string; company: string; shares: bigint }>();
+  const txnShares = new Map<
+    string,
+    { txn: string; kind: string; company: string; shares: bigint }
+  >();
   const issued = new Map<string, bigint>();
   const teamCash = new Map<string, bigint>();
   let exchange = 0n;
@@ -325,49 +377,84 @@ export function checkBooks(
     t.cash += cash;
     txnCash.set(r.txn_id, t);
     if (r.share_delta && r.company_id) {
-      if (ISSUING.has(r.kind)) issued.set(r.company_id, (issued.get(r.company_id) ?? 0n) + BigInt(r.share_delta));
+      if (ISSUING.has(r.kind))
+        issued.set(
+          r.company_id,
+          (issued.get(r.company_id) ?? 0n) + BigInt(r.share_delta),
+        );
       else {
         const k = `${r.txn_id}|${r.company_id}`;
-        const s = txnShares.get(k) ?? { txn: r.txn_id, kind: r.kind, company: r.company_id, shares: 0n };
+        const s = txnShares.get(k) ?? {
+          txn: r.txn_id,
+          kind: r.kind,
+          company: r.company_id,
+          shares: 0n,
+        };
         s.shares += BigInt(r.share_delta);
         txnShares.set(k, s);
       }
     }
-    if (r.team_id) teamCash.set(r.team_id, (teamCash.get(r.team_id) ?? 0n) + cash);
+    if (r.team_id)
+      teamCash.set(r.team_id, (teamCash.get(r.team_id) ?? 0n) + cash);
     else exchange += cash;
   }
 
   const teamById = new Map(teams.map((t) => [t.id, t]));
   const codes = new Map(teams.map((t) => [t.id, t.code]));
-  const tickers = new Map(companies.map((c) => [c.id, c.ticker ?? `${codes.get(c.product_team_id) ?? "?"}’s company`]));
-  const kindLabel = (k: string) => (isLedgerKind(k) ? LEDGER_KIND_LABELS[k] : k);
+  const tickers = new Map(
+    companies.map((c) => [
+      c.id,
+      c.ticker ?? `${codes.get(c.product_team_id) ?? "?"}’s company`,
+    ]),
+  );
+  const kindLabel = (k: string) =>
+    isLedgerKind(k) ? LEDGER_KIND_LABELS[k] : k;
   const problems: string[] = [];
 
   for (const [txn, t] of txnCash) {
-    if (t.cash !== 0n) problems.push(`Transaction ${shortTxn(txn)} (${kindLabel(t.kind)}): cash is off by ${signedMoney(t.cash)}.`);
+    if (t.cash !== 0n)
+      problems.push(
+        `Transaction ${shortTxn(txn)} (${kindLabel(t.kind)}): cash is off by ${signedMoney(t.cash)}.`,
+      );
   }
   for (const s of txnShares.values()) {
     if (s.shares !== 0n) {
-      problems.push(`Transaction ${shortTxn(s.txn)} (${kindLabel(s.kind)}): ${tickers.get(s.company) ?? "a company"}’s shares are off by ${signedCount(Number(s.shares))}.`);
+      problems.push(
+        `Transaction ${shortTxn(s.txn)} (${kindLabel(s.kind)}): ${tickers.get(s.company) ?? "a company"}’s shares are off by ${signedCount(Number(s.shares))}.`,
+      );
     }
   }
   for (const [company, n] of issued) {
     if (n !== BigInt(RULES.SHARES_PER_COMPANY)) {
-      problems.push(`${tickers.get(company) ?? "A company"}: ${count(Number(n))} shares issued, not ${count(RULES.SHARES_PER_COMPANY)}.`);
+      problems.push(
+        `${tickers.get(company) ?? "A company"}: ${count(Number(n))} shares issued, not ${count(RULES.SHARES_PER_COMPANY)}.`,
+      );
     }
   }
   for (const t of teams) {
     const sum = teamCash.get(t.id) ?? 0n;
     const cash = bigCents(t.cash_cents);
-    if (sum !== cash) problems.push(`${t.code}: cash is ${bigMoney(cash)} but its ledger rows sum to ${bigMoney(sum)}.`);
+    if (sum !== cash)
+      problems.push(
+        `${t.code}: cash is ${bigMoney(cash)} but its ledger rows sum to ${bigMoney(sum)}.`,
+      );
   }
   for (const id of teamCash.keys()) {
-    if (!teamById.has(id)) problems.push("A ledger row names a team that is not in this event.");
+    if (!teamById.has(id))
+      problems.push("A ledger row names a team that is not in this event.");
   }
   const exch = bigCents(exchangeCash);
-  if (exch !== exchange) problems.push(`Exchange: cash is ${bigMoney(exch)} but its ledger rows sum to ${bigMoney(exchange)}.`);
+  if (exch !== exchange)
+    problems.push(
+      `Exchange: cash is ${bigMoney(exch)} but its ledger rows sum to ${bigMoney(exchange)}.`,
+    );
 
-  return { ok: problems.length === 0, transactions: txnCash.size, rows: rows.length, problems };
+  return {
+    ok: problems.length === 0,
+    transactions: txnCash.size,
+    rows: rows.length,
+    problems,
+  };
 }
 
 /**
@@ -375,7 +462,10 @@ export function checkBooks(
  * (several requests), then the cash again: if the two snapshots differ, a transaction committed in between and the
  * read is repeated, so a clearing during the read is never reported as a broken book.
  */
-export function cashSnapshot(teams: readonly BooksTeam[], exchangeCash: Cents): string {
+export function cashSnapshot(
+  teams: readonly BooksTeam[],
+  exchangeCash: Cents,
+): string {
   return [...teams]
     .map((t) => `${t.id}:${bigCents(t.cash_cents)}`)
     .sort()
@@ -385,7 +475,7 @@ export function cashSnapshot(teams: readonly BooksTeam[], exchangeCash: Cents): 
 
 /** The books check as one status line. */
 export function booksLine(r: BooksResult): string {
-  if (!r.ok) return `The books do not balance: ${r.problems.length === 1 ? "1 problem" : `${count(r.problems.length)} problems`}.`;
+  if (!r.ok)
+    return `The books do not balance: ${r.problems.length === 1 ? "1 problem" : `${count(r.problems.length)} problems`}.`;
   return `The books balance: ${count(r.transactions)} transaction${r.transactions === 1 ? "" : "s"} (${count(r.rows)} row${r.rows === 1 ? "" : "s"}) balance, and every team’s cash and the exchange’s equal the sum of their ledger rows.`;
 }
-
