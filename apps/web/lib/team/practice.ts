@@ -13,10 +13,7 @@ export interface PracticeEvent {
 }
 
 /** Off (classic night or turned off), not yet (before BUILD), open (BUILD and READING), closed (IPO), settled (Round 2 on). */
-export function practiceState(
-  ev: PracticeEvent,
-  phase: PhaseCode,
-): PracticeState {
+export function practiceState(ev: PracticeEvent, phase: PhaseCode): PracticeState {
   if (ev.format !== "PRIMUS" || !ev.practice_enabled) return "OFF";
   if (ev.practice_settled_at) return "SETTLED";
   if (ev.practice_step < 0) return "NOT_YET";
@@ -59,13 +56,10 @@ export function stockLines(
       .filter((p) => p.stock_id === s.id)
       .sort((a, b) => a.step - b.step)
       .map((p) => p.price_cents);
-    const prev =
-      history.length >= 2 ? history[history.length - 2]! : s.price_cents;
+    const prev = history.length >= 2 ? history[history.length - 2]! : s.price_cents;
     return {
       ...s,
-      changeBp: Math.round(
-        ((s.price_cents - s.open_cents) * 10_000) / s.open_cents,
-      ),
+      changeBp: Math.round(((s.price_cents - s.open_cents) * 10_000) / s.open_cents),
       lastMove: s.price_cents - prev,
       history,
       held: holdings.find((h) => h.stock_id === s.id)?.qty ?? 0,
@@ -133,5 +127,4 @@ export function practiceTotals(
 }
 
 /** The most shares of a stock the fund can buy with its cash. */
-export const maxBuy = (cash: number, price: number): number =>
-  price > 0 ? Math.floor(cash / price) : 0;
+export const maxBuy = (cash: number, price: number): number => (price > 0 ? Math.floor(cash / price) : 0);

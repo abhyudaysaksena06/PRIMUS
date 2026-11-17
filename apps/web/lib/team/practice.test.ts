@@ -1,12 +1,5 @@
 import { describe, expect, test } from "vitest";
-import {
-  maxBuy,
-  practiceState,
-  practiceTotals,
-  stockLines,
-  type PracticeEvent,
-  type PracticeStock,
-} from "./practice";
+import { maxBuy, practiceState, practiceTotals, stockLines, type PracticeEvent, type PracticeStock } from "./practice";
 
 const ev = (over: Partial<PracticeEvent> = {}): PracticeEvent => ({
   format: "PRIMUS",
@@ -15,12 +8,7 @@ const ev = (over: Partial<PracticeEvent> = {}): PracticeEvent => ({
   practice_settled_at: null,
   ...over,
 });
-const stock = (
-  id: string,
-  symbol: string,
-  open: number,
-  price: number,
-): PracticeStock => ({
+const stock = (id: string, symbol: string, open: number, price: number): PracticeStock => ({
   id,
   symbol,
   name: symbol,
@@ -34,18 +22,11 @@ describe("practice market", () => {
   test("its state follows the format, the switch, the phase and the settlement", () => {
     expect(practiceState(ev({ format: "CLASSIC" }), "BUILD")).toBe("OFF");
     expect(practiceState(ev({ practice_enabled: false }), "BUILD")).toBe("OFF");
-    expect(practiceState(ev({ practice_step: -1 }), "SQUAD_DRAW")).toBe(
-      "NOT_YET",
-    );
+    expect(practiceState(ev({ practice_step: -1 }), "SQUAD_DRAW")).toBe("NOT_YET");
     expect(practiceState(ev(), "BUILD")).toBe("OPEN");
     expect(practiceState(ev(), "READING")).toBe("OPEN");
     expect(practiceState(ev(), "IPO")).toBe("CLOSED");
-    expect(
-      practiceState(
-        ev({ practice_settled_at: "2026-11-20T17:15:00Z" }),
-        "PRESSURE",
-      ),
-    ).toBe("SETTLED");
+    expect(practiceState(ev({ practice_settled_at: "2026-11-20T17:15:00Z" }), "PRESSURE")).toBe("SETTLED");
   });
 
   test("stock lines carry the change since the open, the last move, the history and what the fund holds", () => {
