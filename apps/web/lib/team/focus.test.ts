@@ -1,16 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { PHASE_CODES } from "@msim/engine";
-import {
-  focusSections,
-  inFocus,
-  inThisRound,
-  opensIn,
-  sectionOf,
-  squadTabsFor,
-  stageOf,
-  STEPS,
-  submissionsFor,
-} from "./focus";
+import { focusSections, inFocus, inThisRound, opensIn, sectionOf, squadTabsFor, stageOf, STEPS, submissionsFor } from "./focus";
 import { TEAM_SECTIONS } from "./sections";
 
 const labels = (s: { label: string }[]) => s.map((x) => x.label);
@@ -24,116 +14,43 @@ describe("focus mode", () => {
   });
 
   test("each round shows only its sections", () => {
-    expect(labels(focusSections("PRODUCT", "SETUP"))).toEqual([
-      "Home",
-      "Bulletins",
-      "Judging",
-    ]);
-    expect(labels(focusSections("PRODUCT", "BUILD"))).toEqual([
-      "Home",
-      "Squad",
-      "Chat",
-      "Market",
-      "Q&A",
-      "Bulletins",
-    ]);
-    expect(labels(focusSections("PRODUCT", "RESCUE_1"))).toEqual([
-      "Home",
-      "Squad",
-      "Rescue",
-      "Chat",
-      "Market",
-      "Q&A",
-      "Bulletins",
-    ]);
-    expect(labels(focusSections("CONSULTING", "ROUNDS_13_21"))).toEqual([
-      "Home",
-      "Squad",
-      "Chat",
-      "Calls",
-      "Earnings",
-      "Market",
-      "Q&A",
-      "Bulletins",
-    ]);
-    expect(labels(focusSections("FINANCE", "IPO"))).toEqual([
-      "Home",
-      "Trade",
-      "Chat",
-      "Market",
-      "Q&A",
-      "Bulletins",
-    ]);
-    expect(labels(focusSections("FINANCE", "CRISIS"))).toEqual([
-      "Home",
-      "Trade",
-      "Rescue",
-      "Chat",
-      "Market",
-      "Q&A",
-      "Bulletins",
-    ]);
+    expect(labels(focusSections("PRODUCT", "SETUP"))).toEqual(["Home", "Bulletins", "Judging"]);
+    expect(labels(focusSections("PRODUCT", "BUILD"))).toEqual(["Home", "Squad", "Chat", "Market", "Q&A", "Bulletins"]);
+    expect(labels(focusSections("PRODUCT", "RESCUE_1"))).toEqual(["Home", "Squad", "Rescue", "Chat", "Market", "Q&A", "Bulletins"]);
+    expect(labels(focusSections("CONSULTING", "ROUNDS_13_21"))).toEqual(["Home", "Squad", "Chat", "Calls", "Earnings", "Market", "Q&A", "Bulletins"]);
+    expect(labels(focusSections("FINANCE", "IPO"))).toEqual(["Home", "Trade", "Chat", "Market", "Q&A", "Bulletins"]);
+    expect(labels(focusSections("FINANCE", "CRISIS"))).toEqual(["Home", "Trade", "Rescue", "Chat", "Market", "Q&A", "Bulletins"]);
     // The results show everything.
-    expect(focusSections("CONSULTING", "AWARDS")).toEqual([
-      ...TEAM_SECTIONS.CONSULTING,
-    ]);
+    expect(focusSections("CONSULTING", "AWARDS")).toEqual([...TEAM_SECTIONS.CONSULTING]);
   });
 
   test("a PRIMUS night never shows the classic Rescue tab, even at the results", () => {
     for (const track of ["PRODUCT", "CONSULTING", "FINANCE"] as const) {
-      expect(
-        labels(focusSections(track, "AWARDS", null, "PRIMUS")),
-      ).not.toContain("Rescue");
+      expect(labels(focusSections(track, "AWARDS", null, "PRIMUS"))).not.toContain("Rescue");
       expect(labels(focusSections(track, "AWARDS"))).toContain("Rescue");
     }
-    expect(
-      labels(focusSections("CONSULTING", "AWARDS", null, "PRIMUS")),
-    ).toEqual(expect.arrayContaining(["Calls", "Earnings"]));
+    expect(labels(focusSections("CONSULTING", "AWARDS", null, "PRIMUS"))).toEqual(expect.arrayContaining(["Calls", "Earnings"]));
   });
 
   test("PRIMUS Finance funds see the practice market in Round 1 only; a classic night never shows it", () => {
-    expect(labels(focusSections("FINANCE", "BUILD", null, "PRIMUS"))).toEqual([
-      "Home",
-      "Practice market",
-      "Trade",
-      "Chat",
-      "Market",
-      "Q&A",
-      "Bulletins",
-    ]);
-    expect(
-      labels(focusSections("FINANCE", "PRESSURE", null, "PRIMUS")),
-    ).not.toContain("Practice market");
-    expect(
-      labels(focusSections("FINANCE", "AWARDS", null, "PRIMUS")),
-    ).toContain("Practice market");
-    expect(labels(focusSections("FINANCE", "BUILD"))).not.toContain(
-      "Practice market",
-    );
-    expect(
-      inFocus("FINANCE", "READING", "/team/practice", null, "PRIMUS"),
-    ).toBe(true);
-    expect(
-      inFocus("FINANCE", "PRESSURE", "/team/practice", null, "PRIMUS"),
-    ).toBe(false);
+    expect(labels(focusSections("FINANCE", "BUILD", null, "PRIMUS"))).toEqual(["Home", "Practice market", "Trade", "Chat", "Market", "Q&A", "Bulletins"]);
+    expect(labels(focusSections("FINANCE", "PRESSURE", null, "PRIMUS"))).not.toContain("Practice market");
+    expect(labels(focusSections("FINANCE", "AWARDS", null, "PRIMUS"))).toContain("Practice market");
+    expect(labels(focusSections("FINANCE", "BUILD"))).not.toContain("Practice market");
+    expect(inFocus("FINANCE", "READING", "/team/practice", null, "PRIMUS")).toBe(true);
+    expect(inFocus("FINANCE", "PRESSURE", "/team/practice", null, "PRIMUS")).toBe(false);
   });
 
   test("the section a 'do this now' task points to is never hidden", () => {
-    expect(
-      labels(focusSections("PRODUCT", "RESCUE_1", "/team/ledger")),
-    ).toContain("Ledger");
-    expect(inFocus("PRODUCT", "RESCUE_1", "/team/ledger", "/team/ledger")).toBe(
-      true,
-    );
+    expect(labels(focusSections("PRODUCT", "RESCUE_1", "/team/ledger"))).toContain("Ledger");
+    expect(inFocus("PRODUCT", "RESCUE_1", "/team/ledger", "/team/ledger")).toBe(true);
     expect(inFocus("PRODUCT", "RESCUE_1", "/team/ledger")).toBe(false);
   });
 
   test("pages are matched by section, and a hidden page says when it opens", () => {
     expect(sectionOf("/team")).toBe("");
     expect(sectionOf("/team/market/AQS")).toBe("/market");
-    expect(inFocus("FINANCE", "ROUNDS_1_4", "/team/trade/positions")).toBe(
-      true,
-    );
+    expect(inFocus("FINANCE", "ROUNDS_1_4", "/team/trade/positions")).toBe(true);
     expect(inFocus("FINANCE", "ROUNDS_1_4", "/team/ledger")).toBe(false);
     expect(opensIn("FINANCE", "ROUNDS_1_4", "/team/rescue")).toBe("ROUND_2");
     expect(opensIn("FINANCE", "ROUNDS_1_4", "/team/ledger")).toBe("RESULTS");
@@ -157,17 +74,8 @@ describe("focus mode", () => {
   });
 
   test("the squad tabs follow the round", () => {
-    expect(squadTabsFor("BUILD")).toEqual([
-      "/team/squad",
-      "/team/squad/problem",
-      "/team/squad/pitch",
-      "/team/squad/memo",
-    ]);
-    expect(squadTabsFor("RESCUE_2")).toEqual([
-      "/team/squad",
-      "/team/squad/problem",
-      "/team/squad/plan",
-    ]);
+    expect(squadTabsFor("BUILD")).toEqual(["/team/squad", "/team/squad/problem", "/team/squad/pitch", "/team/squad/memo"]);
+    expect(squadTabsFor("RESCUE_2")).toEqual(["/team/squad", "/team/squad/problem", "/team/squad/plan"]);
     expect(squadTabsFor("ROUNDS_13_21")).toContain("/team/squad/flash");
     expect(squadTabsFor("AWARDS")).toHaveLength(6);
     expect(submissionsFor("BUILD")).toEqual(["PITCH", "MEMO"]);

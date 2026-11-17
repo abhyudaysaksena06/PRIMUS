@@ -38,61 +38,25 @@ export interface PracticeData {
   }[];
 }
 
-function must<T>(
-  r: { data: T | null; error: { message: string } | null },
-  what: string,
-): T {
+function must<T>(r: { data: T | null; error: { message: string } | null }, what: string): T {
   if (r.error) throw new Error(`Could not read ${what}: ${r.error.message}`);
   return r.data as T;
 }
 
-export async function loadPractice(
-  sb: SupabaseClient,
-  ctx: TeamContext,
-): Promise<PracticeData> {
+export async function loadPractice(sb: SupabaseClient, ctx: TeamContext): Promise<PracticeData> {
   const eventId = ctx.event.id;
   const ev = must(
-    await sb
-      .from("events")
-      .select("format, practice_enabled, practice_step, practice_settled_at")
-      .eq("id", eventId)
-      .single<PracticeEvent>(),
+    await sb.from("events").select("format, practice_enabled, practice_step, practice_settled_at").eq("id", eventId).single<PracticeEvent>(),
     "the practice market",
   );
   const fromStep = Math.max(0, ev.practice_step - HISTORY_STEPS);
   const [stocks, prices, news, account, holdings, trades] = await Promise.all([
-    sb
-      .from("practice_stocks")
-      .select("id, symbol, name, sector, blurb, open_cents, price_cents")
-      .eq("event_id", eventId)
-      .order("symbol"),
-    sb
-      .from("practice_prices")
-      .select("stock_id, step, price_cents")
-      .eq("event_id", eventId)
-      .gte("step", fromStep)
-      .order("step"),
-    sb
-      .from("practice_news")
-      .select("id, step, stock_id, headline, move_bp, at")
-      .eq("event_id", eventId)
-      .order("id", { ascending: false })
-      .limit(12),
-    sb
-      .from("practice_accounts")
-      .select("cash_cents, grant_cents, final_value_cents, settled_at")
-      .eq("team_id", ctx.team.id)
-      .maybeSingle(),
-    sb
-      .from("practice_holdings")
-      .select("stock_id, qty, cost_cents")
-      .eq("team_id", ctx.team.id),
-    sb
-      .from("practice_trades")
-      .select("id, stock_id, side, qty, price_cents, at")
-      .eq("team_id", ctx.team.id)
-      .order("id", { ascending: false })
-      .limit(15),
+    sb.from("practice_stocks").select("id, symbol, name, sector, blurb, open_cents, price_cents").eq("event_id", eventId).order("symbol"),
+    sb.from("practice_prices").select("stock_id, step, price_cents").eq("event_id", eventId).gte("step", fromStep).order("step"),
+    sb.from("practice_news").select("id, step, stock_id, headline, move_bp, at").eq("event_id", eventId).order("id", { ascending: false }).limit(12),
+    sb.from("practice_accounts").select("cash_cents, grant_cents, final_value_cents, settled_at").eq("team_id", ctx.team.id).maybeSingle(),
+    sb.from("practice_holdings").select("stock_id, qty, cost_cents").eq("team_id", ctx.team.id),
+    sb.from("practice_trades").select("id, stock_id, side, qty, price_cents, at").eq("team_id", ctx.team.id).order("id", { ascending: false }).limit(15),
   ]);
   const acct = must(account, "your practice account") as {
     cash_cents: string | number;
@@ -109,10 +73,7 @@ export async function loadPractice(
       ? {
           cash: cents(acct.cash_cents),
           grant: cents(acct.grant_cents),
-          finalValue:
-            acct.final_value_cents === null
-              ? null
-              : cents(acct.final_value_cents),
+          finalValue: acct.final_value_cents === null ? null : cents(acct.final_value_cents),
           settledAt: acct.settled_at,
         }
       : null,
