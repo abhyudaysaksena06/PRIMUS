@@ -157,6 +157,29 @@ describe("phase control", () => {
     await n.clearRound(4);
   });
 
+  test("set_phase_end: the phase on now can be pulled in, and the past is refused", async () => {
+    // Room to pull back into: everything still to come moves an hour later first.
+    await n.org("extend_event", n.eventId, 60);
+    const phase = await at("phases", "event_id = $1 and code = 'ROUNDS_1_4'", [n.eventId]);
+    const before = new Date(phase.ends_at).getTime();
+    const r1 = await at("rounds", "event_id = $1 and number = 1", [n.eventId]);
+    const later = await n.one("select min(opens_at) as at from rounds where event_id = $1 and status = 'SCHEDULED'", [n.eventId]);
+
+    await n.org("set_phase_end", n.eventId, new Date(before - 30 * 60_000).toISOString());
+    const after = await at("phases", "event_id = $1 and code = 'ROUNDS_1_4'", [n.eventId]);
+    expect((before - new Date(after.ends_at).getTime()) / 60_000).toBeCloseTo(30);
+    expect((await at("rounds", "id = $1", [r1.id])).closes_at).toEqual(r1.closes_at); // the past still does not move
+    const moved = await n.one("select min(opens_at) as at from rounds where event_id = $1 and status = 'SCHEDULED'", [n.eventId]);
+    expect((new Date(later.at).getTime() - new Date(moved.at).getTime()) / 60_000).toBeCloseTo(30);
+
+    // Pushing it later goes through the same path as extend_event.
+    await n.org("set_phase_end", n.eventId, new Date(before).toISOString());
+    expect(new Date((await at("phases", "event_id = $1 and code = 'ROUNDS_1_4'", [n.eventId])).ends_at).getTime()).toBeCloseTo(before, -3);
+
+    expect(await n.call(n.lead, "set_phase_end", n.eventId, new Date(Date.now() - 60_000).toISOString())).toMatchObject({ ok: false, code: "TOO_SOON" });
+    expect(await n.call(n.lead, "set_phase_end", n.eventId, new Date(Date.now() + 30_000).toISOString())).toMatchObject({ ok: false, code: "TOO_SOON" });
+  });
+
   test("auto-advance follows the schedule but waits at a gate", async () => {
     await n.org("set_auto_advance", n.eventId, true);
     await n.q("update phases set starts_at = now() - interval '1 hour', ends_at = now() - interval '1 second' where event_id = $1 and code = 'ROUNDS_1_4'", [n.eventId]);
