@@ -29,6 +29,22 @@ export async function extendEventForm(eventId: string, _prev: ActionResult | nul
   return extendEvent(eventId, Number(form.get("minutes")));
 }
 
+/** The phase on now ends at this exact time instead, earlier or later, and everything after it moves with it. */
+export async function setPhaseEnd(eventId: string, endsAt: Date): Promise<ActionResult> {
+  if (Number.isNaN(endsAt.getTime())) return { ok: false, code: "BAD_TIME", message: "That is not a time." };
+  return rpc("set_phase_end", { p_event: eventId, p_ends_at: endsAt.toISOString() });
+}
+
+/**
+ * The form sends a local date and time ("2026-11-20T23:30"), which the organiser read off their own clock, so it is
+ * taken in the server's zone rather than UTC.
+ */
+export async function setPhaseEndForm(eventId: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const raw = String(form.get("endsAt") ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw)) return { ok: false, code: "BAD_TIME", message: "Pick a date and a time." };
+  return setPhaseEnd(eventId, new Date(raw));
+}
+
 /** `advanceNow` is the confirmed second click when the planned end has passed; without it the database refuses. */
 export async function setAutoAdvance(eventId: string, on: boolean, advanceNow = false): Promise<ActionResult> {
   const r = await rpc("set_auto_advance", { p_event: eventId, p_on: on, p_advance_now: advanceNow });

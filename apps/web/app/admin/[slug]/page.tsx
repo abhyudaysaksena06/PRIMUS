@@ -7,7 +7,7 @@ import { clock } from "@/lib/format";
 import { Badge, Notice, Panel, Stat, Table, Td, inputClass } from "@/components/ui/ui";
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
-import { advancePhase, extendEvent, extendEventForm, pauseEvent, resumeEvent, setAutoAdvance } from "./actions";
+import { advancePhase, extendEvent, extendEventForm, pauseEvent, resumeEvent, setAutoAdvance, setPhaseEndForm } from "./actions";
 import { closeRound } from "./rounds/actions";
 import { AutoAdvanceButton } from "./auto-advance";
 import { RefreshAt } from "@/lib/live/refresh-at";
@@ -206,6 +206,27 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
                   <label className="block">
                     <span className="text-xs font-medium text-paper">Minutes (1–120)</span>
                     <input name="minutes" type="number" min={1} max={120} required className={`${inputClass} w-28`} />
+                  </label>
+                </ActionForm>
+              </div>
+            </div>
+            <div className="mt-5 border-t border-line pt-4">
+              <h3 className="text-sm font-semibold text-phosphor">End this phase at</h3>
+              <p className="text-sm text-paper">
+                Set an exact end for the phase on now, earlier or later; everything after it moves with it, and the
+                projector follows.
+                {status.phase_ends_at ? <> It ends at {clock(status.phase_ends_at)} as things stand.</> : null}
+              </p>
+              <div className="mt-2 flex flex-wrap items-start gap-2">
+                <ActionForm
+                  action={setPhaseEndForm.bind(null, event.id)}
+                  submit="Set the end"
+                  confirm="Click again: this moves every team's clock"
+                  className="flex items-end gap-2"
+                >
+                  <label className="block">
+                    <span className="text-xs font-medium text-paper">New end</span>
+                    <input name="endsAt" type="datetime-local" required className={`${inputClass} w-60`} />
                   </label>
                 </ActionForm>
               </div>

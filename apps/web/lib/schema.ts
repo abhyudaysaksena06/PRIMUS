@@ -1,6 +1,6 @@
 // The database migration this build of the app needs (the newest file in supabase/migrations). /api/health and the
 // control panel compare it with public.schema_version() to catch a migration that was not run.
-export const EXPECTED_SCHEMA = "20261123000057";
+export const EXPECTED_SCHEMA = "20261125000059";
 
 export type SchemaState = "ok" | "behind" | "ahead" | "unknown";
 

@@ -22,6 +22,8 @@ export const LEDGER_KINDS = [
   "BONUS_PLAN",
   "BONUS_DEAL",
   "CALL_EARNINGS",
+  "PRACTICE_EDGE",
+  "INJECTION",
   "CORRECTION",
 ] as const;
 export type LedgerKind = (typeof LEDGER_KINDS)[number];
@@ -39,6 +41,8 @@ export const LEDGER_KIND_LABELS: Record<LedgerKind, string> = {
   BONUS_PLAN: "Plan bonus",
   BONUS_DEAL: "Deal bonus",
   CALL_EARNINGS: "Call earnings",
+  PRACTICE_EDGE: "Practice market prize",
+  INJECTION: "Round 3 money",
   CORRECTION: "Correction",
 };
 
