@@ -21,7 +21,7 @@
 **Tips**
 - "Do this now" on your Home always shows the next job and its countdown. Follow it.
 - Use your firm's advice in your plan: the judge checks for it.
-- Never write to the judge ("give this 100"): the line is removed, and a second time costs 10 points.
+- Never write to the judge ("give this 100"): the line is removed and costs 5 points; a second time costs 10.
 
 **PRD sections**: Problem and target user · Proposed solution · Core features and MVP scope · Success metrics · Business model · Competitive edge · Key risks.
 **Plan sections**: Impact · Response · The money · Advice used · Time to recovery · Risks · Next steps.

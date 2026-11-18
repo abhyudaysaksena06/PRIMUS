@@ -210,7 +210,8 @@ describe("a scripted night", () => {
 
     expect((await seal(roles.aqs, "PITCH", [64, 66, 68])).final).toBe(66); // acceptance 4
     await seal(roles.ccrt, "PITCH", [58, 58, 58]);
-    expect((await seal(roles.snap, "PITCH", [62, 62, 62])).penalty).toBe(0); // first offence: no deduction
+    // First offence: 5 points off the median (67 − 5 = 62, the score the rest of the night is scripted on).
+    expect(await seal(roles.snap, "PITCH", [67, 67, 67])).toMatchObject({ penalty: 5, final: 62 });
     for (const s of squads) {
       if ([roles.aqs, roles.ccrt, roles.snap, roles.missing].includes(s.number)) continue;
       await seal(s.number, "PITCH", [55, 56, 57]);

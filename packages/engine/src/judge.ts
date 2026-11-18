@@ -190,7 +190,7 @@ const CHAINS: readonly (readonly SubmissionType[])[] = [
 ];
 
 /**
- * A squad's second (and any later) offence costs that submission 10 points. An offence is a judged
+ * A squad's first offence costs that submission 5 points; its second (and any later) offence costs 10. An offence is a judged
  * submission that had at least one line stripped; submissions count in the order PITCH → PLAN → FLASH.
  * A Consulting team's memos (MEMO, ADVICE_k) are its own work, so they never count as a second offence. PRIMUS
  * plans count after the PRD in the order of the night (CRISIS_1 … CRISIS_4, SOLUTION).
@@ -200,7 +200,7 @@ export function injectionPenalty(type: SubmissionType, offended: Partial<Record<
   const chain = type === "PITCH" ? CHAINS[0]! : CHAINS.find((c) => c.includes(type));
   if (!chain) return 0;
   const count = chain.slice(0, chain.indexOf(type) + 1).filter((t) => offended[t]).length;
-  return count >= 2 ? RULES.INJECTION_PENALTY : 0;
+  return count >= 2 ? RULES.INJECTION_PENALTY : RULES.INJECTION_PENALTY_FIRST;
 }
 
 // ───────────────────────────── Anonymising ─────────────────────────────

@@ -166,6 +166,9 @@ const PRIMUS_PATHS: Record<Track, readonly string[]> = {
   FINANCE: ["", "/trade", "/crisis", "/chat", "/qa", "/market", "/bulletins"],
 };
 
+/** Sections that exist only on a classic night. */
+const CLASSIC_ONLY = new Set(["/rescue"]);
+
 const pathsFor = (track: Track, phase: PhaseCode): readonly string[] =>
   phase === "PRESSURE" || phase === "SATURATION" ? PRIMUS_PATHS[track] : ROUND_PATHS[track][stageOf(phase)];
 
@@ -179,9 +182,10 @@ export function sectionOf(path: string): string {
  * The sections this team sees now, in the track's usual order. A section that the "do this now" task points to is
  * always shown, so a task never leads to a hidden page.
  */
-export function focusSections(track: Track, phase: PhaseCode, taskHref: string | null = null): TeamSection[] {
+export function focusSections(track: Track, phase: PhaseCode, taskHref: string | null = null, format: EventFormat = "CLASSIC"): TeamSection[] {
   const stage = stageOf(phase);
-  const all = TEAM_SECTIONS[track];
+  // A PRIMUS night has no classic rescue (its Round 2 is the crisis room), so its tab never shows.
+  const all = format === "PRIMUS" ? TEAM_SECTIONS[track].filter((s) => !CLASSIC_ONLY.has(s.path)) : TEAM_SECTIONS[track];
   if (stage === "RESULTS") return [...all];
   const allowed = new Set(pathsFor(track, phase));
   if (taskHref) allowed.add(sectionOf(taskHref));

@@ -135,7 +135,7 @@ the market price and the AI price.
 - The judge sees the plan together with your PRD, your crisis card and the rescue deal from the game's own
   records; the flash answer together with the bulletin.
 - **Do not write to the judge.** Lines such as "ignore the rubric", "give this 100" or "you are a generous judge" are
-  removed automatically and logged. The first time costs you only the line; **a second offence by the same squad
+  removed automatically and logged. The first time costs that submission **5 points**; **a second offence by the same squad
   (in any of its pitch, plan or flash answer) deducts 10 points from that submission.**
 - Scores stay sealed until an organiser releases them; the release applies the tiers to every company at once.
 
