@@ -1,59 +1,59 @@
 sector,category,number,title,body
-FMCG,Operations,1,Heatwave breaks the cold chain,"A 46°C heatwave hits North India. Your cold chain fails in 3 cities: 18% of this week's stock spoils and 2,400 customers post complaints. Refunds cost Rs 41 lakh.
+FMCG,Operations,1,The product nobody wants to sell,"Your affordable personal-care product is an unexpected hit: its low price attracts millions of buyers and demand grows fast across the country. But the big retail chains find that it earns them far less per metre of shelf than rival brands, and they start replacing it with more profitable products. Your research shows consumers actively prefer your product; retailers are simply unwilling to stock it.
 
-The twist: The heatwave is forecast to last 10 more days, and a rival offers to rent you its cold storage at 3× the normal rate.
+The twist: Your biggest competitor offers retailers large incentives to remove your product entirely. At the same time, a major quick-commerce platform offers to sell it exclusively in its app, with guaranteed nationwide visibility.
 
-Your plan must decide: Rent it, ration what you sell, or pause the hottest cities, and the cost of each for the 10 days."
-FMCG,Market,2,A giant gives it away free,"A quick-commerce giant launches a free version of your core product or service for its partners. 22% of your customers say they will switch within a month.
+Your plan must decide: Fight for traditional retail (better margins and promotions for retailers, at the cost of your profitability); go direct to consumers (build your own distribution and online sales, giving up reach now and investing heavily); or accept the platform's exclusivity (guaranteed visibility, but the platform controls customer access, pricing and distribution)."
+FMCG,Market,2,The secret ingredient,"Your flagship beverage is one of India's most successful products because of its distinctive flavour, and its formula is your biggest competitive advantage. Your chief product developer resigns and joins a competitor. Within weeks, the competitor launches a remarkably similar drink at 30% lower prices. Your sales start falling as retailers give shelf space to the cheaper drink.
 
-The twist: The same giant offers to buy your company at your current price. Your investors are split.
+The twist: The former employee had access to the complete formula. And the supplier of your drink's most distinctive ingredient has just signed an exclusive agreement with the competitor.
 
-Your plan must decide: Sell, partner, or fight, with what each means for customers and the share price."
+Your plan must decide: Fight legally (sue the competitor and the former employee, risking a long battle while market share keeps falling); reinvent the formula (a new recipe, risking rejection by consumers and the loss of the product's identity); or acquire the competitor or license from it (regain control of the formula, at a large cost and with regulatory complications)."
 FMCG,Trust,3,Fake sustainability data,"A journalist shows that a key supplier faked its 'plastic-free' and 'organic' data, which you printed on your packs. #Greenwashing trends with your name in it.
 
 The twist: You find that a second supplier may also be faking data, but checking it takes 6 weeks.
 
 Your plan must decide: Say so now, or wait until you are sure. Who is told, and when."
-FMCG,Money,4,Raw materials up 30%,"Palm oil, packaging and fuel costs rise 30% in a quarter. Your gross margin falls from 34% to 21%, and your next funding round is now in doubt.
+FMCG,Money,4,The product that outgrew its market,"Your packaged snack becomes an unexpected social-media sensation and demand rises 300% in six weeks. You expand production, buy new machinery and sign distribution agreements to keep up. Then the trend fades, leaving you with ₹12 crore of unsold stock, three-year manufacturing commitments, expensive new capacity, and retailers demanding compensation for unsold stock.
 
-The twist: Your biggest retailer says it will delist you if your price goes up by more than 5%.
+The twist: A major international retailer offers to buy all the remaining stock, but only at 40% below your original wholesale price. Accepting could permanently reset what consumers expect to pay for your product.
 
-Your plan must decide: Raise prices and risk the retailer, shrink packs, or absorb the cost. Show the margin and cash under your choice."
-Aviation,Operations,1,The data feed goes dark,"A failure at a national air-navigation data centre cuts the live air-traffic feed your product depends on for 9 hours, on the busiest travel day of the season. 31,000 passengers' flights are disrupted and your customers see stale or missing data.
+Your plan must decide: Liquidate aggressively (accept the offer, recover cash and protect working capital, but damage your pricing power); protect the brand (refuse the discount and sell slowly through your own channels, risking expiry, waste and cash locked in stock); or reinvent the product (repackage and reposition it for a different use, investing more in a product whose popularity may be gone)."
+Aviation,Operations,1,Grounded at Dawn,"An engine-inspection order grounds 22 of the 64 turboprops for 21 days. 131 of the 380 routes stop overnight. In week one, 27,000 booked passengers and 92 tonnes of booked cargo are stranded.
 
-The twist: Airlines blame your product for slowing their recovery, although the feed failure was not yours. A news channel repeats it.
+The twist: Operators will restore only routes that show committed demand. They want a 14-day list of confirmed bookings from partners by Friday; routes without one may be dropped for good.
 
-Your plan must decide: Prove it was not you, or help first and argue later, and what backup data you add so it cannot happen again."
-Aviation,Market,2,The provider builds its own,"The national air-navigation provider launches a free analytics dashboard, built on the same air-traffic data you use, for every airline and airport. 30% of your users say they will switch within a quarter.
+Your plan must decide: What you do for your users in the first 72 hours, whether you move them to road, rail or another airline and who pays, and how you help your route prove its demand by Friday."
+Aviation,Market,2,The giant comes to town,"The national airline with 61% market share takes 70 of the 140 best regional routes next quarter. It flies 78-seaters at a ₹1,999 launch fare and bundles its own app, cab, cargo and maintenance. Regional bookings on those routes fall 34% in a week, and 2 of the 4 operators may exit.
 
-The twist: The provider offers you a contract to run its dashboard: your product, their brand, a fixed fee, and no access to your users.
+The twist: The giant offers every startup the same deal: a 3-year exclusive contract on its routes only. Volume triples, the unit price falls 40%, and the giant owns the customer.
 
-Your plan must decide: Sign it, refuse it, or win the customers the free tool does not serve, with the revenue of each over a year."
-Aviation,Trust,3,A late alert under investigation,"On the day a drone and a training aircraft came too close near a busy airport, an alert from your product reached users late. No one is hurt, but the regulator opens an investigation and the video trends nationwide. Bookings fall 35%.
+Your plan must decide: Sign, refuse or negotiate; which customers you lock in before the switch; and whether you fight on the giant's routes or move to the ones it did not take."
+Aviation,Trust,3,Near-miss in the fog,"A turboprop lands in 40 m visibility at a small airport. No one is hurt, but the cockpit audio goes viral. The regulator finds 40 of the 120 airports lack working landing aids and suspends low-visibility flying there for 60 days. First-time-flyer bookings fall 30% across the network.
 
-The twist: Your engineers find that a 4-minute data delay inside your system was never reported to customers.
+The twist: The regulator will name the 40 airports only in 10 days. Until then, your users and clients ask you every day: ""Is my airport safe?""
 
-Your plan must decide: Disclose the delay or not, and what you change in monitoring and safety before the regulator rules."
-Aviation,Money,4,Jet fuel up 35%,"Jet fuel prices rise 35% in a month. Airlines, your customers or partners, cut spending on new projects by a quarter and delay paying your invoices by 60 days.
+Your plan must decide: What you tell users before the official list, whether you pause sales at airports you suspect, and how you win back first-time flyers once the list is out."
+Aviation,Money,4,The subsidy cliff,"The Centre cuts route support. Subsidy on 150 of the 380 routes ends in 90 days, a year early, and operators say 90 of those routes will close unless fares rise 40%. States, now short of money, will pay all startup invoices 90 days late. Your next funding round is postponed.
 
-The twist: A lender offers you a loan against your unpaid invoices at 18% interest.
+The twist: One state offers to keep its 40 routes flying for 2 more years if aviation startups pay into a shared route fund: ₹25 lakh each, returned only if those routes reach 65% seat load within a year.
 
-Your plan must decide: Borrow, cut costs, or ask customers to pay early for a discount. Show the cash runway of your choice."
-Luxury,Operations,1,The digital identity breach,"A premium lifestyle platform you depend on is breached: the purchase histories and private profiles of 40,000 high-net-worth clients leak. Several cancel their memberships and the press names your brand.
+Your plan must decide: Pay in, stay out, or cut costs and wait. Show your cash runway under your choice."
+Luxury,Operations,1,The craftsmanship shutdown,"A fire shuts down your only production atelier, delaying 35% of your upcoming luxury collection. Your VIP customers have already placed pre-orders.
 
-The twist: The hackers email 300 of your top clients offering to delete their data for a fee, and two of them ask you to pay it.
+The twist: A mass-production manufacturer offers to fulfil the orders in half the time, but using it could compromise your craftsmanship and exclusivity.
 
-Your plan must decide: Pay, refuse, or call the police, and what you say to the 300 within 24 hours."
-Luxury,Market,2,The experience economy disruption,"A disruptive startup offers ultra-personalised premium experiences without ownership. 20% of your clients shift spending to it within a quarter and engagement with your products falls.
+Your plan must decide: Outsource the production, delay the collection, or compensate your customers, and what you tell your VIP clients."
+Luxury,Market,2,The next-generation exodus,"Younger affluent consumers are abandoning traditional luxury brands for independent designers and niche labels. Your sales to customers under 35 fall 25%.
 
-The twist: The rival offers your three best artisans double pay to design for it. One has already said yes.
+The twist: A popular independent designer offers a collaboration, but demands complete creative freedom and equal brand recognition.
 
-Your plan must decide: Match the offer, let them go, or partner with the rival, with the cost of each."
-Luxury,Trust,3,The counterfeit revolution,"Hyper-realistic counterfeits made with advanced manufacturing flood the market. Even experts cannot tell them apart; resale prices of authentic pieces fall 30% and returns from buyers who fear fakes rise 4×.
+Your plan must decide: Collaborate on those terms, acquire the label, or reinvent your own brand for the new generation, and how you keep your existing clients."
+Luxury,Trust,3,The Ambassador Scandal,"Your luxury fashion house has signed a five-year, ₹100 crore endorsement deal with one of the world's biggest celebrities, who represents the brand globally and features in every major campaign. An investigative report then exposes the celebrity's involvement in a major public controversy. Within 48 hours: social-media sentiment about your brand drops 30%, three major retail partners demand an explanation, pre-orders for your latest collection fall 20%, and customers start linking your brand with the controversy.
 
-The twist: A celebrity posts that her bag from you is a fake. It is genuine, but the post has 2 million likes.
+The twist: The celebrity owns 15% of your company through an earlier strategic partnership. Ending the endorsement could trigger a contractual dispute and force you to buy back their shares at a substantial premium.
 
-Your plan must decide: Prove it publicly or settle it privately, and how you protect every other client's trust."
+Your plan must decide: Terminate the partnership immediately and accept the financial consequences; retain the celebrity and defend the partnership; or suspend the campaign while an independent investigation takes place."
 Luxury,Money,4,The luxury market crash,"A sudden downturn cuts discretionary spending: luxury retail falls 18%, high-end hospitality bookings 25% and luxury real estate deals 30%. Your next funding round is postponed.
 
 The twist: Your largest investor asks you to cut prices 20% to keep sales up. Your brand team says that would end the brand.

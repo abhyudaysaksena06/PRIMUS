@@ -282,7 +282,7 @@ test("Consulting writes the crisis memo beside the case; Product reads it; the h
   await consulting.goto("/team");
   await expect(consulting.getByText("Write and submit your crisis memo")).toBeVisible();
   await consulting.goto("/team/squad/memo");
-  await expect(consulting.getByTestId("memo-case")).toContainText("ElevenLabs, the AI voice company");
+  await expect(consulting.getByTestId("memo-case")).toContainText("ZestUp is a rapidly growing Indian beverage startup");
   const memo = consulting.getByRole("form", { name: "Crisis memo editor" });
   await memo.getByLabel("Diagnosis").fill("India earns 8 crore, not 30, because dollar prices keep individuals away.");
   await memo.getByLabel("Recommendation").fill("Take the telecom bundle and label voices.");

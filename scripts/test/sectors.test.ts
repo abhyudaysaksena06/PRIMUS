@@ -34,14 +34,14 @@ describe("the sector library (seed/sectors/all)", () => {
     expect(rows(files.problems).map((r) => [r[0], r[1]])).toEqual([["1", "Luxury"], ["2", "FMCG"], ["3", "Aviation"]]);
     expect(rows(files.crises)).toHaveLength(12);
     expect(rows(files.crises).filter((r) => r[0] === "Aviation").map((r) => r[3])).toEqual([
-      "The data feed goes dark", "The provider builds its own", "A late alert under investigation", "Jet fuel up 35%",
+      "Grounded at Dawn", "The giant comes to town", "Near-miss in the fog", "The subsidy cliff",
     ]);
     const statements = rows(files.statements);
     // Every crisis card ends with a twist and the decision the plan must make.
     for (const c of rows(files.crises)) expect(c[4]).toMatch(/\n\nThe twist: .+\n\nYour plan must decide: .+$/s);
     expect(statements.map((r) => r[1])).toEqual(Array.from({ length: 30 }, (_, i) => String(i + 1)));
-    expect(statements[20]!.slice(0, 3)).toEqual(["Aviation", "21", "Predict flight delays two hours ahead from air-traffic data"]);
-    expect(statements[20]![3]).toMatch(/^Aviation · Round 3\. Predict flight delays .*\n\nWho it is for: .+\nThe numbers: .+\nThe catch: .+\nYou win if: .+\n\nDesign the solution/s);
+    expect(statements[20]!.slice(0, 3)).toEqual(["Aviation", "21", "Make 3 pilgrim routes break even within a year"]);
+    expect(statements[20]![3]).toMatch(/^Aviation · Round 3\. Make 3 pilgrim routes .*\n\nWho it is for: .+\nThe numbers: .+\nThe catch: .+\nYou win if: .+\n\nDesign the solution/s);
     expect(statements[20]![4]).toBe("5");
     expect(rows(buildSectorFiles(library, ["Fintech", "Energy"]).problems).map((r) => r[1])).toEqual(["Fintech", "Energy"]);
   });
