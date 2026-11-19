@@ -31,11 +31,11 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   await n.ok(n.lead, "tick", n.eventId);
   await n.ok(n.team(a!.c_code), "save_firm_profile", "Food and campus operations", ["operations", "food safety"], "From $500 per crisis", 50000, "");
 
-  // ── Product: the crisis is revealed full-screen; the card itself is sealed until hiring closes. "Got it" closes it for good.
+  // ── Product: the crisis is revealed with the company's card full-screen; "Got it" closes it for good.
   await loginAsTeam(page, ev, a!.p_code);
   const splash = page.getByTestId("crisis-splash");
   await expect(splash).toContainText("Crisis 1 of 4");
-  await expect(splash.getByTestId("crisis-splash-sealed")).toContainText("Your company's crisis card is sealed until hiring closes");
+  await expect(splash).toContainText("This is your company's card.");
   await shot(page, "00-crisis-reveal");
   await splash.getByRole("button", { name: "Got it" }).click();
   await expect(splash).toHaveCount(0);

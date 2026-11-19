@@ -86,37 +86,24 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     .limit(1)
     .maybeSingle<{ id: string; kind: string; title: string; published_at: string }>();
   const finance = team.track === "FINANCE";
-  // PRIMUS Round 2: the reveal moment. The latest revealed crisis; its card is sealed until that crisis's hiring closes
-  // (migration 63), so at the reveal the pop-up announces the crisis and when the card opens, and once hiring closes
-  // it shows the card itself.
+  // PRIMUS Round 2: the latest crisis card dealt to the squad's company, for the reveal moment.
   let splash: SplashCard | null = null;
   if (event.format === "PRIMUS" && status.phase === "PRESSURE" && ctx.company) {
-    const { data: sr } = await sb
-      .from("subrounds")
-      .select("k, revealed_at, hiring_closed_at")
-      .eq("event_id", event.id)
-      .not("revealed_at", "is", null)
+    const { data: dealt } = await sb
+      .from("subround_crises")
+      .select("k, crisis_cards(category, title, body)")
+      .eq("company_id", ctx.company.id)
       .order("k", { ascending: false })
       .limit(1)
-      .maybeSingle<{ k: number; revealed_at: string; hiring_closed_at: string | null }>();
-    if (sr && sr.k <= 4) {
-      const { data: dealt } = await sb
-        .from("subround_crises")
-        .select("k, crisis_cards(category, title, body)")
-        .eq("company_id", ctx.company.id)
-        .eq("k", sr.k)
-        .maybeSingle<{ k: number; crisis_cards: { category: string; title: string; body: string } | { category: string; title: string; body: string }[] | null }>();
-      const c = dealt ? (Array.isArray(dealt.crisis_cards) ? dealt.crisis_cards[0] : dealt.crisis_cards) : null;
-      splash = c
-        ? { eventId: event.id, teamId: team.id, k: sr.k, category: c.category, title: c.title, body: c.body, revealedAt: sr.hiring_closed_at ?? sr.revealed_at }
-        : {
-            eventId: event.id, teamId: team.id, k: sr.k, category: "", title: "", body: "", revealedAt: sr.revealed_at, sealed: true,
-            opensAt: facts?.deadlines.find((d) => d.code === `HIRE_${sr.k}`)?.at ?? null,
-          };
+      .maybeSingle<{ k: number; crisis_cards: { category: string; title: string; body: string } | { category: string; title: string; body: string }[] | null }>();
+    const c = dealt ? (Array.isArray(dealt.crisis_cards) ? dealt.crisis_cards[0] : dealt.crisis_cards) : null;
+    if (dealt && c) {
+      const { data: sr } = await sb.from("subrounds").select("revealed_at").eq("event_id", event.id).eq("k", dealt.k).maybeSingle<{ revealed_at: string | null }>();
+      if (sr?.revealed_at) splash = { eventId: event.id, teamId: team.id, k: dealt.k, category: c.category, title: c.title, body: c.body, revealedAt: sr.revealed_at };
     }
   }
   const taskHref = next?.href ?? null;
-  const sections = focusSections(team.track, status.phase, taskHref, event.format);
+  const sections = focusSections(team.track, status.phase, taskHref);
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <EventChannel eventId={event.id} teamId={team.id} spreadMs={1200}>

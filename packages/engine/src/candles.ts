@@ -123,6 +123,8 @@ export const PRACTICE = {
   prizeCents: 5_000_000,
   /** How many funds win the prize. */
   winners: 3,
+  /** The most practice profit TushKum's Finance page (app/admin/[slug]/finance) counts as an edge, in cents. */
+  edgeCapCents: 5_000_000,
   /** Position limits per company, in shares. */
   maxLong: 4000,
   maxShort: 2000,
@@ -274,4 +276,12 @@ export function practiceProfit(equityCents: number): number {
 /** What a fund wins in the real market: the prize for each of the top funds, nothing for the rest. */
 export function practicePrize(rank: number | null): number {
   return rank !== null && rank >= 1 && rank <= PRACTICE.winners ? PRACTICE.prizeCents : 0;
+}
+
+/**
+ * A fund's practice profit as an edge: profit only, capped at PRACTICE.edgeCapCents. Kept for TushKum's organiser
+ * Finance page, taken from his Final-Frontend branch as it is; PRIMUS pays the practice market with practicePrize.
+ */
+export function practiceEdge(equityCents: number): number {
+  return Math.max(0, Math.min(PRACTICE.edgeCapCents, equityCents - PRACTICE.startCents));
 }
