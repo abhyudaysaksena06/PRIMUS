@@ -18,8 +18,8 @@ import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
 import { Badge, Notice, inputClass } from "@/components/ui/ui";
 import { ContentView } from "../squad/parts";
 import { DraftEditor } from "../squad/draft-editor";
-import { saveFirmProfile } from "./actions";
-import { CardsOf, EngagementTable, FirmLeague, OfferCard, StatementBoard, Step, companyLabel, type StepState } from "./parts";
+import { makeOfferTo, saveFirmProfile } from "./actions";
+import { CardsOf, EngagementTable, FirmLeague, OfferCard, StatementBoard, Step, TermsFields, companyLabel, type StepState } from "./parts";
 
 const EMPTY = { version: 0, content: {}, updatedAt: null, updatedBy: null };
 
@@ -128,8 +128,38 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
             ))}
           </ul>
         )}
+        {hiring && clients.length < FIRM_CLIENTS_PER_SUBROUND ? (
+          <details className="mt-3 border border-line bg-raised p-3" data-testid="pitch-a-company">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">Pitch a company yourself</summary>
+            <p className="mt-2 text-sm text-paper">
+              You do not have to wait to be asked. Write to a company to talk terms, or send it an offer and it answers first.
+            </p>
+            <ul className="mt-2 max-h-72 space-y-3 overflow-y-auto">
+              {data.companies
+                .filter((co) => !data.engagements.some((e) => e.company_id === co.id && e.k === k))
+                .filter((co) => !offers.some((o) => o.company_id === co.id && o.status === "OPEN"))
+                .map((co) => (
+                  <li key={co.id} className="border-b border-line pb-3 last:border-b-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono font-semibold text-[var(--term-amber)]">{companyLabel(co)}</span>
+                      <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[var(--term-amber)] hover:underline">
+                        Talk to them →
+                      </Link>
+                    </div>
+                    <ActionForm action={makeOfferTo.bind(null, co.id, companyLabel(co))} submit="Send pitch" resetOnSuccess className="mt-2">
+                      <TermsFields cash={profile?.asking_cents ?? 0} />
+                      <label className="mt-2 block text-sm">
+                        <span className="font-semibold text-paper">Note (optional)</span>
+                        <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`${inputClass} mt-1`} />
+                      </label>
+                    </ActionForm>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        ) : null}
         <HowItWorks testId="offers-rules">
-          <p>A company offers you cash, shares or both. Accept, decline, or send a counter-offer; each side can counter three times.</p>
+          <p>A company offers you cash, shares or both, and you can offer first. Accept, decline, or send a counter-offer; each side can counter three times.</p>
           <p>
             You take at most {FIRM_CLIENTS_PER_SUBROUND} clients per {r3 ? "round" : "crisis"}. Accepting is final.
           </p>

@@ -31,6 +31,9 @@ export const RULES = {
   FEE_MIN: 1_000_000, // $10,000
   FEE_MAX: 3_500_000, // $35,000
   FEE_MAX_SHARES: 3_000,
+  // A company never gives away more than 60% of itself: it keeps at least this many of its 100,000 shares, counting
+  // the fee shares it has already promised. app.min_retained_shares() is the same number in the database.
+  MIN_RETAINED_SHARES: 40_000,
   FEE_DEFAULT: 2_250_000, // $22,500 cash
   MAX_OPEN_OFFERS: 3, // a company's open offers to firms at once, per sub-round
 

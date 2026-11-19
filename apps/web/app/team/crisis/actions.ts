@@ -48,6 +48,16 @@ export async function makeOffer(firmId: string, firmName: string, _prev: ActionR
   return r.ok ? { ...r, message: `Offer sent to ${firmName.slice(0, 60)}: ${termsText(money(t.cash), t.shares)}. It is their turn to answer.` } : r;
 }
 
+/** The mirror image: a firm pitches a company, and the company answers first. */
+export async function makeOfferTo(companyId: string, companyName: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  if (!UUID.test(companyId)) return bad("Unknown company.");
+  const t = terms(form);
+  if ("ok" in t) return t;
+  const note = String(form.get("note") ?? "").trim().slice(0, 300);
+  const r = await rpc("make_offer_to", { p_company: companyId, p_cash: t.cash, p_shares: t.shares, p_note: note });
+  return r.ok ? { ...r, message: `Pitch sent to ${companyName.slice(0, 60)}: ${termsText(money(t.cash), t.shares)}. It is their turn to answer.` } : r;
+}
+
 export async function counterOffer(offerId: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
   if (!UUID.test(offerId)) return bad("Unknown offer.");
   const t = terms(form);

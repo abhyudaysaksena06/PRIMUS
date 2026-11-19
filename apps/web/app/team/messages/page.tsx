@@ -25,16 +25,24 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
   if (!sectionAllowed(ctx.team.track, "/messages")) return <Notice>This section is not part of your team&apos;s portal.</Notice>;
   const data = await loadCrisisRoom(ctx);
   if (data.format !== "PRIMUS") return <Notice>Tonight&apos;s event plays the classic format: use the squad Chat.</Notice>;
-  const threads = hireThreads(data.engagements, data.companies, ctx.team.id);
   const product = ctx.team.track === "PRODUCT";
+  const messages = await loadHireMessages(ctx.event.id);
+  const { c, f } = await searchParams;
+  // A thread exists as soon as either side writes, and the link from a firm's profile opens an empty one.
+  const talking = [...messages.keys()].map((key) => {
+    const [company_id, firm_team_id] = key.split(":");
+    return { company_id: company_id!, firm_team_id: firm_team_id! };
+  });
+  const asked = c && f ? [{ company_id: c, firm_team_id: f }] : [];
+  const threads = hireThreads(data.engagements, data.companies, ctx.team.id, [...talking, ...asked]);
 
   if (threads.length === 0) {
     return (
       <Panel title="Hire chat">
         <Notice>
           {product
-            ? "Your one-on-one chat with a firm opens as soon as you hire it (the firm accepts your offer, or you accept its counter)."
-            : "Your one-on-one chat with a client opens as soon as a company hires you (you accept its offer, or it accepts your counter)."}
+            ? "Open a firm's profile and write to it: you can talk terms before you hire, and the thread stays yours afterwards."
+            : "Open a company from the Crisis room and write to it: you can pitch before it hires you, and the thread stays yours afterwards."}
         </Notice>
         {product ? (
           <Link href="/team/firms" className={`${buttonClass.primary} mt-3 inline-block`}>
@@ -42,16 +50,14 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
           </Link>
         ) : (
           <Link href="/team/crisis" className={`${buttonClass.primary} mt-3 inline-block`}>
-            See your offers in the Crisis room →
+            Pitch a company from the Crisis room →
           </Link>
         )}
       </Panel>
     );
   }
 
-  const { c, f } = await searchParams;
   const active = threads.find((t) => t.company_id === c && t.firm_team_id === f) ?? threads[0];
-  const messages = await loadHireMessages(ctx.event.id);
   const firm = new Map(data.firms.map((x) => [x.team_id, x]));
   const company = new Map(data.companies.map((x) => [x.id, x]));
   const label = (t: (typeof threads)[number]) => {
@@ -122,7 +128,9 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
         </p>
         <div id="chat-log" className="mt-3 max-h-[55vh] min-h-[12rem] overflow-y-auto border border-line bg-raised p-3" data-testid="chat-log">
           {log.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted">No messages yet. {product ? "Tell your firm what you need." : "Say hello to your client."}</p>
+            <p className="py-6 text-center text-sm text-muted">
+              No messages yet. {product ? "Tell the firm what you need, and what you will pay." : "Tell the company what you can do, and what you ask for it."}
+            </p>
           ) : (
             <ol className="space-y-2" aria-label="Messages">
               {log.map((m) => {
