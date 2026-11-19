@@ -7,6 +7,10 @@ import { usePathname } from "next/navigation";
 export const SECTIONS = [
   { path: "/run", label: "Run event", hint: "Start and end each round, crisis and step; timers; event log" },
   { path: "", label: "Overview", hint: "Phase, gates, draft and auto-advance" },
+  { path: "/schedule", label: "Schedule", hint: "Every phase, deadline and trading window" },
+  { path: "/product", label: "Product", hint: "Every company's PRD, crisis plans, statement, solution and price" },
+  { path: "/consulting", label: "Consulting", hint: "Every firm's memo, hires, advice, stars and bonuses" },
+  { path: "/finance", label: "Finance", hint: "Practice market standings and every fund's cash, bids and orders" },
   { path: "/desk", label: "Registration desk", hint: "Admit teams and walk-ins, hand out login cards" },
   { path: "/lottery", label: "Squad draw", hint: "The lottery that forms the squads" },
   { path: "/rounds", label: "Trading", hint: "Trading windows, orders and prices" },

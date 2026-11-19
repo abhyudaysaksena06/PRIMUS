@@ -2,9 +2,9 @@ import { expect, test } from "@playwright/test";
 import type pg from "pg";
 import { candleTicks, practiceCandles, PRACTICE } from "@msim/engine";
 import { service } from "../../../supabase/tests/helpers";
-import { e2ePool, seedE2eEvent, type E2eEvent } from "./support/event";
+import { e2ePool, seedE2eEvent, STAFF, type E2eEvent } from "./support/event";
 import { drawn } from "./support/game";
-import { loginAsTeam } from "./support/login";
+import { loginAsStaff, loginAsTeam } from "./support/login";
 
 test.describe.configure({ mode: "serial" });
 test.use({ viewport: { width: 1440, height: 900 } });
@@ -93,4 +93,30 @@ test("in Round 1 a fund trades the candlestick market and a top finish wins the 
   await page.goto("/team/trade/practice");
   await expect(page.getByTestId("practice-result")).toContainText("You placed #1");
   await expect(page.getByTestId("practice-leaderboard")).toContainText(fund);
+});
+
+test("the organiser's track pages: practice standings and prizes under Finance, the companies under Product", async ({ page }) => {
+  await loginAsStaff(page, ev, STAFF.lead);
+  await page.goto(`/admin/${ev.slug}`);
+  for (const tab of ["Schedule", "Product", "Consulting", "Finance"]) await expect(page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: tab, exact: true })).toBeVisible();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Finance", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Practice standings" })).toContainText(fund);
+  await expect(page.getByTestId(`fund-${fund}`)).toContainText("+$50,000");
+  await page.goto(`/admin/${ev.slug}/product`);
+  await expect(page.getByRole("region", { name: "Companies" }).getByRole("row")).toHaveCount(1 + ev.plan.teams.filter((t) => t.track === "PRODUCT").length);
+  await page.goto(`/admin/${ev.slug}/consulting`);
+  await expect(page.getByRole("region", { name: "Firms" }).getByRole("row")).toHaveCount(1 + ev.plan.teams.filter((t) => t.track === "CONSULTING").length);
+  await page.goto(`/admin/${ev.slug}/schedule`);
+  await expect(page.getByRole("heading", { name: "Deadlines" })).toBeVisible();
+});
+
+test("the live wall: the market from Reading, the clock and the phase on top", async ({ page }) => {
+  // The draw's full-screen moment is over.
+  await ev.n.q("update events set drawn_at = drawn_at - interval '1 hour' where id = $1", [ev.n.eventId]);
+  await loginAsStaff(page, ev, STAFF.display);
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto(`/display/${ev.slug}/live`);
+  await expect(page.getByTestId("live-wall")).toBeVisible();
+  await expect(page.getByTestId("display-phase")).toBeVisible();
+  await expect(page.getByTestId("live-prices")).toBeVisible();
 });
