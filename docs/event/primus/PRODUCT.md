@@ -22,8 +22,9 @@ badge at the top of every page.
    - **rate your firm** 1 to 5 stars.
    A good plan pushes your price up; a weak or missing one pushes it down.
 3. **Round 3 · The final problem (04:45–06:30).** In the **draft** you pick a problem statement from your sector,
-   lowest score so far first, 20 seconds each. Then hire a firm and write your **solution** together. Companies on
-   the same statement compete: the best gets the biggest price rise.
+   lowest score so far first, 20 seconds each. Then hire a firm and write your **solution** together. Your solution's
+   score moves your price, and Round 3 evens out the field: the weakest company going into Round 3 gets ×1.25 of
+   its price rise, the strongest ×0.25 (a fall applies in full).
 
 ## Tips
 

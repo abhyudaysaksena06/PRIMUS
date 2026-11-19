@@ -13,8 +13,8 @@
    Then each company's response plan is scored, and the score moves its price. Trade in every trading round:
    **BUY** if you think a price will rise, **SELL** what you own, **SHORT** if you think it will fall, **COVER**
    to close a short.
-3. **Round 3 · Fresh capital (04:45–06:30).** You receive half your starting money again. Watch the draft:
-   companies that pick the same problem compete, so only the best one gets the full price rise.
+3. **Round 3 · Fresh capital (04:45–06:30).** You receive half your starting money again. Round 3 evens
+   out the field: a good solution lifts the weakest companies most (×1.25 of the rise) and the leaders least (×0.25).
 
 ## Tips
 

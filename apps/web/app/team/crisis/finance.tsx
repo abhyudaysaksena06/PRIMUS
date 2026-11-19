@@ -74,8 +74,8 @@ export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRo
           </Table>
           {data.statements.length ? (
             <p className="mt-2 text-xs text-muted">
-              {data.statements.map((s) => `#${s.number}: ${counts.get(s.id) ?? 0}/${s.cap}`).join(" · ")}. Within a statement the best solution gets its full
-              tier, the 2nd ×0.75, the 3rd ×0.5, the rest ×0.25 (a negative tier applies in full).
+              {data.statements.map((s) => `#${s.number}: ${counts.get(s.id) ?? 0}/${s.cap}`).join(" · ")}. A solution&apos;s price rise is scaled by the
+              company&apos;s standing going into Round 3: ×1.25 for the weakest down to ×0.25 for the strongest (a fall applies in full).
             </p>
           ) : null}
         </Panel>

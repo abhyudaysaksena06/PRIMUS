@@ -46,7 +46,7 @@ and every round's candle has its real wicks.
 | Draft | Product teams ranked by score so far (PRD + Round 2 plans, average); lowest picks first, 20 seconds each; no pick = the least-crowded open statement. |
 | Negotiation | The firm posts an asking fee; offers and counters, at most 3 counters each; a fee band (5–20% of the company's cash); binding once accepted; 2 clients per firm. |
 | Solution | `SOLUTION`, 600 words, with the hired firm; judged with the statement as context. |
-| Saturation | Within each statement, rank by score: 1st full tier, 2nd ×0.75, 3rd ×0.5, 4th–5th ×0.25 on positive tiers; negative tiers in full; a statement with one company gets its full tier. |
+| Catch-up | Every company in Round 3 is ranked by its score so far (PRD + Round 2 plans, averaged; the draft order). A positive solution tier is scaled from ×1.25 for the weakest to ×0.25 for the strongest, evenly spaced; ties share the higher multiplier; negative tiers apply in full (migration 64). |
 | Finance injection | Every fund gets 50% of its starting capital at the start of `SATURATION`. |
 
 ## Final scores

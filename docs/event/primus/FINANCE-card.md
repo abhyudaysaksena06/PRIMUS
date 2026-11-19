@@ -11,7 +11,7 @@ You may never trade your own squad's company.
 | 22:30–22:45 | **IPO bids** | Up to 4,000 shares per company, at its IPO price. |
 | 22:45–06:30 | **Trade** in each trading round | BUY, SELL, SHORT or COVER. Every order fills at the round's new price. Long cap 4,000 shares; short cap 2,000; shorts lock 150% collateral. |
 | each crisis | **Read the cards** | Every price falls 5% at the reveal; each company's plan score then moves its price. The last round of a crisis waits for those scores. |
-| 04:45 | **Fresh capital** | +50% of your starting money. Watch the draft: companies on a crowded statement share the price rise. |
+| 04:45 | **Fresh capital** | +50% of your starting money. Round 3 evens out the field: price rises are ×1.25 for the weakest company down to ×0.25 for the strongest. |
 | 06:30 | Market closes | Every short is covered at the closing price. |
 | 07:10 | Awards | |
 

@@ -255,7 +255,8 @@ describe("PRIMUS rounds 2 and 3", () => {
     await n.ok(n.team(b.p_code), "save_draft", "SOLUTION", solution, 0);
     await n.ok(n.team(b.p_code), "submit_submission", "SOLUTION");
 
-    // Saturation: B and C share statement 1; C ranks first (full tier), B second (×0.75).
+    // Catch-up: every Round 3 company is ranked by its score so far (weakest first); a rise is scaled from ×1.25 for the
+    // weakest to ×0.25 for the strongest, evenly spaced (ties share the higher multiplier); a fall applies in full.
     await n.deadlinePassed("HIRE_5");
     await n.deadlinePassed("DUE_5");
     await n.ok(n.lead, "tick", n.eventId);
@@ -266,9 +267,21 @@ describe("PRIMUS rounds 2 and 3", () => {
     const pre3 = await n.prices();
     await n.org("release_scores", n.eventId, "SOLUTION");
     const post3 = await n.prices();
-    expect(post3[c.company_id]).toBe(Math.round(pre3[c.company_id]! * 1.25));
-    expect(post3[b.company_id]).toBe(Math.round(pre3[b.company_id]! * 1.15));
-    expect(post3[a.company_id]).toBe(Math.round(pre3[a.company_id]! * 0.8)); // alone on statement 2: full (negative) tier
+    const sofar = new Map(
+      ((await n.q("select company_id, app.score_so_far(company_id)::float8 as s from draft_picks where event_id = $1", [n.eventId])) as { company_id: string; s: number }[]).map((r) => [r.company_id, r.s]),
+    );
+    const scaled = (company: string, bp: number) => {
+      const all = [...sofar.values()];
+      const place = 1 + all.filter((x) => x < sofar.get(company)!).length; // rank(): ties share the lower place
+      const n3 = all.length;
+      return Math.trunc((bp * (125 * (n3 - 1) - 100 * (place - 1))) / (100 * (n3 - 1)));
+    };
+    expect(sofar.size).toBe(3);
+    expect(post3[c.company_id]).toBe(Math.round(pre3[c.company_id]! * (1 + scaled(c.company_id, 2500) / 10000)));
+    expect(post3[b.company_id]).toBe(Math.round(pre3[b.company_id]! * (1 + scaled(b.company_id, 2000) / 10000)));
+    expect(post3[a.company_id]).toBe(Math.round(pre3[a.company_id]! * 0.8)); // a falling tier applies in full
+    // The weakest going into Round 3 gains the most from the same tier, the strongest the least.
+    expect(scaled([...sofar].sort((x, y) => x[1] - y[1])[0]![0], 2000)).toBe(2500);
 
     // The firm co-wrote the solution but sent no Round 3 memo: its fee went back to the client.
     expect((await n.one("select escrow from engagements where company_id = $1 and k = 5", [c.company_id])).escrow).toBe("REFUNDED");
