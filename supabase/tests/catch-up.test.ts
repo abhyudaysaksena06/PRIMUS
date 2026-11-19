@@ -96,6 +96,24 @@ describe("catch-up SQL", () => {
     }
   });
 
+  test("a database whose functions have Windows line endings (pasted into the SQL editor) is caught up all the same", async () => {
+    const db = await partialDb("20261129000063");
+    try {
+      // What the live database looked like: every app/public function body stored with CR LF.
+      await db.client.query(`do $x$ declare f oid; begin
+        for f in select p.oid from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+                  where s.nspname in ('app', 'public') and p.prokind = 'f' and strpos(p.prosrc, chr(10)) > 0 loop
+          execute replace(pg_get_functiondef(f), chr(10), chr(13) || chr(10));
+        end loop; end $x$`);
+      expect(Number((await db.client.query("select count(*) from pg_proc where strpos(prosrc, chr(13)) > 0")).rows[0].count)).toBeGreaterThan(100);
+      await db.client.query(sql);
+      expect((await db.client.query("select public.schema_version() as v")).rows[0].v).toBe(LAST);
+      expect((await db.client.query(SNAPSHOT)).rows.map((r) => r.x)).toEqual(expected);
+    } finally {
+      await db.drop();
+    }
+  });
+
   test("an older database is refused, and nothing changes", async () => {
     const db = await partialDb("20261124000058");
     try {

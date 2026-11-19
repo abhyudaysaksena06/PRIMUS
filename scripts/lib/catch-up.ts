@@ -60,6 +60,22 @@ export function catchUpSql(all: readonly MigrationFile[], base: string, target?:
     `end`,
     `$guard$;`,
     ``,
+    `-- A database whose functions were pasted into the SQL editor from files with Windows line endings stores them with`,
+    `-- \\r\\n, and app.patch_functions matches text exactly, so every patch would refuse. Normalise them to \\n first: only`,
+    `-- whitespace changes, and each function is recreated as it is (its grants, owner and settings are kept).`,
+    `do $crlf$`,
+    `declare f oid; n int := 0;`,
+    `begin`,
+    `  for f in select p.oid from pg_proc p join pg_namespace s on s.oid = p.pronamespace`,
+    `            where s.nspname in ('app', 'public') and p.prokind in ('f', 'p') and strpos(p.prosrc, E'\\r') > 0`,
+    `              and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e') loop`,
+    `    execute replace(pg_get_functiondef(f), E'\\r\\n', E'\\n');`,
+    `    n := n + 1;`,
+    `  end loop;`,
+    `  if n > 0 then raise notice 'line endings normalised in % functions', n; end if;`,
+    `end`,
+    `$crlf$;`,
+    ``,
   );
   for (const m of todo) {
     const tag = `m${m.version}`;
