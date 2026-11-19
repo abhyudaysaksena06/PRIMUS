@@ -207,12 +207,12 @@ export const crisisPlanContent = (): Record<string, string> => ({
   next_steps: "Start the fix on Monday and report weekly.",
 });
 
-/** PRIMUS: the hired firm's advice memo to its client (ADVICE_k). */
+/** PRIMUS: the hired firm's advice memo to its client (ADVICE_k): at least 150 words, the minimum for the fee to be paid. */
 export const adviceContent = (): Record<string, string> => ({
-  diagnosis: "The crisis hits the client's busiest channel.",
-  advice: "Phase the fix: protect the top customers now, rebuild the rest next month.",
-  evidence: "The top fifth of customers bring half the sales.",
-  fit: "The client's cash covers the first phase without new funding.",
+  diagnosis: "The crisis hits the client's busiest channel first, and that channel brings about half of its monthly sales. If nothing changes, two months of disruption cost roughly a third of revenue and push the cash runway below four months. The twist makes it worse: waiting for certainty means the best customers move to rivals while the client is still deciding.",
+  advice: "Phase the fix. This week the operations lead protects the top fifth of customers with priority supply and a direct call from the founder. Next week the finance lead renegotiates payment terms with the two largest suppliers. By the end of the month the product lead rebuilds the failing step and tests it with ten customers before the full relaunch.",
+  evidence: "The top fifth of customers bring half the sales, so protecting them first saves most of the revenue for a small share of the cost. The fix costs about Rs 12 lakh against roughly Rs 40 lakh of monthly sales at risk, and paying suppliers thirty days later frees enough cash to cover the first phase.",
+  fit: "The client's cash covers the first phase without new funding, and its direct relationships with large customers are exactly what this plan relies on.",
 });
 
 /** PRIMUS Round 3: the company's solution to its problem statement. */

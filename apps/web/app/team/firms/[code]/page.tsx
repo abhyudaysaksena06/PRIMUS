@@ -50,7 +50,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
   const hiredThisFirm = mine ? record.some((e) => e.company_id === mine.id) : false;
   const offers = mine ? data.offers.filter((o) => o.company_id === mine.id && o.firm_team_id === f.team_id && (k === null || o.k === k)) : [];
   const openOffer = offers.some((o) => o.status === "OPEN");
-  const openOffers = k !== null && mine ? data.offers.filter((o) => o.company_id === mine.id && o.k === k && o.status === "OPEN").length : 0;
+  const openOffers = k !== null && mine ? data.offers.filter((o) => o.company_id === mine.id && o.k === k && o.status === "OPEN" && o.opened_by === "COMPANY").length : 0;
   const stars = ratingSummary(data.engagements, f.team_id);
   const band = k === 5 ? feeBand(ctx.team.cash) : null;
 

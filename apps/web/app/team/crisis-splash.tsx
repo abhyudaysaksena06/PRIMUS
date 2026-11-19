@@ -1,6 +1,7 @@
 "use client";
 
-// The crisis reveal: when a crisis card is dealt, the team's screen shows its company's card full-screen for a moment,
+// The crisis reveal: when a crisis is revealed, the team's screen announces it full-screen for a moment (its card is
+// sealed until hiring closes); when hiring closes, it shows the company's card the same way,
 // like turning a card over, with one button to the crisis room. It shows only in the first two minutes after the
 // reveal (so a screen opened later is not interrupted) and once per crisis per team on this browser.
 
@@ -19,11 +20,15 @@ export interface SplashCard {
   category: string;
   title: string;
   body: string;
+  /** When the pop-up's two minutes start: the reveal, or for an opened card the moment hiring closed. */
   revealedAt: string;
+  /** The card is dealt but sealed until hiring closes: the pop-up announces the crisis and when the card opens. */
+  sealed?: boolean;
+  opensAt?: string | null;
 }
 
 const SHOW_FOR_MS = 120_000;
-const key = (c: SplashCard) => `msim:crisis-splash:${c.eventId}:${c.teamId}:${c.k}`;
+const key = (c: SplashCard) => `msim:crisis-splash:${c.eventId}:${c.teamId}:${c.k}${c.sealed ? ":sealed" : ""}`;
 
 // "Seen" lives in localStorage (an outside store): read on the client; the server renders it as seen (nothing).
 const subscribe = (on: () => void) => {
@@ -55,6 +60,42 @@ export function CrisisSplash({ card, own }: { card: SplashCard | null; own: bool
     }
     setClosed(key(card));
   };
+  if (card.sealed) {
+    const at = card.opensAt ? new Date(card.opensAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" }) : null;
+    return (
+      <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/85 p-4 motion-safe:animate-[fadein_.25s_ease-out]" role="dialog" aria-modal="true" aria-label={`Crisis ${card.k}`} data-testid="crisis-splash">
+        <div className="flex min-h-full items-center justify-center">
+          <FocusFrameBorder
+            color="var(--color-danger)"
+            duration={2.4}
+            className="w-full max-w-xl motion-safe:animate-[cardflip_.6s_ease-out]"
+            contentClassName="border-2 border-danger bg-ink shadow-[0_0_60px_rgba(255,59,59,.35)]"
+          >
+            <div className="p-6 text-center">
+              <p className="font-mono text-sm font-bold uppercase tracking-[0.3em] text-danger-soft">{`Crisis ${card.k} of 4`}</p>
+              <p className="mt-3 text-6xl text-danger" aria-hidden>
+                <Glyph e="🚨" />
+              </p>
+              <h2 className="mt-3 text-3xl font-extrabold leading-tight text-[var(--term-amber)]">A crisis has hit</h2>
+              <p className="mt-3 text-base text-paper" data-testid="crisis-splash-sealed">
+                {own ? "Your company's" : "Your squad's company's"} crisis card is sealed until hiring closes{at ? ` at ${at}` : ""}. Hire a firm now, on its
+                record and its pitch: nobody can read a card before then.
+              </p>
+              <p className="mt-4 rounded-lg border border-danger/60 px-3 py-2 text-sm font-semibold text-danger-soft">Every share price just fell 5%.</p>
+              <div className="mt-5 flex flex-wrap justify-center gap-3">
+                <Link href="/team/crisis" onClick={close} className="mx-key mx-key-solid rounded-xl px-5 py-3 text-base font-extrabold">
+                  Open the crisis room →
+                </Link>
+                <button type="button" onClick={close} className="mx-key mx-key-quiet rounded-xl px-5 py-3 text-base">
+                  Got it
+                </button>
+              </div>
+            </div>
+          </FocusFrameBorder>
+        </div>
+      </div>
+    );
+  }
   const parts = crisisParts(card.body);
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/85 p-4 motion-safe:animate-[fadein_.25s_ease-out]" role="dialog" aria-modal="true" aria-label={`Crisis ${card.k}`} data-testid="crisis-splash">

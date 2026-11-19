@@ -30,6 +30,8 @@ export interface OfferRow {
   note: string;
   status: "OPEN" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "LAPSED";
   turn: "FIRM" | "COMPANY";
+  /** Who sent the first offer: the company, or a firm pitching it (migration 62). */
+  opened_by: "COMPANY" | "FIRM";
   company_counters: number;
   firm_counters: number;
   updated_at: string;

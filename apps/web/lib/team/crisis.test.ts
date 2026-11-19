@@ -84,6 +84,7 @@ describe("offers", () => {
     shares: 0,
     note: "",
     status: "OPEN",
+    opened_by: "COMPANY",
     turn: "FIRM",
     company_counters: 0,
     firm_counters: 0,

@@ -27,11 +27,12 @@ const crisisPlan = {
   risks: "Quality from the new supplier: test every batch.",
   next_steps: "CEO signs by Friday.",
 };
+// At least 150 words: a shorter advice memo is refused, and only a memo that long releases the fee.
 const advice = {
-  diagnosis: "One supplier is a single point of failure.",
-  advice: "Sign a second supplier now; keep two weeks of stock.",
-  evidence: "Late orders cost $30,000 a week.",
-  fit: "Your margins allow 5% higher unit cost.",
+  diagnosis: "The crisis hits the client's busiest channel first, and that channel brings about half of its monthly sales. If nothing changes, two months of disruption cost roughly a third of revenue and push the cash runway below four months. The twist makes it worse: waiting for certainty means the best customers move to rivals while the client is still deciding.",
+  advice: "Phase the fix. This week the operations lead protects the top fifth of customers with priority supply and a direct call from the founder. Next week the finance lead renegotiates payment terms with the two largest suppliers. By the end of the month the product lead rebuilds the failing step and tests it with ten customers before the full relaunch.",
+  evidence: "The top fifth of customers bring half the sales, so protecting them first saves most of the revenue for a small share of the cost. The fix costs about Rs 12 lakh against roughly Rs 40 lakh of monthly sales at risk, and paying suppliers thirty days later frees enough cash to cover the first phase.",
+  fit: "The client's cash covers the first phase without new funding, and its direct relationships with large customers are exactly what this plan relies on.",
 };
 const solution = {
   solution: "A shared booking app for clinics.",
@@ -106,6 +107,7 @@ describe("PRIMUS rounds 2 and 3", () => {
     expect(String(floorTry.message)).toContain("40000 shares");
     // and it says exactly how much room is left, so the team can offer up to it.
     expect(String(floorTry.message)).toContain("20000 left to offer");
+    expect(String(floorTry.message)).toContain("(40% of itself)");
 
     // A firm can also make the first move: it pitches a company, and the company answers.
     const pitch = (await n.ok(n.team(c.c_code), "make_offer_to", c.company_id, 40000, 0, "We have room this crisis.")).offer;
@@ -144,6 +146,19 @@ describe("PRIMUS rounds 2 and 3", () => {
     await n.ok(n.team(a.p_code), "post_hire_message", a.company_id, firm, "  Can you start now?  ");
     await n.ok(firmCaller, "post_hire_message", a.company_id, firm, "Yes, send us the numbers.");
     await n.ok(firmCaller, "post_hire_message", b.company_id, firm, "Hello B.");
+    // The hire chat allows 30 messages a minute, in its own allowance (a busy squad chat does not use it up).
+    const hireBefore = Number((await n.one("select count(*)::int as c from hire_messages where event_id = $1", [n.eventId])).c);
+    await n.q("delete from rate_limits where team_id = $1", [firm]);
+    let sent = 0;
+    for (let i = 0; i < 31; i++) {
+      const r = await n.call(firmCaller, "post_hire_message", b.company_id, firm, `ping ${i}`);
+      if (r.ok) sent++;
+      else expect(r).toMatchObject({ code: "RATE_LIMITED" });
+    }
+    expect(sent).toBeGreaterThanOrEqual(25);
+    expect(sent).toBeLessThanOrEqual(30);
+    await n.q("delete from hire_messages where event_id = $1 and body like 'ping %'", [n.eventId]);
+    expect(Number((await n.one("select count(*)::int as c from hire_messages where event_id = $1", [n.eventId])).c)).toBe(hireBefore);
     const hireLog = async (caller: ReturnType<typeof n.team>) =>
       as(db.pool, caller, async (cl) => (await cl.query("select body from hire_messages order by id")).rows.map((r) => r.body));
     expect(await hireLog(n.team(a.p_code))).toEqual(["Can you start now?", "Yes, send us the numbers."]);
@@ -160,7 +175,10 @@ describe("PRIMUS rounds 2 and 3", () => {
     await n.ok(n.team(c.p_code), "submit_submission", "CRISIS_1");
     expect(await n.call(n.team(c.c_code), "save_draft_for", a.company_id, "ADVICE_1", advice, 0)).toMatchObject({ ok: false, code: "NOT_ALLOWED" });
     expect(await n.call(n.team(a.p_code), "save_draft", "ADVICE_1", advice, 0)).toMatchObject({ ok: false, code: "NOT_ALLOWED" });
-    await n.ok(firmCaller, "save_draft_for", a.company_id, "ADVICE_1", advice, 0);
+    // An advice memo under 150 words is refused, with the count, so a firm cannot collect a fee for a line or two.
+    await n.ok(firmCaller, "save_draft_for", a.company_id, "ADVICE_1", { diagnosis: "Sign a second supplier.", advice: "Now." }, 0);
+    expect(await n.call(firmCaller, "submit_for", a.company_id, "ADVICE_1")).toMatchObject({ ok: false, code: "TOO_SHORT" });
+    await n.ok(firmCaller, "save_draft_for", a.company_id, "ADVICE_1", advice, 1);
     await n.ok(firmCaller, "submit_for", a.company_id, "ADVICE_1");
 
     // ── A hired firm reads its client's drafts for the sub-round (B is in another squad); a firm not hired does not.
@@ -257,7 +275,13 @@ describe("PRIMUS rounds 2 and 3", () => {
 
     // Catch-up: every Round 3 company is ranked by its score so far (weakest first); a rise is scaled from ×1.25 for the
     // weakest to ×0.25 for the strongest, evenly spaced (ties share the higher multiplier); a fall applies in full.
+    const cashB5 = BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [n.teamId(b.p_code)])).c);
     await n.deadlinePassed("HIRE_5");
+    await n.ok(n.lead, "tick", n.eventId);
+    // B hired no firm for Round 3: it is assigned one at 10% of its cash, inside the Round 3 band of 5–20%.
+    const assigned5 = await n.one("select cash_cents::bigint as c, assigned from engagements where company_id = $1 and k = 5", [b.company_id]);
+    expect(assigned5.assigned).toBe(true);
+    expect(BigInt(assigned5.c)).toBe(cashB5 / 10n);
     await n.deadlinePassed("DUE_5");
     await n.ok(n.lead, "tick", n.eventId);
     await n.judge(c.company_id, "SOLUTION", [92, 92, 92]);

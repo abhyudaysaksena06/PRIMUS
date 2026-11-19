@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { STAFF, seedE2eEvent, type E2eEvent } from "./support/event";
 import { pitchesReleased } from "./support/game";
 import { loginAsStaff, loginAsTeam } from "./support/login";
+import { adviceContent } from "../../../scripts/lib/bots";
 
 // A PRIMUS event's Round 2 as each track sees it: the banner names the crisis and shows its steps with the one that
 // is on now, "Do this now" follows the team through hiring, writing and rating, and the crisis room is numbered steps.
@@ -30,11 +31,11 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   await n.ok(n.lead, "tick", n.eventId);
   await n.ok(n.team(a!.c_code), "save_firm_profile", "Food and campus operations", ["operations", "food safety"], "From $500 per crisis", 50000, "");
 
-  // ── Product: the crisis is revealed with the company's card full-screen; "Got it" closes it for good.
+  // ── Product: the crisis is revealed full-screen; the card itself is sealed until hiring closes. "Got it" closes it for good.
   await loginAsTeam(page, ev, a!.p_code);
   const splash = page.getByTestId("crisis-splash");
   await expect(splash).toContainText("Crisis 1 of 4");
-  await expect(splash).toContainText("This is your company's card.");
+  await expect(splash.getByTestId("crisis-splash-sealed")).toContainText("Your company's crisis card is sealed until hiring closes");
   await shot(page, "00-crisis-reveal");
   await splash.getByRole("button", { name: "Got it" }).click();
   await expect(splash).toHaveCount(0);
@@ -103,7 +104,7 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   await expect(page.getByTestId("task-HIRE")).toContainText(`You hired ${a!.c_code} for $500.00.`);
   await n.ok(n.team(a!.p_code), "save_draft", "CRISIS_1", { impact: "Half our boxes fail the new test.", response: "Serve inside two hours." }, 0);
   await n.ok(n.team(a!.p_code), "submit_submission", "CRISIS_1");
-  await n.ok(n.team(a!.c_code), "save_draft_for", a!.company_id, "ADVICE_1", { diagnosis: "The late box is at risk.", advice: "Phase the chillers." }, 0);
+  await n.ok(n.team(a!.c_code), "save_draft_for", a!.company_id, "ADVICE_1", adviceContent(), 0);
   await n.ok(n.team(a!.c_code), "submit_for", a!.company_id, "ADVICE_1");
   await n.deadlinePassed("HIRE_1");
   await n.deadlinePassed("DUE_1");
