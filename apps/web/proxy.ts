@@ -7,6 +7,9 @@ import { createServerClient } from "@supabase/ssr";
 import { areaOf } from "@/lib/auth/routes";
 
 export async function proxy(request: NextRequest) {
+  // The frontend walkthrough under /demo runs on sample data only and needs no session.
+  const path0 = request.nextUrl.pathname;
+  if (path0 === "/demo" || path0.startsWith("/demo/")) return NextResponse.next();
   let response = NextResponse.next({ request });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
