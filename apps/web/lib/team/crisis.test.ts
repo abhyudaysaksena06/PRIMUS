@@ -158,10 +158,11 @@ describe("who competes with whom in Round 3", () => {
     expect(g[0]!.companies).toEqual([{ id: "b", label: "B", scoreAvg: 70, mine: false }, { id: "a", label: "A", scoreAvg: 40, mine: true }]);
     expect(g[1]!.companies).toEqual([]);
   });
-  test("how a statement's price moves are shared", () => {
-    expect(shareText(1)).toBe("Alone here: the full price move.");
-    expect(shareText(2)).toBe("2 companies share: best 100% · 2nd 75% of a rise (a fall counts in full).");
-    expect(shareText(5)).toContain("best 100% · 2nd 75% · 3rd 50% · others 25%");
+  test("a statement's crowd in words: sharing a statement no longer cuts the price move", () => {
+    expect(shareText(2)).toBe("2 companies here: each is judged on its own solution, and sharing a statement does not cut anyone's price move.");
+    expect(shareText(5)).toContain("does not cut anyone's price move");
+    expect(shareText(1)).toBe("1 company here.");
+    expect(shareText(0)).toBe("Nobody here yet.");
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22].map(ordinal)).toEqual(["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd"]);
   });
   test("a draft that ends early opens hiring and writing at once", () => {

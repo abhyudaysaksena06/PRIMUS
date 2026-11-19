@@ -5,7 +5,7 @@
 1. **Content** page, before the squad draw: upload the three files in `seed/sectors/`:
    - problem cards (one per sector; the lottery splits the squads equally);
    - crisis cards (four per sector, one per crisis);
-   - Round 3 statements (ten per sector, room for five companies each).
+   - Round 3 statements (ten per sector, room for three companies each: fewer companies crowd one client brief).
 2. **Lottery** page: publish the seed commitment the day before.
 3. Check `/api/health` says `"database":"ok"`, and run the AI judge's calibration.
 

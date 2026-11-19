@@ -72,7 +72,7 @@ export const STEPS: Record<PhaseCode, { name: string; what: string }> = {
   READING: { name: "Read & ask", what: "Everyone reads the pitches and asks the companies questions." },
   IPO: { name: "Buy first shares", what: "Investment funds bid for the companies' first shares." },
   PRESSURE: { name: "Crisis sub-rounds", what: "A crisis card each sub-round: hire a firm, write the response, trade the news." },
-  SATURATION: { name: "Market saturation", what: "Problem statements are drafted; companies that share one compete for the price move." },
+  SATURATION: { name: "Market saturation", what: "Problem statements are drafted, weakest company first; a solution's price rise is scaled ×1.25 for the weakest company down to ×0.25 for the strongest." },
   ROUNDS_1_4: { name: "Trading time", what: "Funds buy and sell shares. Prices move every round." },
   CRISIS: { name: "Crisis!", what: "Something bad has happened to every company. Prices fell 15%." },
   RESCUE_1: { name: "Rescue mission", what: "Agree the fee and the rescue deal, and write the rescue plan." },

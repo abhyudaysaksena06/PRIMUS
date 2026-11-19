@@ -39,7 +39,7 @@ const PRIMUS: Record<Track, HowToPlay> = {
     steps: [
       { icon: "🔎", title: "Round 1 · Pick winners", text: "Read the PRDs, ask questions, bid in the IPO and make your first trades." },
       { icon: "📉", title: "Round 2 · Trade the crises", text: "Each crisis knocks prices down; plan scores move them again. Buy, sell, short or cover in each trading round." },
-      { icon: "💰", title: "Round 3 · Fresh capital", text: "You get half your starting money again. Watch the draft: companies on a crowded statement share the rise." },
+      { icon: "💰", title: "Round 3 · Fresh capital", text: "You get half your starting money again. A good solution lifts the weakest companies most (×1.25) and the strongest least (×0.25): trade the gap." },
     ],
     win: "Finish with the highest return on all the money you were given.",
   },

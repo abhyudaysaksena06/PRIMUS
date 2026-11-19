@@ -64,7 +64,7 @@ for p in problems:
 aviation_rows = [x for x in statements if x["sector"] == "Aviation"]
 assert len(aviation_rows) == len(final.AVIATION_STATEMENTS) == 10
 for x, (title, who, nums, catch, win, guide) in zip(aviation_rows, final.AVIATION_STATEMENTS):
-    x.update(title=title, cap="5", body=f"Aviation · Round 3. {title}.\n\nWho it is for: {who}\nThe numbers: {nums}\nThe catch: {catch}\nYou win if: {win}")
+    x.update(title=title, cap="3", body=f"Aviation · Round 3. {title}.\n\nWho it is for: {who}\nThe numbers: {nums}\nThe catch: {catch}\nYou win if: {win}")
     GUIDE[("Aviation", title)] = guide
 
 IN_GAME = [p["sector"] for p in problems]
@@ -272,22 +272,22 @@ out.append("""
     <tr><td>21:00–22:00</td><td>Round 1 · Foundation</td><td><b>Product</b> writes a PRD for a startup inside its sector's problem
       statement (800 words, 7 sections). <b>Consulting</b> writes a memo on the ZestUp case (500 words, 6 sections). <b>Finance</b> trades the practice market:
       $100,000 of practice money on live candlestick charts named after the Product teams.</td>
-      <td>The PRD score sets the IPO price; the memo score sets the firm's opening reputation and a bonus; each fund's practice profit (up to $50,000) is added to its real cash</td></tr>
+      <td>The PRD score sets the IPO price; the memo score sets the firm's opening reputation and a bonus; the 3 funds worth the most in the practice market each win $50,000 of real cash</td></tr>
     <tr><td>by 22:30</td><td>Round 1</td><td><b>Consulting</b> makes Call 1: BUY or SELL on each of its two companies.
       <b>Finance</b> reads the PRDs and bids in the IPO (until 22:45).</td><td>$2,500 per correct call; the opening share register</td></tr>
     <tr><td>22:45 · 00:15 · 01:45 · 03:15</td><td>Round 2 · Pressure</td><td>Four crises. In crisis <i>k</i> every company gets
       its own sector's card number <i>k</i>: 1 Operations, 2 Market, 3 Trust, 4 Money.</td><td>Every price −5% at each reveal;
-      then each plan's score moves its company's price</td></tr>
+      then each plan's score moves its company's price. Companies may sell 1–10% of themselves to funds</td></tr>
     <tr><td>04:45</td><td>Round 3 · Saturation</td><td>Funds receive fresh capital. Companies draft one of their sector's ten
-      statements and write a solution with a hired firm (600 words, 6 sections).</td><td>The solution score moves the price,
-      shared between companies on the same statement</td></tr>
-    <tr><td>06:00 · 06:30 · 07:10</td><td>Close</td><td>Solutions due; the market closes; the awards.</td><td>Final rankings</td></tr>
+      statements and write a solution with a hired firm (600 words, 6 sections).</td><td>The solution score moves the price; a rise
+      is scaled ×1.25 for the weakest company down to ×0.25 for the strongest</td></tr>
+    <tr><td>06:00 · 06:30 · 07:10</td><td>Close</td><td>Solutions due; the market closes; the awards.</td><td>Final rankings: the closing price averages the last round's price with the AI price</td></tr>
   </table>
   <h3>One crisis, minute by minute</h3>
   <table>
     <tr><th style="width:13%">Minute</th><th>What happens</th></tr>
     <tr><td>0</td><td>The crisis cards are revealed, one to each company (its sector's card <i>k</i>). Every price falls 5% and trading pauses for 5 minutes.</td></tr>
-    <tr><td>0–20</td><td><b>Hiring.</b> The Product team sends offers (cash, shares or both) to consulting firms; firms accept, counter or decline. One firm per company, at most two clients per firm. Open offers lapse at minute 20.</td></tr>
+    <tr><td>0–20</td><td><b>Hiring.</b> The Product team offers consulting firms a stake in the company (equity %, its value worked out at the share price; cash optional); firms accept, counter or decline, and may pitch first. One firm per company, at most two clients per firm. Open offers lapse at minute 20, and any company without a firm is matched to one. The card stays sealed until hiring closes.</td></tr>
     <tr><td>20–65</td><td><b>Writing.</b> The Product team writes its crisis plan (500 words, 7 sections); the hired firm writes its advice memo to the client (500 words, 4 sections). Both close at minute 65. The fee, held in escrow, is paid to the firm if its memo is in, and refunded otherwise.</td></tr>
     <tr><td>65–80</td><td><b>Rating.</b> The client rates its firm from 1 to 5 stars (a missing rating counts as 3). Plans are public; scores stay sealed.</td></tr>
     <tr><td>80</td><td><b>Release.</b> The plan's score moves the company's price. The firm earns a reputation bonus of $500 × (memo score − 50) + $1,000 × (stars − 3).</td></tr>
@@ -295,10 +295,10 @@ out.append("""
   </table>
   <h3>Round 3 in short</h3>
   <table class="kpi">
-    <tr><td>The statements</td><td>Ten per sector, each open to at most 5 companies (room for 50 in every sector).</td></tr>
+    <tr><td>The statements</td><td>Ten per sector, each open to at most 3 companies (room for 30 in every sector).</td></tr>
     <tr><td>The draft</td><td>The lowest score so far (the PRD and the Round 2 plans, averaged) picks first, 20 seconds each, and only from its own sector's statements. A company that does not pick gets the least-crowded open statement.</td></tr>
     <tr><td>Hiring</td><td>Firms post an asking fee; offers must be 5–20% of the company's cash; at most 3 counters; 2 clients per firm.</td></tr>
-    <tr><td>Saturation</td><td>On each statement, companies are ranked by score: the 1st gets its full price rise, the 2nd ×0.75, the 3rd ×0.5, the 4th and 5th ×0.25. Price falls apply in full. A company alone on its statement gets its full rise.</td></tr>
+    <tr><td>Saturation</td><td>The market is levelled: a solution's price rise is scaled by the company's standing going into Round 3, ×1.25 for the weakest down to ×0.25 for the strongest. Price falls apply in full. Sharing a statement does not cut anyone's rise.</td></tr>
   </table>
 </section>
 <section class="page">
@@ -320,7 +320,8 @@ out.append("""
       <li>Round 1: trade the <b>practice market</b>. Read the candles: hammers, engulfings and breakouts are planted, and most follow through.</li>
       <li>Read every sector's <b>What Finance teams should watch</b> table and the crisis cards: prices fall 5% at each reveal, then move with each plan's score.</li>
       <li>Strong plans recover; weak ones keep falling. Trade the gap.</li>
-      <li>In Round 3, crowded statements share the price rise: watch the draft.</li></ul></div>
+      <li>A company that moves the full 10% in a round cools off for the next round: no orders in it. Chasing a runaway costs you a round.</li>
+      <li>In Round 3 a good solution lifts the weakest companies most (×1.25) and the strongest least (×0.25): the race stays open to the close.</li></ul></div>
     <div class="g" style="--gc:#6d28d9"><h4>Judges, mentors and organisers</h4><ul>
       <li>Every card has <b>what a strong answer covers</b> and how it is judged (Appendix A).</li>
       <li>Spare cards are ready as mid-round surprises (one per sector section).</li>
@@ -380,7 +381,7 @@ for n, sec in enumerate(sectors_out, start=3):
     out.append(f'<div class="glance"><h4>{e(sector)} at a glance</h4><table>'
                f'<tr><td>Round 1 problem</td><td>{e(prob["title"])}</td></tr>'
                + "".join(f'<tr><td>Crisis {e(x["number"])} · {e(x["category"])}</td><td>{e(x["title"])}</td></tr>' for x in sector_crises)
-               + f'<tr><td>Round 3</td><td>{len(sector_statements)} client briefs, at most 5 companies each</td></tr>'
+               + f'<tr><td>Round 3</td><td>{len(sector_statements)} client briefs, at most 3 companies each</td></tr>'
                + (f'<tr><td>Sample companies</td><td>{e(", ".join(f"{x["name"]} ({x["ticker"]})" for x in pf["samples"]))}</td></tr>' if pf else "")
                + '</table></div>')
     out.append(f'<h3>Round 1 · The problem statement</h3>')
@@ -456,7 +457,7 @@ for n, sec in enumerate(sectors_out, start=3):
                'rehearsal, or as a mid-round surprise announced in a bulletin.</p>' + ul(ctx["spare"], "spare"))
 
     out.append(f'<div class="keep"><h3>Round 3 · The ten problem statements</h3>'
-               f'<p>Each statement takes at most 5 companies. {article} {e(sector)} company drafts only from this list, and writes its '
+               f'<p>Each statement takes at most 3 companies. {article} {e(sector)} company drafts only from this list, and writes its '
                f'solution (600 words, 6 sections: our solution, why it fits the statement, how we stand apart, how we will '
                f'build it, business impact, risks) with the firm it hires. {"The game shows" if in_game else "Once uploaded, the game shows"} each statement as its title and a client brief: '
                f'who it is for, the numbers, the catch and what winning looks like.{"" if in_game else " The numbers are those of seed/sectors/all; a mix made with pnpm sectors numbers them again."}</p></div>')
@@ -529,7 +530,7 @@ out.append("""
   <tr><td>Problem deck</td><td>Upload <b>problem-cards.csv</b> on the Content page (""" + str(N) + """ cards, one per sector). The lottery splits the squads equally between the sectors.</td></tr>
   <tr><td>Crisis deck</td><td>Upload <b>crisis-cards.csv</b> (4 cards per sector, numbered 1–4: Operations, Market, Trust, Money). Both decks lock at the draw.</td></tr>
   <tr><td>Check the numbers</td><td>Every number on the crisis cards is invented for the game. Read each card once more before the night.</td></tr>
-  <tr><td>Round 3 statements</td><td>Upload <b>statements.csv</b> (10 per sector, cap 5 each) before Round 3 starts at 04:45; the draft starts once they are in. They can be replaced until the first pick.</td></tr>
+  <tr><td>Round 3 statements</td><td>Upload <b>statements.csv</b> (10 per sector, cap 3 each) before Round 3 starts at 04:45; the draft starts once they are in. They can be replaced until the first pick.</td></tr>
 </table>
 <h3>During the night</h3>
 <ul>
@@ -559,16 +560,18 @@ out.append("""
   <tr><td>Ticker</td><td>A company's 3–4 letter market code, chosen by the Product team (for example FRLP).</td></tr>
   <tr><td>IPO</td><td>Initial public offering: funds bid for each company's first shares at its IPO price.</td></tr>
   <tr><td>Trading round</td><td>A 15-minute window for orders. Every order fills at the round's new price; the price moves with the net shares bought or sold (at most ±10%).</td></tr>
+  <tr><td>Cooling-off</td><td>A company whose price moved the full ±10% in a round takes no orders in the next round.</td></tr>
+  <tr><td>Equity raise</td><td>A company sells 1–10% of itself to a fund for cash at the market price (once per crisis; a fund holds at most 10% of a company this way and funds one raise per crisis).</td></tr>
   <tr><td>BUY / SELL</td><td>Buy shares; sell shares you own.</td></tr>
   <tr><td>SHORT / COVER</td><td>Sell shares you do not own, betting the price will fall (150% of the value is locked as collateral); buy them back to close.</td></tr>
-  <tr><td>Practice market</td><td>Round 1 for Finance: $100,000 of practice money on scripted candlestick charts. Profit up to $50,000 is added to the real fund; a loss costs nothing.</td></tr>
+  <tr><td>Practice market</td><td>Round 1 for Finance: $100,000 of practice money on scripted candlestick charts. The 3 funds worth the most at the close each win $50,000 of real cash; a loss costs nothing.</td></tr>
   <tr><td>Candlestick</td><td>A bar showing a price's open, high, low and close over a period: green when it closed higher, red when lower.</td></tr>
   <tr><td>Crisis card</td><td>The problem each company receives in each of the four crises: its own sector's card number 1 to 4. Every price falls 5% at the reveal.</td></tr>
   <tr><td>Twist</td><td>The second blow at the end of each crisis card, with the decision the plan must make.</td></tr>
   <tr><td>Escrow</td><td>The hiring fee, held by the exchange until the firm's advice memo is in; refunded to the client if it is not.</td></tr>
   <tr><td>Stars</td><td>The client's 1–5 rating of its firm after each crisis (a missing rating counts as 3).</td></tr>
   <tr><td>Draft</td><td>Round 3: companies pick a problem statement in turn, lowest score first, 20 seconds each.</td></tr>
-  <tr><td>Saturation</td><td>Companies sharing a statement share its price rise: 1st full, 2nd ×0.75, 3rd ×0.5, 4th and 5th ×0.25.</td></tr>
+  <tr><td>Saturation</td><td>Round 3's levelling: a solution's price rise is scaled ×1.25 for the weakest company down to ×0.25 for the strongest, so the race stays open to the close.</td></tr>
   <tr><td>Median of three</td><td>Every answer is judged three times by the AI judge; the middle score counts (five times if the three differ by more than 10 points).</td></tr>
   <tr><td>Sealed / released</td><td>Scores are sealed (hidden) until the organisers release them; the release moves the prices.</td></tr>
 </table>

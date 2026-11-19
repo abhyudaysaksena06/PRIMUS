@@ -197,14 +197,14 @@ test("Round 3: the draft says whose pick it is, alerts the team on the clock, an
   await expect(page.getByText("Your pick! Choose a problem statement now: you have 20 seconds.")).toBeVisible();
   await expect(screen.getByTestId("display-statement-1")).toContainText("2/3"); // the big screen follows the picks
   await expect(page.getByTestId("step-draft")).toHaveAttribute("data-state", "now");
-  await expect(page.getByTestId("crowd-1")).toContainText("2 companies share: best 100% · 2nd 75%");
+  await expect(page.getByTestId("crowd-1")).toContainText("2 companies here: each is judged on its own solution");
   await shot(page, "12-draft-your-pick");
   const one = page.getByTestId("statement-1");
   await one.getByRole("button", { name: "Pick" }).click();
   await one.getByRole("button", { name: "Click again to pick #1" }).click();
   await expect(page.getByTestId("step-draft")).toHaveAttribute("data-state", "done");
   await expect(page.getByTestId("crowd-1")).toContainText("(you)");
-  await expect(page.getByTestId("crowd-1")).toContainText("3 companies share: best 100% · 2nd 75% · 3rd 50%");
+  await expect(page.getByTestId("crowd-1")).toContainText("3 companies here: each is judged on its own solution");
   await expect(page.getByTestId("on-the-clock")).toContainText("The draft is over");
   await expect(page.getByTestId("step-hire")).toHaveAttribute("data-state", "now");
   await shot(page, "13-draft-done");

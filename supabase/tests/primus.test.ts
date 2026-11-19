@@ -312,6 +312,22 @@ describe("PRIMUS rounds 2 and 3", () => {
 
     await n.advanceTo("CLOSE");
     await n.checkInvariants();
+    // The close counts the end of the night: the closing market price is the average of the last round's opening and
+    // clearing prices (round 31 on a PRIMUS night, which opens only after the solutions are released), and the
+    // closing price averages that with the AI price. Until migration 068 it used rounds 20 and 21 (03:20-03:50).
+    const last = Number((await n.one("select max(number)::int as m from rounds where event_id = $1", [n.eventId])).m);
+    expect(last).toBe(31);
+    for (const q of [a, b, c]) {
+      const lr = await n.one(
+        "select rp.market_before, rp.market_after from round_prices rp join rounds r on r.id = rp.round_id where rp.company_id = $1 and rp.kind = 'CLEARING' and r.number = $2",
+        [q.company_id, last]);
+      const co = await n.one("select market_price, closing_market_price, closing_price, ai_price from companies where id = $1", [q.company_id]);
+      const want = Math.round((Number(lr.market_before) + Number(lr.market_after)) / 2);
+      expect(Number(co.closing_market_price), `company of squad ${q.squad_no}`).toBe(want);
+      expect(Number(co.closing_price)).toBe(Math.round((want + Number(co.ai_price)) / 2));
+      // Round 31 opened after the release, so its opening price carries the solution's tier in full.
+      expect(Number(lr.market_before)).toBe(post3[q.company_id]);
+    }
   });
 
   test("Round 3 without statements waits for them; too little room is refused; the draft's deadline fits every company", async () => {

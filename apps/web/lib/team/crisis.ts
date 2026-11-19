@@ -235,12 +235,14 @@ export function statementGroups(
   }));
 }
 
-/** How a statement's price moves are shared among n companies (app.release_tier_bp), in words. */
+/**
+ * A statement's crowd, in words. Since migration 064 sharing a statement no longer splits the price move: each
+ * company's solution moves its own price, a rise scaled by its standing going into Round 3 (app.release_tier_bp).
+ */
 export function shareText(n: number): string {
-  if (n <= 0) return "Nobody here yet: alone, a company keeps its full price move.";
-  if (n === 1) return "Alone here: the full price move.";
-  const parts = ["best 100%", "2nd 75%", "3rd 50%", "others 25%"].slice(0, Math.min(n, 4));
-  return `${n} companies share: ${parts.join(" · ")} of a rise (a fall counts in full).`;
+  if (n <= 0) return "Nobody here yet.";
+  if (n === 1) return "1 company here.";
+  return `${n} companies here: each is judged on its own solution, and sharing a statement does not cut anyone's price move.`;
 }
 
 /** 1 → "1st", 2 → "2nd"… */

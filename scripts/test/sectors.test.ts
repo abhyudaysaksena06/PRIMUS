@@ -16,10 +16,10 @@ describe("the sector library (seed/sectors/all)", () => {
       expect(deck.map((r) => [r[1], r[2]]), s).toEqual([["Operations", "1"], ["Market", "2"], ["Trust", "3"], ["Money", "4"]]);
       expect(rows(library.statements).filter((r) => r[0] === s), s).toHaveLength(10);
     }
-    // As uploaded: 50 statements, numbered 1–50, five companies each.
+    // As uploaded: 50 statements, numbered 1–50, three companies each (fewer companies crowd one client brief).
     const parsed = parseStatements(library.statements);
     expect(parsed.ok && parsed.value.map((x) => x.number)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1));
-    expect(parsed.ok && parsed.value.every((x) => x.cap === 5)).toBe(true);
+    expect(parsed.ok && parsed.value.every((x) => x.cap === 3)).toBe(true);
   });
 
   test("FMCG, Aviation and Luxury (the event's sectors) give exactly the files in seed/sectors", () => {
@@ -42,7 +42,7 @@ describe("the sector library (seed/sectors/all)", () => {
     expect(statements.map((r) => r[1])).toEqual(Array.from({ length: 30 }, (_, i) => String(i + 1)));
     expect(statements[20]!.slice(0, 3)).toEqual(["Aviation", "21", "Make 3 pilgrim routes break even within a year"]);
     expect(statements[20]![3]).toMatch(/^Aviation · Round 3\. Make 3 pilgrim routes .*\n\nWho it is for: .+\nThe numbers: .+\nThe catch: .+\nYou win if: .+\n\nDesign the solution/s);
-    expect(statements[20]![4]).toBe("5");
+    expect(statements[20]![4]).toBe("3");
     expect(rows(buildSectorFiles(library, ["Fintech", "Energy"]).problems).map((r) => r[1])).toEqual(["Fintech", "Energy"]);
   });
 

@@ -8,6 +8,7 @@ import { clock, money } from "@/lib/format";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { Notice, Panel } from "@/components/ui/ui";
+import { supabaseServer } from "@/lib/supabase/server";
 import { Countdown } from "@/components/ui/countdown";
 import { tradeGate } from "./gate";
 import { type TicketCompany } from "./ticket";
@@ -76,6 +77,11 @@ export default async function TradePage() {
   const ownTicker = own?.ticker ?? null;
   // What just became public (released scores, the plans, bulletins): the funds trade on it.
   const wire = await loadWire(ctx.event.id);
+  // Companies cooling off this round (migration 069): each moved the full 10% last round and takes no orders now.
+  const coolingIds = accepting
+    ? (((await (await supabaseServer()).rpc("cooling_off_companies", { p_event: ctx.event.id })).data ?? []) as string[])
+    : [];
+  const cooling = tradable.filter((c) => coolingIds.includes(c.id));
   const chart = await loadTradeCandles(ctx.event.id);
   const openRoundId = status.open_round ? (data.rounds.find((r) => r.number === status.open_round!.number)?.id ?? null) : null;
 
@@ -85,6 +91,15 @@ export default async function TradePage() {
       <AutoRefresh everyMs={10_000} active={accepting} />
 
       {notice ? <ClosedNotice notice={notice} nowMs={nowMs} ipo={status.phase === "IPO"} /> : null}
+
+      {cooling.length > 0 ? (
+        <Notice tone="amber">
+          <span data-testid="cooling-off">
+            Cooling off this round: <strong className="font-mono">{cooling.map((c) => c.ticker).join(", ")}</strong>. Each moved the full 10% last round, so
+            it takes no orders until the next round opens.
+          </span>
+        </Notice>
+      ) : null}
 
       {summary.blocked ? (
         <Notice tone="red">
