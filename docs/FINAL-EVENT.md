@@ -49,13 +49,13 @@ Tests on the final build: typecheck, 290 engine, 822 web and 316 database tests 
 Live database (19 Nov): schema 20261204000068 (the close fixed). Migration 069 (cooling-off, raise caps) is built and
 tested, and waits for the organisers' approval before it is applied.
 
-### One thing that is a preview only
+### The /demo walkthrough and the real game
 
-TushKum's `/demo` screens show Consulting and Finance deals in **Shares & Equity %** (a base equity rate from the
-Round 1 score, a 1-to-1 "lock", Product teams selling equity to Finance teams). That is the walkthrough on sample
-data; it calls no database. The real game tonight hires a firm with **cash, shares or both**, three counters each
-side, a binding accept and up to two clients per firm, and Finance trades on the market. The rules teams read
-(`docs/event/primus/`) describe the real game.
+TushKum's `/demo` screens show Consulting and Finance deals in **Shares & Equity %** on sample data; they call no
+database. The real game now does the same things for real: a company hires its firm with an **equity %** offer (its
+value shown at the share price, cash optional), three counters each side, a binding accept, up to two clients per
+firm; and in Round 2 it can **sell 1–10% of itself to a fund** at the market price (migration 067). Not in the real
+game: the demo's base equity rate from the Round 1 score and its 1-to-1 lock (proposals in the Organiser Handbook).
 
 ## 2. Tonight, in this order
 
