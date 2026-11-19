@@ -76,13 +76,15 @@ export interface HireThread {
 }
 
 /**
- * The hire chats this team can open: one per company–firm pair with at least one engagement. A Product team sees one
- * per firm it hired; a firm one per company that hired it. Newest engagement first.
+ * The hire chats this team can open. One per company–firm pair it has an engagement with, newest first, and then any
+ * other pair it is already talking to or has just opened: since the marketplace opened up, a company and a firm may
+ * talk before there is any deal, so a thread exists as soon as either side writes to the other.
  */
 export function hireThreads(
   engagements: readonly EngagementRow[],
   companies: readonly { id: string; product_team_id: string | null }[],
   me: string,
+  extra: readonly { company_id: string; firm_team_id: string }[] = [],
 ): HireThread[] {
   const myCompany = companies.find((c) => c.product_team_id === me)?.id ?? null;
   const owner = new Map(companies.map((c) => [c.id, c.product_team_id]));
@@ -100,6 +102,16 @@ export function hireThreads(
     const partner = asFirm ? owner.get(e.company_id) ?? null : e.firm_team_id;
     if (!partner) continue;
     threads.set(key, { company_id: e.company_id, firm_team_id: e.firm_team_id, partner_team_id: partner, ks: [e.k] });
+  }
+  for (const pair of extra) {
+    const key = `${pair.company_id}:${pair.firm_team_id}`;
+    if (threads.has(key)) continue;
+    const asFirm = pair.firm_team_id === me;
+    const asCompany = myCompany !== null && pair.company_id === myCompany;
+    if (!asFirm && !asCompany) continue;
+    const partner = asFirm ? owner.get(pair.company_id) ?? null : pair.firm_team_id;
+    if (!partner) continue;
+    threads.set(key, { company_id: pair.company_id, firm_team_id: pair.firm_team_id, partner_team_id: partner, ks: [] });
   }
   return [...threads.values()];
 }

@@ -96,6 +96,21 @@ describe("PRIMUS rounds 2 and 3", () => {
     const accepted = await n.ok(n.team(a.p_code), "respond_offer", offer.id, "ACCEPT");
     expect(accepted.engagement).toMatchObject({ cash_cents: 80000, shares: 100, escrow: "HELD" });
     expect(BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [n.teamId(a.p_code)])).c)).toBe(BigInt(cashA) - 80000n);
+    // A company never gives away more than 60% of itself: it keeps 40,000 of its 100,000 shares, and the shares it
+    // has already promised to a firm count even though they only move when the sub-round settles.
+    const floorTry = await n.call(n.team(c.p_code), "make_offer", n.teamId(b.c_code), 0, 20_001, "");
+    expect(floorTry).toMatchObject({ ok: false, code: "BAD_TERMS" });
+    expect(String(floorTry.message)).toContain("40000 shares");
+    // and it says exactly how much room is left, so the team can offer up to it.
+    expect(String(floorTry.message)).toContain("20000 left to offer");
+
+    // A firm can also make the first move: it pitches a company, and the company answers.
+    const pitch = (await n.ok(n.team(c.c_code), "make_offer_to", c.company_id, 40000, 0, "We have room this crisis.")).offer;
+    expect(pitch).toMatchObject({ turn: "COMPANY", cash_cents: 40000 });
+    expect(await n.call(n.team(c.c_code), "respond_offer", pitch.id, "ACCEPT")).toMatchObject({ ok: false, code: "NOT_YOUR_TURN" });
+    expect(await n.call(n.team(a.p_code), "make_offer_to", c.company_id, 1000, 0, "")).toMatchObject({ ok: false, code: "NOT_ALLOWED" });
+    await n.ok(n.team(c.p_code), "respond_offer", pitch.id, "DECLINE");
+
     const offerB = (await n.ok(n.team(b.p_code), "make_offer", firm, 30000, 0, "")).offer;
     await n.ok(firmCaller, "respond_offer", offerB.id, "ACCEPT");
     expect(await n.call(n.team(c.p_code), "make_offer", firm, 30000, 0, "")).toMatchObject({ ok: false, code: "FIRM_FULL" });
@@ -110,15 +125,18 @@ describe("PRIMUS rounds 2 and 3", () => {
     expect(toFirm[0]).toMatchObject({ kind: "offers", firm, product: n.teamId(a.p_code) });
     expect(toFirm.at(-1)).toMatchObject({ kind: "offers", accepted: true, offer: offerB.id, firm, product: n.teamId(b.p_code) });
     expect(await offerMessages(`team:${n.teamId(a.p_code)}`)).toHaveLength(3);
-    expect(await offerMessages(`team:${n.teamId(c.p_code)}`)).toEqual([]);
-    expect(await offerMessages(`staff:${n.eventId}`)).toHaveLength(5);
+    // C's own channel carries only its own two: the firm's pitch and C's decline.
+    expect(await offerMessages(`team:${n.teamId(c.p_code)}`)).toHaveLength(2);
+    expect(await offerMessages(`staff:${n.eventId}`)).toHaveLength(7);
 
     // ── The firm's profile carries an "about" text; the hire chat is one on one per company–firm pair: A and X read
     // their thread, B (X's other client) reads only its own, and teams that hired no one cannot post or read.
     await n.ok(firmCaller, "save_firm_profile", "Supply chains", ["operations"], "From $500", 0, "We fixed ten supply chains.");
     expect(await n.one("select about from firm_profiles where team_id = $1", [firm])).toEqual({ about: "We fixed ten supply chains." });
-    expect(await n.call(n.team(c.p_code), "post_hire_message", c.company_id, firm, "hi")).toMatchObject({ ok: false, code: "NOT_HIRED" });
-    expect(await n.call(n.team(b.p_code), "post_hire_message", a.company_id, firm, "hi")).toMatchObject({ ok: false, code: "NOT_HIRED" });
+    // The thread is open before any deal: a company may talk to a firm it has not hired, so terms are negotiated here.
+    await n.ok(n.team(c.p_code), "post_hire_message", c.company_id, firm, "Are you free this crisis?");
+    // But only the two sides of a pair: B cannot write into A's thread with the firm.
+    expect(await n.call(n.team(b.p_code), "post_hire_message", a.company_id, firm, "hi")).toMatchObject({ ok: false, code: "NOT_YOUR_THREAD" });
     expect(await n.call(n.team(a.p_code), "post_hire_message", a.company_id, firm, "   ")).toMatchObject({ ok: false, code: "BAD_LENGTH" });
     await n.ok(n.team(a.p_code), "post_hire_message", a.company_id, firm, "  Can you start now?  ");
     await n.ok(firmCaller, "post_hire_message", a.company_id, firm, "Yes, send us the numbers.");
@@ -126,7 +144,8 @@ describe("PRIMUS rounds 2 and 3", () => {
     const hireLog = async (caller: ReturnType<typeof n.team>) =>
       as(db.pool, caller, async (cl) => (await cl.query("select body from hire_messages order by id")).rows.map((r) => r.body));
     expect(await hireLog(n.team(a.p_code))).toEqual(["Can you start now?", "Yes, send us the numbers."]);
-    expect(await hireLog(firmCaller)).toEqual(["Can you start now?", "Yes, send us the numbers.", "Hello B."]);
+    // The firm sees each of its own threads, including C's approach before any deal.
+    expect(await hireLog(firmCaller)).toEqual(["Are you free this crisis?", "Can you start now?", "Yes, send us the numbers.", "Hello B."]);
     expect(await hireLog(n.team(b.p_code))).toEqual(["Hello B."]);
     expect(await hireLog(n.team(c.c_code))).toEqual([]);
     expect(await hireLog(n.team(a.f_code))).toEqual([]);
@@ -160,7 +179,17 @@ describe("PRIMUS rounds 2 and 3", () => {
     expect(BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [firm])).c)).toBe(firmCash + 80000n);
     expect(BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [n.teamId(b.p_code)])).c)).toBe(cashB + 30000n);
     expect(await n.q("select qty from holdings where team_id = $1 and company_id = $2 and lot = 'FEE'", [firm, a.company_id])).toEqual([{ qty: 100 }]);
-    expect((await n.q("select escrow from engagements where event_id = $1 order by escrow", [n.eventId])).map((r) => r.escrow)).toEqual(["REFUNDED", "RELEASED"]);
+    // Hiring is compulsory: C never hired, so the exchange matched it to a firm at the base fee when hiring closed.
+    // Its firm wrote nothing, so that escrow is refunded like B's.
+    const assigned = await n.one("select firm_team_id, cash_cents::bigint as c, assigned, escrow from engagements where company_id = $1 and k = 1", [c.company_id]);
+    expect(assigned).toMatchObject({ assigned: true, escrow: "REFUNDED" });
+    expect(BigInt(assigned.c)).toBe(2_250_000n);
+    expect(assigned.firm_team_id).not.toBe(firm); // that firm was already full
+    expect((await n.q("select escrow from engagements where event_id = $1 order by escrow", [n.eventId])).map((r) => r.escrow)).toEqual([
+      "REFUNDED",
+      "REFUNDED",
+      "RELEASED",
+    ]);
 
     // ── Ratings: A rates 5; B's missing rating counts as 3.
     await n.ok(n.team(a.p_code), "rate_firm", 1, 5);
@@ -316,6 +345,19 @@ describe("PRIMUS rounds 2 and 3", () => {
     await n.deadlinePassed("REVEAL_1");
     await n.ok(n.lead, "tick", n.eventId);
     expect((await n.one("select count(*)::int as c from subround_crises where event_id = $1 and k = 1", [n.eventId])).c).toBe(N);
+
+    // A company may have five of its own offers open at once, and a sixth is refused. A pitch it received does not
+    // count against that, or a popular company could be locked out of offering by firms approaching it.
+    const shopper = squads[0]!;
+    const shopperOffers = [];
+    for (let i = 0; i < 5; i++) shopperOffers.push((await n.ok(n.team(shopper.p_code), "make_offer", n.teamId(squads[i + 10]!.c_code), 10000, 0, "")).offer);
+    expect(await n.call(n.team(shopper.p_code), "make_offer", n.teamId(squads[20]!.c_code), 10000, 0, "")).toMatchObject({
+      ok: false,
+      code: "TOO_MANY_OFFERS",
+    });
+    await n.ok(n.team(squads[20]!.c_code), "make_offer_to", shopper.company_id, 10000, 0, "");
+    for (const o of shopperOffers) await n.ok(n.team(shopper.p_code), "respond_offer", o.id, "WITHDRAW");
+    await n.ok(n.team(shopper.p_code), "respond_offer", (await n.one("select id from offers where company_id = $1 and opened_by = 'FIRM'", [shopper.company_id])).id, "DECLINE");
 
     // Every company hires its squad's firm; each firm also gets a second offer it must refuse as full after two.
     for (const s of squads) {

@@ -80,4 +80,18 @@ describe("hire chat threads", () => {
     expect(hireThreads(rows, companies, "F01")).toEqual([]);
     expect(hireThreads([], companies, "P01")).toEqual([]);
   });
+
+  test("a pair with no deal still has a thread: the two can talk before anyone is hired", () => {
+    expect(hireThreads([], companies, "P01", [{ company_id: "A", firm_team_id: "C09" }])).toEqual([
+      { company_id: "A", firm_team_id: "C09", partner_team_id: "C09", ks: [] },
+    ]);
+    expect(hireThreads([], companies, "C09", [{ company_id: "A", firm_team_id: "C09" }])).toEqual([
+      { company_id: "A", firm_team_id: "C09", partner_team_id: "P01", ks: [] },
+    ]);
+  });
+
+  test("a pair that already has a deal is not listed twice, and someone else's pair is never listed", () => {
+    expect(hireThreads(rows, companies, "P01", [{ company_id: "A", firm_team_id: "C01" }])).toHaveLength(2);
+    expect(hireThreads([], companies, "P01", [{ company_id: "B", firm_team_id: "C09" }])).toEqual([]);
+  });
 });
