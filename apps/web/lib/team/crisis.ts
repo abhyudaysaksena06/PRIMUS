@@ -257,3 +257,13 @@ export function pastSubrounds(k: number | null, subrounds: readonly SubroundRow[
 }
 
 export const subroundTitle = (k: number) => (k === 5 ? "Round 3 · the solution" : `Round 2 · ${subroundName(k)}`);
+
+/**
+ * Is sub-round k's crisis card still sealed? A card is dealt when the sub-round opens but nobody in the event may read
+ * it until that sub-round's hiring window has closed, so the hire is made blind. The database enforces this (the card
+ * simply is not there to read); this only tells the screens to say "sealed" rather than "none dealt yet".
+ */
+export function crisisSealed(subrounds: readonly SubroundRow[], k: number): boolean {
+  const s = subrounds.find((r) => r.k === k);
+  return !!s && s.revealed_at !== null && s.hiring_closed_at === null;
+}

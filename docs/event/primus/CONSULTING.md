@@ -19,4 +19,5 @@ earn: **fees + bonuses + the value of any shares you were paid in.**
 
 - Fill in your **profile** early: companies choose a firm from it.
 - Your Home page lists every offer to answer and every memo to write, with countdowns.
-- Read each client's crisis card and plan, and give advice with numbers that fit them.
+- Read each client's crisis card and plan, and give advice with numbers that fit them. The cards are sealed while
+  hiring is open, so you are selling your judgement, not a ready answer: win the work first, then read the card.

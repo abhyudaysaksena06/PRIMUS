@@ -77,10 +77,13 @@ describe("PRIMUS rounds 2 and 3", () => {
     const after = await n.prices();
     for (const id of Object.keys(before)) expect(after[id]).toBe(Math.round(before[id]! * 0.95));
     await n.ok(n.lead, "tick", n.eventId); // once only
-    // The dealt cards are public in Round 2 (the event never reaches the classic CRISIS phase).
+    // The cards are dealt, but sealed: nobody in the event may read one until this sub-round's hiring has closed, so
+    // every hire is made blind. (Checked again below, once HIRE_1 has passed, where the same read returns all three.)
     const cardsSeen = await as(db.pool, n.team(b.f_code), async (cl) =>
       (await cl.query("select x.k, c.title from subround_crises x join crisis_cards c on c.id = x.crisis_card_id")).rows);
-    expect(cardsSeen).toHaveLength(3);
+    expect(cardsSeen).toEqual([]);
+    expect(await as(db.pool, n.team(b.p_code), async (cl) =>
+      (await cl.query("select count(*)::int as c from crisis_cards")).rows)).toEqual([{ c: 0 }]);
     expect(await n.prices()).toEqual(after);
 
     // ── Hiring: A offers firm X (squad a's consulting team); X counters; A accepts. B also hires X; C cannot (full).
@@ -176,6 +179,9 @@ describe("PRIMUS rounds 2 and 3", () => {
     await n.deadlinePassed("DUE_1");
     await n.ok(n.lead, "tick", n.eventId);
     expect(await n.call(n.team(a.p_code), "save_draft", "CRISIS_1", crisisPlan, 1)).toMatchObject({ ok: false, code: "DEADLINE_PASSED" });
+    // Hiring has closed, so the seal is off: every team can now read every company's card for this sub-round.
+    expect(await as(db.pool, n.team(b.f_code), async (cl) =>
+      (await cl.query("select x.k from subround_crises x join crisis_cards c on c.id = x.crisis_card_id")).rows)).toHaveLength(3);
     expect(BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [firm])).c)).toBe(firmCash + 80000n);
     expect(BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [n.teamId(b.p_code)])).c)).toBe(cashB + 30000n);
     expect(await n.q("select qty from holdings where team_id = $1 and company_id = $2 and lot = 'FEE'", [firm, a.company_id])).toEqual([{ qty: 100 }]);

@@ -8,6 +8,7 @@ import {
   offerMoves,
   parseDollars,
   parseShares,
+  crisisSealed,
   pastSubrounds,
   ratingOpen,
   ordinal,
@@ -37,6 +38,13 @@ describe("current sub-round", () => {
   test("history lists the earlier revealed crises, newest first", () => {
     expect(pastSubrounds(3, [sub(1, true), sub(2, true), sub(3, true), sub(4, false)])).toEqual([2, 1]);
     expect(pastSubrounds(5, [sub(1, true), sub(4, true), sub(5, false)])).toEqual([4, 1]);
+  });
+  test("a revealed crisis is sealed until its hiring closes", () => {
+    const closed = { ...sub(1, true), hiring_closed_at: T(20) };
+    expect(crisisSealed([sub(1, true)], 1)).toBe(true);
+    expect(crisisSealed([closed], 1)).toBe(false);
+    expect(crisisSealed([sub(1, false)], 1)).toBe(false); // not dealt yet: nothing to seal
+    expect(crisisSealed([sub(1, true)], 2)).toBe(false); // no such sub-round
   });
 });
 

@@ -4,11 +4,14 @@
 
 import type { ReactNode } from "react";
 
+import type { DeadlineCode } from "@msim/engine";
+
 import { clock, money } from "@/lib/format";
 import type { CrisisRoomData, RoomCompany } from "@/lib/team/crisis-data";
 import {
   OFFER_STATUS_TONE,
   countersLeft,
+  crisisSealed,
   draftState,
   offerMoves,
   shareText,
@@ -126,6 +129,16 @@ export function Timeline({ k, steps }: { k: number; steps: TimelineStep[] }) {
 
 export function CardsOf({ data, k, only }: { data: CrisisRoomData; k: number; only?: readonly string[] }) {
   const rows = data.cards.filter((c) => c.k === k && (!only || only.includes(c.company_id)));
+  if (rows.length === 0 && crisisSealed(data.subrounds, k)) {
+    // The cards are dealt, but nobody may read one until hiring closes, so the hire is made blind.
+    const at = data.deadlines[`HIRE_${k}` as DeadlineCode];
+    return (
+      <p className="text-sm text-muted" data-testid={`crisis-sealed-${k}`}>
+        The crisis is sealed until hiring closes{at ? ` at ${clock(at)}` : ""}. Hire on the firm&rsquo;s record, not on
+        what you are facing.
+      </p>
+    );
+  }
   if (rows.length === 0) return <p className="text-sm text-muted">No crisis card has been dealt for this sub-round yet.</p>;
   const byId = new Map(data.companies.map((c) => [c.id, c]));
   const single = !!only && only.length === 1;

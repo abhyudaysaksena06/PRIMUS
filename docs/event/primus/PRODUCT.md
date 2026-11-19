@@ -13,10 +13,11 @@ badge at the top of every page.
 
 1. **Round 1 · Build (21:10–22:00).** Write your **PRD**: your startup's plan, in seven short parts, up to 800
    words. A robot judge marks it out of 100. Good marks = a higher starting price. Then answer investors' questions.
-2. **Round 2 · Four crises (22:45–04:45).** Four times, a **crisis card** arrives: something bad happens to your
-   company and every price falls 5%. Each time:
+2. **Round 2 · Four crises (22:45–04:45).** Four times a **crisis** strikes: every price falls 5% and your company
+   is dealt a crisis card. The card stays **sealed until hiring closes**, so you hire blind. Each time:
    - **hire a consulting firm** in the first 20 minutes (offer them money or slices; they can say yes, no or ask
-     for more);
+     for more) — judge them on their record and their pitch, because nobody yet knows what the crisis is;
+   - **read your crisis card**, which opens to everyone the moment hiring closes;
    - **write your response plan** (up to 500 words) before the due time, using your firm's advice;
    - **rate your firm** 1 to 5 stars.
    A good plan pushes your price up; a weak or missing one pushes it down.

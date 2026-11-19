@@ -108,7 +108,7 @@ describe("grants", () => {
       select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'app' and has_function_privilege('authenticated', p.oid, 'EXECUTE') order by 1`);
     expect(rows.map((r) => r.proname)).toEqual([
-      "can_hear", "firm_engaged", "in_hire_pair", "is_fairness", "is_organiser", "is_staff", "my_dealt_cards", "my_event_id", "my_role", "my_squad_id",
+      "can_hear", "firm_engaged", "hiring_closed", "in_hire_pair", "is_fairness", "is_organiser", "is_staff", "my_dealt_cards", "my_event_id", "my_role", "my_squad_id",
       "my_team_id", "phase_reached", "score_released", "sees_all_events",
     ]);
     const me = user(fx.team(fx.code("F", 1)).userId);
