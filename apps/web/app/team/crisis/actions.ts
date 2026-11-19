@@ -8,6 +8,7 @@
 import { rpc, type ActionResult } from "@/lib/rpc";
 import { money } from "@/lib/format";
 import { parseDollars, parseShares, termsText, type OfferMove } from "@/lib/team/crisis";
+import { equityText } from "@/lib/team/equity";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const bad = (message: string): ActionResult => ({ ok: false, code: "BAD_INPUT", message });
@@ -90,4 +91,29 @@ export async function pickStatement(statementId: string, label: string): Promise
   if (!UUID.test(statementId)) return bad("Unknown statement.");
   const r = await rpc("pick_statement", { p_statement: statementId });
   return r.ok ? { ...r, message: `You picked ${label.slice(0, 80)}.` } : r;
+}
+
+// ───────────── Round 2 equity raises (migration 067): Product sells a stake, Finance funds it ─────────────
+
+export async function postRaise(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const shares = parseShares(form.get("shares"));
+  if (shares === null || shares < 1000 || shares > 10000) return bad("Offer between 1% and 10% of your company.");
+  const note = String(form.get("note") ?? "").trim().slice(0, 300);
+  const r = await rpc("post_raise", { p_shares: shares, p_note: note });
+  return r.ok
+    ? { ...r, message: `Raise posted: ${equityText(shares)}. Every Finance team sees it; the first to fund it pays shares × your price at that moment.` }
+    : r;
+}
+
+export async function cancelRaise(raiseId: string): Promise<ActionResult> {
+  if (!UUID.test(raiseId)) return bad("Unknown raise.");
+  const r = await rpc("cancel_raise", { p_raise: raiseId });
+  return r.ok ? { ...r, message: "Raise cancelled." } : r;
+}
+
+export async function fundRaise(raiseId: string, label: string): Promise<ActionResult> {
+  if (!UUID.test(raiseId)) return bad("Unknown raise.");
+  const r = await rpc("fund_raise", { p_raise: raiseId });
+  const paid = r.ok ? Number((r.data as { raise?: { cash_cents?: number } })?.raise?.cash_cents ?? 0) : 0;
+  return r.ok ? { ...r, message: `You bought ${label.slice(0, 80)}${paid ? ` for ${money(paid)}` : ""}. The shares are in your positions.` } : r;
 }

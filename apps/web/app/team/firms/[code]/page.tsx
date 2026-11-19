@@ -171,12 +171,12 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
           ) : (
             <>
               <p className="mb-3 text-sm text-paper">
-                Offer {f.code} cash, shares or both. The firm can accept, decline or counter; each side counters at most three times. Accepting is binding: the
-                cash goes into escrow and is paid to the firm at the due time if its memo is in. Hiring closes at {clock(stepAt(data.deadlines, "HIRE", k))}.
+                Offer {f.code} a stake in your company (equity %), with cash only if you want to add it. The firm can accept, decline or counter; each side
+                counters at most three times. Accepting is binding: the fee is held until the due time and goes to the firm if its memo is in. Hiring closes at {clock(stepAt(data.deadlines, "HIRE", k))}.
                 {band ? ` In Round 3 the fee must be worth ${money(band.min)}–${money(band.max)} (5–20% of your cash).` : ""}
               </p>
               <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit={`Send offer to ${f.code}`} resetOnSuccess>
-                <TermsFields cash={p?.asking_cents ?? 0} hint={p && p.asking_cents > 0 ? `The firm asks ${money(p.asking_cents)}.` : undefined} />
+                <TermsFields cash={0} priceCents={mine?.market_price ?? null} hint={p && p.asking_cents > 0 ? `The firm asks for about ${money(p.asking_cents)}.` : undefined} />
                 <label className="mt-2 block text-sm">
                   <span className="font-semibold text-paper">Note to the firm (optional)</span>
                   <input name="note" maxLength={300} placeholder="What you need help with" className={`${inputClass} mt-1`} />
@@ -189,7 +189,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
               <h3 className="mb-2 mt-4 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">Your offers to {f.code}</h3>
               <ul className="space-y-2">
                 {offers.map((o) => (
-                  <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={f.code} />
+                  <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={f.code} priceCents={mine?.market_price ?? null} />
                 ))}
               </ul>
             </>

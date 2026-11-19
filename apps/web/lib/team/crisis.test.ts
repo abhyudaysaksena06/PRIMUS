@@ -110,8 +110,9 @@ describe("offers", () => {
     expect(parseShares("1,000")).toBe(1000);
     expect(parseShares("1.5")).toBeNull();
     expect(termsText("$500.00", 0)).toBe("$500.00");
-    expect(termsText("$0.00", 1)).toBe("1 share");
-    expect(termsText("$800.00", 100)).toBe("$800.00 + 100 shares");
+    expect(termsText("$0.00", 10)).toBe("0.01% (10 shares)");
+    expect(termsText("$0.00", 5000)).toBe("5% (5,000 shares)");
+    expect(termsText("$800.00", 100)).toBe("$800.00 + 0.1% (100 shares)");
     expect(feeBand(1_000_000)).toEqual({ min: 50_000, max: 200_000 });
   });
 });

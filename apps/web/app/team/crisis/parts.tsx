@@ -25,7 +25,8 @@ import {
   type TimelineStep,
 } from "@/lib/team/crisis";
 import { ActionButton, ActionForm } from "@/components/ui/action";
-import { Badge, Panel, Table, Td, inputClass } from "@/components/ui/ui";
+import { Badge, Panel, Table, Td } from "@/components/ui/ui";
+import { EquityFields } from "./equity-fields";
 import { Countdown } from "@/components/ui/countdown";
 import { CrisisCard } from "../market/crisis-card";
 import { CrisisFocusCard } from "../crisis-focus-card";
@@ -279,7 +280,7 @@ export function EngagementTable({ data, rows, title = "Who hired whom" }: { data
 }
 
 /** One offer, with the moves this side may make now (accept, decline, counter, withdraw). */
-export function OfferCard({ offer, side, hiring, counterpart }: { offer: OfferRow; side: OfferSide; hiring: boolean; counterpart: string }) {
+export function OfferCard({ offer, side, hiring, counterpart, priceCents = null }: { offer: OfferRow; side: OfferSide; hiring: boolean; counterpart: string; priceCents?: number | null }) {
   const moves = offerMoves(offer, side, hiring);
   const waiting = offer.status === "OPEN" && offer.turn !== side;
   return (
@@ -287,6 +288,9 @@ export function OfferCard({ offer, side, hiring, counterpart }: { offer: OfferRo
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-mono font-semibold text-[var(--term-amber)]">{counterpart}</span>
         <span className="font-mono text-paper">{termsText(money(offer.cash_cents), offer.shares)}</span>
+        {offer.shares > 0 && priceCents ? (
+          <span className="font-mono text-xs text-[var(--term-cyan)]">worth {money(offer.cash_cents + offer.shares * priceCents)} now</span>
+        ) : null}
         <Badge tone={OFFER_STATUS_TONE[offer.status]}>{offer.status}</Badge>
         {offer.status === "OPEN" ? (
           <span className="text-xs text-muted">{waiting ? "Waiting for the other side" : "Your turn to answer"}</span>
@@ -309,7 +313,7 @@ export function OfferCard({ offer, side, hiring, counterpart }: { offer: OfferRo
         <details className="mt-2">
           <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">Counter ({countersLeft(offer, side)} left)</summary>
           <ActionForm action={counterOffer.bind(null, offer.id)} submit="Send counter" className="mt-2">
-            <TermsFields cash={offer.cash_cents} shares={offer.shares} />
+            <TermsFields cash={offer.cash_cents} shares={offer.shares} priceCents={priceCents} />
           </ActionForm>
         </details>
       ) : null}
@@ -317,19 +321,10 @@ export function OfferCard({ offer, side, hiring, counterpart }: { offer: OfferRo
   );
 }
 
-/** Cash (dollars) and shares fields for an offer or a counter. */
-export function TermsFields({ cash = 0, shares = 0, hint }: { cash?: number; shares?: number; hint?: string }) {
-  return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <label className="block text-sm">
-        <span className="font-semibold text-paper">Cash ($)</span>
-        <input name="cash" inputMode="decimal" defaultValue={(cash / 100).toFixed(2)} className={`${inputClass} mt-1 font-mono`} />
-      </label>
-      <label className="block text-sm">
-        <span className="font-semibold text-paper">Shares</span>
-        <input name="shares" inputMode="numeric" defaultValue={String(shares)} className={`${inputClass} mt-1 font-mono`} />
-      </label>
-      {hint ? <p className="text-xs text-muted sm:col-span-2">{hint}</p> : null}
-    </div>
-  );
+/**
+ * The terms of an offer or a counter: equity first (a % of the company, with its shares and value at the current
+ * price shown as it is typed), cash optional. The organisers' rule is that a company pays its firm in equity.
+ */
+export function TermsFields({ cash = 0, shares = 0, hint, priceCents = null }: { cash?: number; shares?: number; hint?: string; priceCents?: number | null }) {
+  return <EquityFields shares={shares} cash={cash} priceCents={priceCents} hint={hint} />;
 }

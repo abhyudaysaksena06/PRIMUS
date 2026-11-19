@@ -72,7 +72,8 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   await shot(page, "02-product-crisis-room");
   const firm = page.getByTestId(`firm-${a!.c_code}`);
   await firm.getByText("Make an offer").click();
-  await firm.getByLabel("Cash ($)").fill("500");
+  await firm.getByLabel("Equity (% of the company)").fill("0.5");
+  await expect(firm.getByTestId("equity-fields-value")).toContainText("0.5% (500 shares) · worth");
   await firm.getByRole("button", { name: "Send offer" }).click();
   await expect(page.getByTestId("step-hire")).toContainText("Offer sent. Waiting for the firm to answer");
   await shot(page, "03-product-offer-sent");
@@ -215,7 +216,9 @@ test("Round 3: the draft says whose pick it is, alerts the team on the clock, an
   const firm3 = page.getByTestId(`firm-${a.c_code}`);
   await firm3.getByText("Make an offer").click();
   const cashNow = Number((await n.one("select cash_cents from teams where code = $1", [a.p_code])).cash_cents);
-  await expect(firm3.getByLabel("Cash ($)")).toHaveValue((Math.ceil(cashNow * 0.05) / 100).toFixed(2));
+  const price3 = Number((await n.one("select market_price from companies c join teams t on t.id = c.product_team_id where t.code = $1", [a.p_code])).market_price);
+  const start3 = Math.ceil(Math.ceil(cashNow * 0.05) / price3 / 10) * 10;
+  await expect(firm3.getByLabel("Equity (% of the company)")).toHaveValue(String(start3 / 1000));
   await firm3.getByRole("button", { name: "Send offer" }).click();
   await expect(page.getByTestId("step-hire")).toContainText("Offer sent");
 

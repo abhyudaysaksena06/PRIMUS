@@ -3,6 +3,7 @@ import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { loadSquads, loadSubmissions, mark } from "@/lib/admin/tracks-data";
 import { supabaseServer } from "@/lib/supabase/server";
 import { money } from "@/lib/format";
+import { equityText } from "@/lib/team/equity";
 import { Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
 import { Countdown } from "@/components/ui/countdown";
 
@@ -21,6 +22,17 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
     sb.from("draft_picks").select("company_id, pick_no, closes_at, statement_id, by_default").eq("event_id", event.id).order("pick_no"),
     sb.from("problem_statements").select("id, number, title, cap, sector").eq("event_id", event.id).order("number"),
   ]);
+  // Round 2 equity raises (migration 067): which company sold how much of itself, to which fund, at what price.
+  const raises = await sb
+    .from("raises")
+    .select("id, company_id, k, shares, status, funded_by, price_cents, cash_cents, created_at")
+    .eq("event_id", event.id)
+    .order("created_at", { ascending: false });
+  const raiseRows = (raises.data ?? []) as {
+    id: string; company_id: string; k: number; shares: number; status: string; funded_by: string | null;
+    price_cents: number | null; cash_cents: number | null; created_at: string;
+  }[];
+  const fundCode = new Map(squads.map((s) => [s.finance.id, s.finance.code]));
   const sub = (company: string | undefined, type: string) => subs.find((s) => s.company_id === company && s.type === type);
   const companies = squads.filter((s) => s.company);
   const done = (type: string) => companies.filter((s) => sub(s.company!.id, type)?.submitted_at).length;
@@ -133,6 +145,28 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
           <p className="mt-2 text-xs text-muted">* given by default (no pick in time).</p>
         </Panel>
       ) : null}
+
+      <Panel title="Round 2 · equity raised from Finance">
+        <div data-testid="admin-raises">
+          <Table head={["Crisis", "Company", "Stake", "Status", "Fund", "Price", "Cash"]} empty={raiseRows.length === 0 ? "No company has raised from Finance yet." : undefined}>
+            {raiseRows.map((r) => (
+              <tr key={r.id}>
+                <Td mono>{r.k || "—"}</Td>
+                <Td mono>{ticker.get(r.company_id) ?? "—"}</Td>
+                <Td mono>{equityText(r.shares)}</Td>
+                <Td>{r.status}</Td>
+                <Td mono>{r.funded_by ? (fundCode.get(r.funded_by) ?? "—") : "—"}</Td>
+                <Td mono>{r.price_cents ? money(r.price_cents) : "—"}</Td>
+                <Td mono>{r.cash_cents ? money(Number(r.cash_cents)) : "—"}</Td>
+              </tr>
+            ))}
+          </Table>
+          <p className="mt-2 text-xs text-muted">
+            Funded: {raiseRows.filter((r) => r.status === "FUNDED").length} raises,{" "}
+            {money(raiseRows.filter((r) => r.status === "FUNDED").reduce((t, r) => t + Number(r.cash_cents ?? 0), 0))} paid by funds.
+          </p>
+        </div>
+      </Panel>
     </div>
   );
 }

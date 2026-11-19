@@ -9,6 +9,7 @@ import type { CrisisRoomData } from "@/lib/team/crisis-data";
 import { pastSubrounds, statementCounts, subroundTitle } from "@/lib/team/crisis";
 import { DoThis } from "@/components/ui/how-it-works";
 import { Badge, Notice, Panel, Table, Td, buttonClass } from "@/components/ui/ui";
+import { FinanceRaisePanel } from "./raises";
 import { CardsOf, EngagementTable, FirmLeague, StatementBoard, companyLabel } from "./parts";
 
 export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRoomData; k: number | null }) {
@@ -37,6 +38,14 @@ export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRo
           Open the trading desk →
         </Link>
       </div>
+
+      {k !== null && k < 5 ? (
+        <FinanceRaisePanel
+          data={data}
+          ownCompanyId={data.companies.find((c) => c.product_team_id === ctx.squad?.product_team_id)?.id ?? null}
+          open={ctx.status.phase === "PRESSURE"}
+        />
+      ) : null}
 
       {k !== null && k < 5 ? (
         <Panel title={`Crisis cards · ${subroundTitle(k)}`}>

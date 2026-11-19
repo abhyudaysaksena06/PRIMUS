@@ -124,7 +124,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         ) : (
           <ul className="space-y-2">
             {offers.map((o) => (
-              <OfferCard key={o.id} offer={o} side="FIRM" hiring={hiring} counterpart={companyLabel(company.get(o.company_id))} />
+              <OfferCard key={o.id} offer={o} side="FIRM" hiring={hiring} counterpart={companyLabel(company.get(o.company_id))} priceCents={company.get(o.company_id)?.market_price ?? null} />
             ))}
           </ul>
         )}
@@ -147,7 +147,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                       </Link>
                     </div>
                     <ActionForm action={makeOfferTo.bind(null, co.id, companyLabel(co))} submit="Send pitch" resetOnSuccess className="mt-2">
-                      <TermsFields cash={profile?.asking_cents ?? 0} />
+                      <TermsFields cash={0} priceCents={co.market_price} hint="Ask for a stake in the company (equity %): its value is shares × the company's share price." />
                       <label className="mt-2 block text-sm">
                         <span className="font-semibold text-paper">Note (optional)</span>
                         <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`${inputClass} mt-1`} />

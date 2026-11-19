@@ -30,6 +30,7 @@ import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
 import { Badge, Notice, inputClass } from "@/components/ui/ui";
 import { SubmissionEditor } from "../squad/submission";
 import { makeOffer, pickStatement, rateFirm } from "./actions";
+import { ProductRaisePanel } from "./raises";
 import { CardsOf, EngagementTable, OfferCard, OnTheClock, StatementCrowd, Step, TermsFields, companyLabel, type StepState } from "./parts";
 
 export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data: CrisisRoomData; k: number | null; nowMs: number }) {
@@ -49,6 +50,9 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   const counts = statementCounts(data.picks);
   const myStatement = draft.mine?.statement_id ? data.statements.find((s) => s.id === draft.mine!.statement_id) : undefined;
   const band = k === 5 ? feeBand(ctx.team.cash) : null;
+  // Round 3: start the offer at the smallest stake (in steps of 0.01%) worth at least the band's minimum.
+  const r3StartShares =
+    band && mine?.market_price ? Math.min(Math.ceil(band.min / mine.market_price / 10) * 10, Math.floor(band.max / mine.market_price)) : 0;
   const clientsThisRound = (firmId: string) => data.engagements.filter((e) => e.firm_team_id === firmId && e.k === k).length;
   if (k === null || !mine) return null;
   const tickerOf = new Map(data.companies.map((c) => [c.id, c.ticker ?? "—"]));
@@ -71,7 +75,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
         ? "A firm answered your offer: it is your turn."
         : waiting
           ? `Offer sent. Waiting for the firm to answer (hiring closes at ${hireAt}).`
-          : `Offer a firm cash, shares or both. Hiring closes at ${hireAt}.`
+          : `Offer a firm a stake in your company (equity %). Hiring closes at ${hireAt}.`
       : r3 && !draft.done
         ? "Opens when the draft ends."
         : `Hiring is closed. You have no firm for this ${r3 ? "round" : "crisis"}: write on your own.`;
@@ -253,8 +257,14 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                         <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit="Send offer" className="mt-2" resetOnSuccess>
                           {/* In Round 3 the fee must be worth 5–20% of the company's cash: start inside that band. */}
                           <TermsFields
-                            cash={band ? Math.min(band.max, Math.max(band.min, p?.asking_cents ?? 0)) : (p?.asking_cents ?? 0)}
-                            hint={band ? `Round 3: worth ${money(band.min)} to ${money(band.max)} in cash and shares.` : undefined}
+                            cash={0}
+                            shares={r3StartShares}
+                            priceCents={mine.market_price}
+                            hint={
+                              band
+                                ? `Round 3: the fee must be worth ${money(band.min)} to ${money(band.max)} (equity at today's price, plus any cash).`
+                                : `Pay in equity: the firm's stake is worth shares × your share price.${p && p.asking_cents > 0 ? ` The firm asks for about ${money(p.asking_cents)}.` : ""}`
+                            }
                           />
                           <label className="mt-2 block text-sm">
                             <span className="font-semibold text-paper">Note (optional)</span>
@@ -276,7 +286,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
             <h3 className="mb-2 mt-4 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">Your offers</h3>
             <ul className="space-y-2">
               {myOffers.map((o) => (
-                <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={firmById.get(o.firm_team_id)?.code ?? "Firm"} />
+                <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={firmById.get(o.firm_team_id)?.code ?? "Firm"} priceCents={mine.market_price} />
               ))}
             </ul>
           </>
@@ -345,6 +355,8 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
           <p>The rating is public and stays on the firm&apos;s profile, so other companies see it when they choose a firm.</p>
         </HowItWorks>
       </Step>
+
+      {!r3 ? <ProductRaisePanel data={data} mine={mine} open={ctx.status.phase === "PRESSURE"} /> : null}
 
       <History data={data} k={k} companyId={mine.id} />
     </div>

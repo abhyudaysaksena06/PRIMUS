@@ -76,6 +76,24 @@ export interface CrisisRoomData {
   injectionCents: number | null;
   /** This team's squad's sector (the sector on its chosen problem card), or null. */
   mySector: string | null;
+  /** Round 2 equity raises (migration 067): every company's, newest first. */
+  raises: RaiseRow[];
+  /** Finance team codes by id, to name the fund that funded a raise. */
+  fundCodes: Map<string, string>;
+}
+
+export interface RaiseRow {
+  id: string;
+  company_id: string;
+  k: number;
+  shares: number;
+  note: string;
+  status: "OPEN" | "FUNDED" | "CANCELLED" | "LAPSED";
+  funded_by: string | null;
+  price_cents: number | null;
+  cash_cents: number | null;
+  created_at: string;
+  decided_at: string | null;
 }
 
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
@@ -83,7 +101,7 @@ const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
 export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> {
   const sb = await supabaseServer();
   const eventId = ctx.event.id;
-  const [event, deadlines, subrounds, crises, companies, firms, profiles, offers, engagements, statements, picks, injection] = await Promise.all([
+  const [event, deadlines, subrounds, crises, companies, firms, profiles, offers, engagements, statements, picks, injection, raises, funds] = await Promise.all([
     sb.from("events").select("format").eq("id", eventId).maybeSingle<{ format: "CLASSIC" | "PRIMUS" }>(),
     sb.from("deadlines").select("code, at").eq("event_id", eventId),
     sb.from("subrounds").select("k, revealed_at, hiring_closed_at, due_closed_at, rated_at").eq("event_id", eventId).order("k"),
@@ -96,6 +114,8 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
     sb.from("problem_statements").select("id, number, title, body, cap, sector").eq("event_id", eventId).order("number"),
     sb.from("draft_picks").select("company_id, pick_no, score_avg, opens_at, closes_at, statement_id, picked_at, by_default").eq("event_id", eventId).order("pick_no"),
     sb.from("ledger_entries").select("cash_delta_cents").eq("team_id", ctx.team.id).eq("kind", "INJECTION"),
+    sb.from("raises").select("id, company_id, k, shares, note, status, funded_by, price_cents, cash_cents, created_at, decided_at").eq("event_id", eventId).order("created_at", { ascending: false }),
+    sb.from("teams").select("id, code").eq("event_id", eventId).eq("track", "FINANCE"),
   ]);
   for (const [what, r] of [
     ["the event", event],
@@ -110,6 +130,8 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
     ["the problem statements", statements],
     ["the draft", picks],
     ["your ledger", injection],
+    ["the raises", raises],
+    ["the funds", funds],
   ] as const) {
     if (r.error) throw new Error(`Could not read ${what}: ${r.error.message}`);
   }
@@ -162,6 +184,8 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
     clientSubmissions: (cs.data ?? []) as ClientSubmission[],
     injectionCents: injected > 0 ? injected : null,
     mySector: chosen?.data?.sector?.trim() || null,
+    raises: ((raises.data ?? []) as RaiseRow[]).map((r) => ({ ...r, cash_cents: num(r.cash_cents), price_cents: num(r.price_cents) })),
+    fundCodes: new Map(((funds.data ?? []) as { id: string; code: string }[]).map((t) => [t.id, t.code])),
   };
 }
 

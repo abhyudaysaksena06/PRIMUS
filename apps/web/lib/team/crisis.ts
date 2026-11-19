@@ -2,6 +2,7 @@
 // rating are open, what each side of an offer may do, and where the Round 3 draft stands. Pure: the page reads the
 // rows (lib/team/crisis-data.ts) and these functions decide what it shows. The database enforces every rule again.
 
+import { equityText } from "./equity";
 import { subroundName, type DeadlineCode, type PhaseCode } from "@msim/engine";
 import { deadlinePassed, type PauseState } from "./squad";
 
@@ -153,10 +154,10 @@ export function feeBand(cashCents: number): { min: number; max: number } {
   return { min: Math.ceil(cashCents * 0.05), max: Math.floor(cashCents * 0.2) };
 }
 
-/** An offer's terms in words: "$500.00 + 100 shares". */
+/** An offer's terms in words, equity first: "5% (5,000 shares)", "$500.00 + 0.1% (100 shares)". */
 export function termsText(cash: string, shares: number): string {
   if (shares === 0) return cash;
-  const sh = `${shares.toLocaleString("en-US")} ${shares === 1 ? "share" : "shares"}`;
+  const sh = equityText(shares);
   return cash === "$0.00" ? sh : `${cash} + ${sh}`;
 }
 

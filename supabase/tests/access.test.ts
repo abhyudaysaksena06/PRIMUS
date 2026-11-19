@@ -60,11 +60,11 @@ describe("grants", () => {
        where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'EXECUTE')
        order by p.proname`);
     expect(rows.map((r) => r.proname)).toEqual([
-      "admin_health", "advance_phase", "answer_question", "apply_appeal", "cancel_order", "chat_summary",
+      "admin_health", "advance_phase", "answer_question", "apply_appeal", "cancel_order", "cancel_raise", "chat_summary",
       "close_round_now", "company_sectors", "confirm_fee", "decide_correction", "decide_flag", "delay_step", "desk_check_in", "desk_check_out", "dismiss_appeal", "draft_sectors", "draw_summary",
-      "edit_deal", "edit_order", "event_status", "extend_event", "firm_values", "import_roster", "lottery_record_rows", "make_call",
+      "edit_deal", "edit_order", "event_status", "extend_event", "firm_values", "fund_raise", "import_roster", "lottery_record_rows", "make_call",
       "make_offer", "make_offer_to", "my_desk_status", "open_round_now", "pause_event", "pick_problem_card", "pick_statement", "ping", "place_ipo_bid", "place_order",
-      "post_hire_message", "post_question", "post_squad_message", "practice_trade", "prepare_flash_bulletin", "propose_fee", "publish_bulletin",
+      "post_hire_message", "post_question", "post_raise", "post_squad_message", "practice_trade", "prepare_flash_bulletin", "propose_fee", "publish_bulletin",
       "publish_flash_bulletin", "rankings", "rate_firm", "release_scores", "request_correction", "rerun_judging", "reset_rehearsal",
       "respond_offer", "resume_event", "retry_failed_runs", "run_lottery", "save_draft", "save_draft_for",
       "save_firm_profile", "seal_missing_scores", "server_time", "set_auto_advance", "set_desk_check_in", "set_hold_steps", "set_judge_model",
