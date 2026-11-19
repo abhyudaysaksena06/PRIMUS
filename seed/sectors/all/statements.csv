@@ -239,84 +239,84 @@ The catch: Storage for every hour is very expensive.
 You win if: 90% clean power around the clock at a price clients accept.
 
 Design the solution, how it is delivered and how it is measured.",5
-Aviation,31,Predict flight delays two hours ahead from air-traffic data,"Aviation · Round 3. Predict flight delays two hours ahead from air-traffic data.
+Aviation,31,Make 3 pilgrim routes break even within a year,"Aviation · Round 3. Make 3 pilgrim routes break even within a year.
 
-Who it is for: The operations centre of an airline at a busy metro hub.
-The numbers: 1 departure in 4 leaves more than 15 minutes late, and each minute of delay costs about Rs 6,000 per flight.
-The catch: Delays start in weather, airspace and other airports that the airline cannot see.
-You win if: Delay predictions 2 hours ahead that are right 8 times in 10 on the routes tested.
-
-Design the solution, how it is delivered and how it is measured.",5
-Aviation,32,Weather intelligence that warns airports before storms hit,"Aviation · Round 3. Weather intelligence that warns airports before storms hit.
-
-Who it is for: Small and mid-size airports with no meteorologist of their own.
-The numbers: Monsoon storms close runways for 30 to 90 minutes and divert up to 20 flights a day.
-The catch: Forecasts cover whole regions; a runway needs warnings to the minute.
-You win if: Warnings 45 minutes ahead, with under 1 false alarm in 5.
+Who it is for: A state tourism department with three routes to temple towns.
+The numbers: The routes run at 41% seat load; each needs 60% to pay without subsidy, which ends in 12 months.
+The catch: Pilgrims travel in waves around festivals; the planes fly half-empty the rest of the year.
+You win if: All 3 routes average 60% load before the subsidy ends.
 
 Design the solution, how it is delivered and how it is measured.",5
-Aviation,33,Cut fuel and carbon with smarter routes and descents,"Aviation · Round 3. Cut fuel and carbon with smarter routes and descents.
+Aviation,32,Choose which 5 of 15 dormant airports to revive,"Aviation · Round 3. Choose which 5 of 15 dormant airports to revive.
 
-Who it is for: An airline flying 300 domestic flights a day.
-The numbers: Holding patterns and stepped descents burn about 4% extra fuel on every flight.
-The catch: Routes and descents are set by air traffic control, not by the airline alone.
-You win if: 3% less fuel on the routes tested, shown flight by flight.
-
-Design the solution, how it is delivered and how it is measured.",5
-Aviation,34,Safe drone traffic management over Indian cities,"Aviation · Round 3. Safe drone traffic management over Indian cities.
-
-Who it is for: Drone delivery companies and city authorities.
-The numbers: A city may soon have 500 delivery drones in the air at peak; today each flight is approved one by one.
-The catch: Drones must stay clear of aircraft, helipads and no-fly zones, with weak GPS between tall buildings.
-You win if: 1,000 flights a day planned and tracked in a pilot zone with no conflicts.
+Who it is for: A state government with 15 built airports that have no flights.
+The numbers: Reviving one costs about ₹12 crore over 3 years; the budget covers 5.
+The catch: Every district lobbies for its own airport, and past traffic forecasts were badly wrong.
+You win if: A choice the state can defend with data, and all 5 airports at 50% load within 2 years.
 
 Design the solution, how it is delivered and how it is measured.",5
-Aviation,35,Plan air-taxi routes and vertiports for an Indian city,"Aviation · Round 3. Plan air-taxi routes and vertiports for an Indian city.
+Aviation,33,Halve the days aircraft sit grounded,"Aviation · Round 3. Halve the days aircraft sit grounded.
 
-Who it is for: A future electric air-taxi operator and a city planning body.
-The numbers: A 20 km trip across the city takes 90 minutes by road and could take 15 by air.
-The catch: Routes must avoid airport traffic, noise-sensitive areas and tall buildings.
-You win if: 5 vertiports and their routes, with demand per route, that the regulator accepts for a pilot.
-
-Design the solution, how it is delivered and how it is measured.",5
-Aviation,36,Track air cargo from runway to warehouse in real time,"Aviation · Round 3. Track air cargo from runway to warehouse in real time.
-
-Who it is for: Exporters of medicines and fresh produce, and air cargo handlers.
-The numbers: 1 shipment in 12 misses its connection, and cold-chain cargo spoils after 4 hours on the tarmac.
-The catch: Airlines, ground handlers and customs each use different systems.
-You win if: Every shipment located within 10 minutes, and missed connections halved.
+Who it is for: A regional operator with 9 turboprops.
+The numbers: Each aircraft sits grounded about 30 days a year waiting for parts or engineers; each grounded day loses about ₹6 lakh.
+The catch: Spares come from abroad and engineers are based in the metros.
+You win if: Grounded days down to 15 a year per aircraft within 12 months.
 
 Design the solution, how it is delivered and how it is measured.",5
-Aviation,37,Use live traffic data to fill unused airport slots,"Aviation · Round 3. Use live traffic data to fill unused airport slots.
+Aviation,34,Halve fog cancellations at a North-East airport,"Aviation · Round 3. Halve fog cancellations at a North-East airport.
 
-Who it is for: A busy airport whose take-off and landing slots are full at peak.
-The numbers: 8% of peak slots go unused through late changes; each unused slot is worth about Rs 1.5 lakh.
-The catch: Slot rules are strict and airlines guard their slots.
-You win if: Half of the unused slots filled again at least 30 minutes ahead.
-
-Design the solution, how it is delivered and how it is measured.",5
-Aviation,38,Measure every flight's carbon and noise footprint,"Aviation · Round 3. Measure every flight's carbon and noise footprint.
-
-Who it is for: Airports that report emissions, and the neighbourhoods around them.
-The numbers: Emissions are estimated from averages, and complaints about night noise rise every year.
-The catch: Real flight paths, aircraft types and engines vary flight by flight.
-You win if: A carbon and noise figure for every flight at one airport, accepted by an outside auditor.
+Who it is for: A North-East airport that loses 60 days a year to fog and low cloud.
+The numbers: 1 flight in 4 is cancelled in winter; each cancellation costs the operator about ₹2 lakh and strands about 40 passengers.
+The catch: New landing aids cost crores and take years to approve.
+You win if: Weather cancellations halved within two winters.
 
 Design the solution, how it is delivered and how it is measured.",5
-Aviation,39,Tell passengers exactly when to leave home for their flight,"Aviation · Round 3. Tell passengers exactly when to leave home for their flight.
+Aviation,35,Make a 4-flight-a-day airport pay for itself,"Aviation · Round 3. Make a 4-flight-a-day airport pay for itself.
 
-Who it is for: Travellers flying from busy metro airports.
-The numbers: Passengers arrive 2.5 hours early on average, and 1 in 30 still misses a flight.
-The catch: Road traffic, security queues and flight delays change by the minute.
-You win if: A leave-by time that gets 95% of users to the gate on time with 30 minutes less waiting.
+Who it is for: The operator of a small airport that runs at a loss.
+The numbers: It costs ₹9 crore a year to run and earns ₹3 crore, almost all of it from flights.
+The catch: More flights depend on airlines, not on the airport.
+You win if: Income covers all costs within 3 years.
 
 Design the solution, how it is delivered and how it is measured.",5
-Aviation,40,Turn air-traffic data into products for tourism and city planners,"Aviation · Round 3. Turn air-traffic data into products for tourism and city planners.
+Aviation,36,Get people from town to a runway 38 km away,"Aviation · Round 3. Get people from town to a runway 38 km away.
 
-Who it is for: Tourism boards, hotels and city planners.
-The numbers: Air-traffic data shows where and when visitors arrive, weeks before hotel bookings do.
-The catch: The data must be anonymised and licensed, and buyers want answers, not raw data.
-You win if: 3 paying customers using one data product within 6 months, with no personal data exposed.
+Who it is for: A bus operator serving the town around a small airport.
+The numbers: A taxi to the airport costs ₹1,200, more than a third of the average fare.
+The catch: With 4 flights a day, a bus that waits for every flight runs mostly empty.
+You win if: A feeder service that profits on every trip and gets travellers to the airport for under ₹300.
+
+Design the solution, how it is delivered and how it is measured.",5
+Aviation,37,Same-day delivery to 20 small towns,"Aviation · Round 3. Same-day delivery to 20 small towns.
+
+Who it is for: An e-commerce company whose small-town orders take 5 days.
+The numbers: Each flight has up to 800 kg of cargo space, most of it unused.
+The catch: Space depends on how much luggage passengers carry, and the last stretch from the airport is by road.
+You win if: Same-day delivery on 20% of orders in 20 towns, at under ₹40 extra per order.
+
+Design the solution, how it is delivered and how it is measured.",5
+Aviation,38,Export samples to buyers within 48 hours,"Aviation · Round 3. Export samples to buyers within 48 hours.
+
+Who it is for: A brassware export cluster in a small town.
+The numbers: Samples take 7 days to reach buyers in the metros and abroad; 1 order in 5 is lost to the delay.
+The catch: Small parcels, export paperwork and a cargo hold that fills with luggage.
+You win if: 90% of samples with buyers within 48 hours.
+
+Design the solution, how it is delivered and how it is measured.",5
+Aviation,39,First-time flyers who fly with confidence,"Aviation · Round 3. First-time flyers who fly with confidence.
+
+Who it is for: Women and elderly travellers in a district with a new airport.
+The numbers: 7 in 10 of the district's travellers have never flown; 1 in 4 who books cancels before flying.
+The catch: Fear of the unknown, language, ID rules and being alone at the airport.
+You win if: Cancellations before flying halved, with 8 in 10 saying they would fly again.
+
+Design the solution, how it is delivered and how it is measured.",5
+Aviation,40,A patient corridor to a metro cancer hospital,"Aviation · Round 3. A patient corridor to a metro cancer hospital.
+
+Who it is for: A cancer hospital whose patients from 4 small towns travel 14 hours by road.
+The numbers: Patients need 6 to 10 visits; 1 in 5 misses treatment because of the journey.
+The catch: Patients are weak, usually travel with a family member, and cannot pay full fares.
+You win if: Missed treatments halved, with the trip under 4 hours door to door.
 
 Design the solution, how it is delivered and how it is measured.",5
 Fintech,41,Stop first-time investors losing money in options,"Fintech · Round 3. Stop first-time investors losing money in options.
