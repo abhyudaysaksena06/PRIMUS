@@ -3,8 +3,11 @@
 //
 //   pnpm demo-sql --domain teams.example.org   → out/demo-event.sql and out/demo-logins.txt
 //
-// The demo event (slug "demo") is a PRIMUS-format rehearsal with 3 teams per track (P01–P03, C01–C03, F01–F03) plus an organiser,
-// a fairness officer and a projector login. Passwords are random each run and only in the logins file.
+// The demo event (slug "demo") is a PRIMUS-format rehearsal with 3 teams per track (XP01–XP03, XC01–XC03, XF01–XF03) plus an
+// organiser, a fairness officer and a projector login, dealt the final sector decks (FMCG, Aviation, Luxury). The X prefix
+// keeps its codes apart from the live event's P01–P50, so both can sit in the same database. The file first removes any
+// earlier demo (event and logins), so it can be run again for fresh passwords. Passwords are random each run and only in
+// the logins file.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -28,14 +31,14 @@ const plan = buildSeedPlan({
   teamsPerTrack: Number(args["teams-per-track"] ?? 3),
   cardSecret: randomUUID(),
   emailDomain: domain,
-  codePrefix: "",
+  codePrefix: "X",
   staff: [
     { email: "organiser@msim.demo", role: "ORGANISER", name: "Demo organiser" },
     { email: "fairness@msim.demo", role: "FAIRNESS", name: "Demo fairness officer" },
     { email: "projector@msim.demo", role: "DISPLAY", name: "Demo projector" },
   ],
-  problemCards: problemCardsFromCsv(read("seed/problem-cards.csv")),
-  crisisCards: crisisCardsFromCsv(read("seed/crisis-cards.csv")),
+  problemCards: problemCardsFromCsv(read(String(args.problems ?? "seed/sectors/problem-cards.csv"))),
+  crisisCards: crisisCardsFromCsv(read(String(args.crises ?? "seed/sectors/crisis-cards.csv"))),
 });
 
 const { sql, logins } = eventSql(
@@ -44,10 +47,16 @@ const { sql, logins } = eventSql(
 -- Team logins use the domain ${domain}: it must equal NEXT_PUBLIC_TEAM_EMAIL_DOMAIN on Vercel.`,
 );
 
+// Only the demo's own logins: its staff (@msim.demo) and the accounts of its teams, noted before the event is purged.
+// Never by an email pattern, which would also match the live event's or a rehearsal's team logins.
+const removeDemo = `create temp table demo_logins on commit drop as
+  select a.user_id from public.accounts a join public.teams t on t.id = a.team_id join public.events e on e.id = t.event_id
+   where e.slug = '${slug}';
+select public.purge_event('${slug}');
+delete from auth.users where email like '%@msim.demo' or id in (select user_id from demo_logins);`;
 const cleanup = `-- Remove the demo event and its logins (Supabase SQL editor):
 begin;
-select public.purge_event('${slug}');
-delete from auth.users where email like '%@msim.demo' or email ~ '^[pcf][0-9]{2}@${domain.replace(/\./g, "\\.")}$';
+${removeDemo}
 commit;`;
 
 const text = `Market Simulation demo logins (event "${slug}"; demo only)
@@ -63,6 +72,7 @@ ${cleanup}
 `;
 
 mkdirSync("out", { recursive: true });
-writeFileSync("out/demo-event.sql", sql);
+// Replace any earlier demo first, in its own transaction, so the file can be run again.
+writeFileSync("out/demo-event.sql", `-- Remove any earlier demo event and its logins.\nbegin;\n${removeDemo}\ncommit;\n\n${sql}`);
 writeFileSync("out/demo-logins.txt", text);
 console.log(`Wrote out/demo-event.sql (${Math.round(sql.length / 1024)} KB) and out/demo-logins.txt`);
