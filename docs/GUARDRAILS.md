@@ -3,7 +3,8 @@
 Every rule that keeps the market, the money, the judging and the night fair, in one list. **Built** means the
 database enforces it inside the function that makes the move, so a refused move changes nothing and tells the team
 why; no screen, script or staff member can go around it. **Staff** means a rule people follow, with a control on the
-control panel. **Proposed** means recommended and not built yet (decision needed; ships as migration 068).
+control panel. **Proposed** means recommended and not built yet (a decision is needed). Migrations 068 (the close) and 069 (cooling-off,
+raise caps) are the latest.
 
 Numbers live in `packages/engine/src/rules.ts` and the SQL functions; change one only with its test, before the
 night, never during it.
@@ -22,6 +23,9 @@ night, never during it.
 | P8 | A crisis's last round waits for its scores | No trading on stale prices after a release | Built |
 | P9 | The wait is bounded | Release by minute 85; Close the round now at minute 90 | Staff |
 | P10 | No hand intervention on a running price | Staff act on the process (clearing, releases, flags), never on a price | Staff |
+| P11 | The close counts the end of the night | Closing market price = average of the last round's opening and clearing prices (PRIMUS: round 31, after the solutions); closing price = (that + AI price) ÷ 2 | Built (068, live) |
+| P12 | Cooling-off | A company whose last round moved the full ±10% takes no orders in the next round (PRIMUS); the trade desk lists them | Built (069) |
+| P13 | AI-anchored close | The AI price moves only with judged scores, so a bubble counts at most half in final values | Built |
 
 ## 2. Trading and positions
 
@@ -36,7 +40,7 @@ night, never during it.
 | T7 | No insider IPO bids | A fund cannot bid on its own squad's company | Built |
 | T8 | Practice market is separate | Scripted prices; only the top-3 prize (real cash) crosses into the game | Built |
 | T9 | Practice position limits | 4,000 long / 2,000 short per ticker; one trade needed to be ranked | Built |
-| T10 | Market live 21:10–06:30 | Practice market open through Reading, settled at the IPO | Proposed (068) |
+| T10 | No dead market time | 22:00–22:30 is for reading PRDs and preparing IPO bids (case book p.2); the real market runs 22:45–06:30 | Staff |
 
 ## 3. Equity and company ownership
 
@@ -50,8 +54,8 @@ night, never during it.
 | E6 | No squad self-dealing | A fund cannot fund its own squad's raise | Built |
 | E7 | Fund must have the cash | Available cash after reserves and collateral | Built |
 | E8 | Raises only in Round 2 | Posting and funding refused outside phase PRESSURE | Built |
-| E9 | Raise concentration | A fund holds at most 10,000 shares (10%) of a company through raises | Proposed (068) |
-| E10 | One raise per fund per crisis | "No one can lock more than one team" applied to funds | Proposed (068) |
+| E9 | Raise concentration | A fund holds at most 10,000 shares (10%) of a company through raises | Built (069) |
+| E10 | One raise per fund per crisis | "No one can lock more than one team" applied to funds | Built (069) |
 
 ## 4. Hiring and fees
 
@@ -69,8 +73,8 @@ night, never during it.
 | H10 | Round 3 fee band | Fee worth 5–20% of the company's cash | Built |
 | H11 | Paid for work | Escrow paid at the due time only for an advice memo of 150+ words; refunded otherwise | Built |
 | H12 | Ratings | 1–5 by the client; missing = 3; ±$1,000 per star from 3 | Built |
-| H13 | Base hire rate from Round 1 | Base equity rate from the ZestUp score (2% + 0.04% per point over 50, 1–4%), used for auto-matching | Proposed (068) |
-| H14 | Random auto-match order | Drawn from the lottery seed: provable and replayable | Proposed (068) |
+| H13 | Base hire rate from Round 1 | Base equity rate from the ZestUp score (2% + 0.04% per point over 50, 1–4%), used for auto-matching | Proposed |
+| H14 | Random auto-match order | Drawn from the lottery seed: provable and replayable | Proposed |
 
 ## 5. Writing and judging
 
@@ -89,6 +93,7 @@ night, never during it.
 | J11 | Calibration | 10 sample PRDs must land in their bands before the night | Staff |
 | J12 | Copying penalised | Copying a real company or a sample startup is marked down | Built (in the prompts) |
 | J13 | Appeals | 10 minutes after the close; applied or dismissed with a logged reason | Built + Staff |
+| J14 | Sector drift check | Before each release, the median plan score per sector; 10+ points off the others → check that card and its runs | Staff |
 
 ## 6. Fairness and integrity
 
@@ -131,3 +136,19 @@ night, never during it.
 | O6 | Health every 30 minutes | Heartbeat, tick errors, connected screens, failed judge runs, projector clock | Staff |
 | O7 | Demo cannot clash | Demo teams use X-prefixed codes; its cleanup deletes only its own logins | Built |
 | O8 | External uptime check | Ping /api/health every minute, alert Tech | Proposed |
+| O9 | Saturation monitor | scripts/sql/saturation-monitor.sql at each reveal and 04:45: top-5 share (act above 55%), limit hits (×3 in 4 rounds), price vs AI (above 1.5×), sector drift (0.5×) | Staff |
+| O10 | Spare cards for a quiet market | One spare card as a bulletin when a round has almost no orders or a sector runs away; it changes no company's card | Staff |
+
+## 9. Choices (crowding)
+
+| # | Guardrail | Limit | Status |
+| --- | --- | --- | --- |
+| C1 | Companies per Round 3 statement | At most 3 (was 5): room for 30 per sector of 16–17 companies; seed/sectors/statements.csv | Data (upload on the Content page) |
+| C2 | The draft | Weakest score so far picks first; a missed turn gets the least-crowded statement | Built |
+| C3 | Aviation payers | At most 4 teams per payer; a random draw moves extras to their 2nd choice | Staff (case book p.21) |
+
+## Tested and not used
+
+A 200-night stress test (docs: Anti-Saturation Guardrails) also tried three ideas that did not help: filling orders only
+up to the ±10% cap (concentration rose to 49%), splitting the Round 3 injection in two halves (no change), and a price
+band of ±50% around the AI price (never bound: the AI-anchored close already holds prices near it).

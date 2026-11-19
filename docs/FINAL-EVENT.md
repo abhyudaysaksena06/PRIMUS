@@ -30,6 +30,9 @@ Built here on top of shutUpV (all in the repo, all tested):
 | Market algorithm: the Round 1 practice market (top 3 funds win $50,000 each, real cash); Round 3 evens out the market (×1.25 of the price rise for the weakest company down to ×0.25 for the strongest) | migrations 058, 064; `packages/engine/src/candles.ts` |
 | Hiring: 60% dilution cap (a company keeps 40,000 of 100,000 shares), compulsory hiring (base fee $22,500; Round 3: 10% of cash), the open two-sided market (a firm can pitch first), 5 open offers per company, hire chat 30 a minute | migrations 057, 060–062, 065 |
 | Compulsory hiring matches only teams that checked in at the desk | migration 066 |
+| Equity hiring screens and Round 2 equity raises (Product sells 1–10% to a fund) | migration 067 |
+| The close counts the end of the night (it used rounds 20–21, 03:20–03:50, and ignored Round 3) | migration 068 |
+| Anti-saturation: one-round cooling-off after a ±10% round; a fund holds at most 10% of a company through raises and funds one raise per crisis; 3 companies per Round 3 statement | migration 069, statements.csv; docs/GUARDRAILS.md |
 | Crisis cards sealed until that sub-round's hiring closes | migration 063 |
 | The AI judge: prompts for every round (`prompts/*.md`), Claude Haiku 5.5, median of 3 (5 if the spread is over 10), prompt-injection removal, 150-word minimum memo | `prompts/`, `apps/web/lib/judge/`, `docs/JUDGE.md` |
 | The organisers' judging specifications (reference) | [judge/PRODUCT-JUDGE-SPEC.md](judge/PRODUCT-JUDGE-SPEC.md), [judge/CONSULTING-JUDGE-SPEC.md](judge/CONSULTING-JUDGE-SPEC.md) |
@@ -41,7 +44,10 @@ Checked against the organisers' files: every rubric line and maximum in the code
 aviation fact sheet, the 12 crisis cards with their twists, the 30 statements and the ZestUp numbers are in the
 prompts and decks; the case-book PDF in the repo is byte for byte the one the organisers sent.
 
-Tests on the final build: typecheck, 290 engine, 820 web and 310 database tests pass (`pnpm test`).
+Tests on the final build: typecheck, 290 engine, 822 web and 316 database tests pass (`pnpm test`).
+
+Live database (19 Nov): schema 20261204000068 (the close fixed). Migration 069 (cooling-off, raise caps) is built and
+tested, and waits for the organisers' approval before it is applied.
 
 ### One thing that is a preview only
 
@@ -55,10 +61,9 @@ side, a binding accept and up to two clients per firm, and Finance trades on the
 
 ### Supabase (project `primus`, Mumbai) → SQL Editor → New query
 
-1. **Catch-up SQL.** Generate it with `pnpm catch-up-sql` (writes `out/catch-up-20261125000059-to-20261202000066.sql`)
-   and run the whole file once. It applies only the migrations the database is missing (060–066 for a database at
-   059), in one transaction, and its last line shows the schema version: it must be `20261202000066`. Running it
-   again changes nothing. It replaces the old `run-event-sql/16-hiring-guardrails.sql` and `17-sealed-crisis.sql`.
+1. **Catch-up SQL.** Generate it with `pnpm catch-up-sql --from 20261204000068` and run the whole file once. It applies
+   only the migrations the database is missing (069 for the live database at 068), in one transaction, and its last
+   line shows the schema version: it must be `20261205000069`. Running it again changes nothing.
 2. **The event SQL** you already generated for `primus-2026` (150 teams, start 20:00 IST 20 Nov). Use the same file
    whose login cards you printed: generating a new one makes new passwords. To reprint the same cards, run
    `pnpm event-sql` again with the `CARD_SECRET` at the bottom of your logins file. If a 9-team demo event's codes
