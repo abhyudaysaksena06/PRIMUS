@@ -4,6 +4,7 @@ Live trading simulation for a one-night college competition: 150 teams (50 Produ
 
 - **Stack:** Next.js (App Router, TypeScript, Tailwind) on Vercel, and Supabase (Postgres, Auth, Realtime, RLS).
 - **Plan:** see [`PLAN.md`](PLAN.md) for the architecture, the schema, the phases, the assumptions and the open questions.
+- **The final event (20 Nov 2026):** [`docs/FINAL-EVENT.md`](docs/FINAL-EVENT.md): what the build is, where each part came from, and tonight's steps.
 
 > Status: **Phases 1–6 built; Phase 7 built and locally verified.** Bot rehearsals, a 500-connection load test and the night's [RUNBOOK](RUNBOOK.md) are in place. Still to do: a real-model calibration and the same load test on the hosted plans. See [`docs/DEPLOY.md`](docs/DEPLOY.md) for deployment and event preparation.
 
