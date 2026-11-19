@@ -35,7 +35,7 @@ export const RULES = {
   // the fee shares it has already promised. app.min_retained_shares() is the same number in the database.
   MIN_RETAINED_SHARES: 40_000,
   FEE_DEFAULT: 2_250_000, // $22,500 cash
-  MAX_OPEN_OFFERS: 3, // a company's open offers to firms at once, per sub-round
+  MAX_OPEN_OFFERS: 5, // a company's own open offers to firms at once, per sub-round (pitches it received do not count)
 
   DEAL_MIN: 4_000_000, // $40,000
   DEAL_MAX: 8_000_000, // $80,000

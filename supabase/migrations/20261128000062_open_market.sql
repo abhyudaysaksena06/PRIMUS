@@ -9,6 +9,20 @@
 --    make_offer, with the same checks, and the turn starts with the company.
 --
 -- Accepting stays the moment a deal closes: one side proposes terms, the other accepts, and the accept is binding.
+--
+-- The cap on a company's open offers goes from 3 to 5, and now counts only the offers the company itself opened.
+-- Without that, a popular company could be locked out of offering by the pitches it had received.
+
+alter table public.offers add column if not exists opened_by text not null default 'COMPANY' check (opened_by in ('COMPANY', 'FIRM'));
+
+select app.patch_functions(
+  '  if (select count(*) from public.offers where company_id = v_company.id and k = v_k and status = ''OPEN'') >= 3 then
+    return app.fail(''TOO_MANY_OFFERS'', ''You can have at most 3 open offers at once. Withdraw one or wait for an answer.'');
+  end if;',
+  '  if (select count(*) from public.offers where company_id = v_company.id and k = v_k and status = ''OPEN''
+         and opened_by = ''COMPANY'') >= 5 then
+    return app.fail(''TOO_MANY_OFFERS'', ''You can have at most 5 open offers at once. Withdraw one or wait for an answer.'');
+  end if;');
 
 -- The pair may talk: the caller is one of the two sides and both are in the same event. No engagement needed.
 create or replace function app.in_hire_pair(p_company uuid, p_firm uuid)
@@ -100,9 +114,9 @@ begin
   if v_problem is not null then
     return app.fail('BAD_TERMS', v_problem);
   end if;
-  insert into public.offers (event_id, k, company_id, firm_team_id, cash_cents, shares, note, turn)
+  insert into public.offers (event_id, k, company_id, firm_team_id, cash_cents, shares, note, turn, opened_by)
   values (v_team.event_id, v_k, v_company.id, v_team.id, coalesce(p_cash, 0), coalesce(p_shares, 0),
-          left(btrim(coalesce(p_note, '')), 300), 'COMPANY')
+          left(btrim(coalesce(p_note, '')), 300), 'COMPANY', 'FIRM')
   returning * into v_offer;
   perform app.broadcast_offer(v_team.event_id, '{}'::jsonb, v_team.id, v_company.product_team_id);
   return app.ok(jsonb_build_object('offer', to_jsonb(v_offer)));

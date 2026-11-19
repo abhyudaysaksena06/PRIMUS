@@ -346,6 +346,19 @@ describe("PRIMUS rounds 2 and 3", () => {
     await n.ok(n.lead, "tick", n.eventId);
     expect((await n.one("select count(*)::int as c from subround_crises where event_id = $1 and k = 1", [n.eventId])).c).toBe(N);
 
+    // A company may have five of its own offers open at once, and a sixth is refused. A pitch it received does not
+    // count against that, or a popular company could be locked out of offering by firms approaching it.
+    const shopper = squads[0]!;
+    const shopperOffers = [];
+    for (let i = 0; i < 5; i++) shopperOffers.push((await n.ok(n.team(shopper.p_code), "make_offer", n.teamId(squads[i + 10]!.c_code), 10000, 0, "")).offer);
+    expect(await n.call(n.team(shopper.p_code), "make_offer", n.teamId(squads[20]!.c_code), 10000, 0, "")).toMatchObject({
+      ok: false,
+      code: "TOO_MANY_OFFERS",
+    });
+    await n.ok(n.team(squads[20]!.c_code), "make_offer_to", shopper.company_id, 10000, 0, "");
+    for (const o of shopperOffers) await n.ok(n.team(shopper.p_code), "respond_offer", o.id, "WITHDRAW");
+    await n.ok(n.team(shopper.p_code), "respond_offer", (await n.one("select id from offers where company_id = $1 and opened_by = 'FIRM'", [shopper.company_id])).id, "DECLINE");
+
     // Every company hires its squad's firm; each firm also gets a second offer it must refuse as full after two.
     for (const s of squads) {
       const o = (await n.ok(n.team(s.p_code), "make_offer", n.teamId(s.c_code), 30000, 0, "")).offer;
