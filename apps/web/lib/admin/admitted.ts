@@ -32,3 +32,7 @@ export function nextFreeCard<T extends Admission & { code: string; track: string
     .sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0));
   return free[0] ?? null;
 }
+
+/** The desk's caps (migrations 095 and 096): at most 90 admitted teams per track, 675 participants in all. */
+export const TRACK_CAP = 90;
+export const PARTICIPANT_CAP = 675;

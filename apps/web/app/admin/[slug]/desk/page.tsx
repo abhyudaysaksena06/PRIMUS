@@ -5,7 +5,7 @@ import { TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
 import { loadAdminEvent } from "@/lib/admin/event";
 import { MAX_LIST_BYTES } from "@/lib/admin/team-list";
-import { nextFreeCard } from "@/lib/admin/admitted";
+import { PARTICIPANT_CAP, TRACK_CAP, nextFreeCard } from "@/lib/admin/admitted";
 import { supabaseServer } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/fetch-all";
 import { Notice, Panel, Stat, inputClass } from "@/app/admin/guide-ui";
@@ -48,7 +48,7 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
   const sb = await supabaseServer();
   const host = (await headers()).get("host") ?? "primus.mrdev4u.com";
   const registerUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}/register`;
-  const [teams, roster, rule, reg] = await Promise.all([
+  const [teams, roster, rule, reg, memberRows] = await Promise.all([
     // Paged: PostgREST returns at most 1,000 rows a read (600 cards at 200 a track; the list can be longer).
     fetchAll<TeamRow>((from, to) => sb.from("teams").select("id, code, track, checked_in_at, disqualified").eq("event_id", event.id).order("code").order("id").range(from, to)).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     fetchAll<RosterRow>((from, to) =>
@@ -62,6 +62,11 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
     ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     sb.from("events").select("desk_check_in").eq("id", event.id).maybeSingle<{ desk_check_in: boolean }>(),
     sb.from("events").select("registration_open").eq("id", event.id).maybeSingle<{ registration_open: boolean }>(),
+    // Participants (migration 096 caps them at 675): the members of every admitted team.
+    fetchAll<{ team_id: string }>((from, to) => sb.from("members").select("team_id").eq("event_id", event.id).order("id").range(from, to)).then(
+      (data) => data,
+      () => [] as { team_id: string }[],
+    ),
   ]);
   if (teams.error || roster.error || rule.error) {
     return (
@@ -92,6 +97,8 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
     return { total: all.length, done: all.filter((t) => t.checked_in_at).length };
   };
   const admitted = cards.filter((t) => t.checked_in_at).length;
+  const admittedIds = new Set(cards.filter((t) => t.checked_in_at).map((t) => t.id));
+  const participants = memberRows.filter((m) => admittedIds.has(m.team_id)).length;
   // "Next free card" at the desk: the lowest code of each track nobody is checked in on (only that code is shown).
   const nextFree = Object.fromEntries(TRACKS.map((t) => [t, nextFreeCard(cards, t)])) as Record<Track, string | null>;
   const open = !event.drawn_at;
@@ -116,10 +123,21 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
         }
       >
         <div className="grid gap-3 sm:grid-cols-4">
-          <Stat label="Admitted" value={`${admitted} / ${cards.length}`} hint={`${list.length} teams in the list`} />
+          <Stat
+            label="Participants"
+            value={`${participants} / ${PARTICIPANT_CAP}`}
+            hint={`${Math.max(0, PARTICIPANT_CAP - participants)} places left · ${admitted} teams admitted · ${list.length} in the list`}
+          />
           {TRACKS.map((track) => {
             const c = count(track);
-            return <Stat key={track} label={TRACK_LABELS[track]} value={`${c.done} / ${c.total}`} hint={`${c.total - c.done} cards left`} />;
+            return (
+              <Stat
+                key={track}
+                label={TRACK_LABELS[track]}
+                value={`${c.done} / ${TRACK_CAP}`}
+                hint={c.done >= TRACK_CAP ? "Full: no more teams of this track" : `${TRACK_CAP - c.done} places left`}
+              />
+            );
           })}
         </div>
         <div className="mt-4 space-y-2">
