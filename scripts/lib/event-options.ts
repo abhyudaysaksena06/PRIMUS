@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { EVENT_FORMATS, eventStartIST, type EventFormat } from "@msim/engine";
 import { required } from "./args";
 import {
+  MAX_TEAMS_PER_TRACK,
   crisisCardsFromCsv,
   problemCardsFromCsv,
   staffFromCsv,
@@ -16,9 +17,9 @@ export const USAGE = `Options:
   --name <name>            event name (default "Market Simulation")
   --date <YYYY-MM-DD>      event day; 20:00 IST that day is the start (live events)
   --starts-at <ISO time>   exact start instead of --date (rehearsals)
-  --rehearsal              rehearsal event: X-prefixed codes, may have fewer teams
+  --rehearsal              rehearsal event: X-prefixed codes
   --speed <n>              clock speed (default 1; rehearsal default 10)
-  --teams-per-track <n>    default 50
+  --teams-per-track <n>    3 to 200 login cards per track (default 200; rehearsal default 50)
   --teams <csv>            team names and members (optional)
   --staff <csv>            organiser, fairness officer and display logins (optional)
   --problems <csv>         problem deck (default seed/problem-cards.csv)
@@ -51,7 +52,7 @@ export function optionsFromArgs(args: Record<string, string | true>): SeedOption
     rehearsal,
     clockSpeed: Number(str("speed") ?? (rehearsal ? 10 : 1)),
     startsAt,
-    teamsPerTrack: Number(str("teams-per-track") ?? 50),
+    teamsPerTrack: Number(str("teams-per-track") ?? (rehearsal ? 50 : MAX_TEAMS_PER_TRACK)),
     cardSecret: required("CARD_SECRET"),
     emailDomain: required("TEAM_EMAIL_DOMAIN"),
     teamRows: str("teams") ? teamRowsFromCsv(read(str("teams")!)) : undefined,
