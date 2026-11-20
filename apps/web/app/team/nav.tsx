@@ -42,7 +42,10 @@ const home: NavItem = { n: "01", label: "Home", href: "/team", active: (p) => p 
 const qa: NavItem = { n: "04", label: "Q&A", href: "/team/qa", active: under("/team/qa") };
 const market: NavItem = { n: "05", label: "Market", href: "/team/market", active: anyOf(["/team/market", "/team/ledger"]) };
 const round1 = anyOf(["/team/squad", "/team/calls", "/team/earnings"]);
-const roomPages = anyOf(["/team/crisis", "/team/firms", "/team/messages", "/team/rescue", "/team/chat"]);
+const roomPages = anyOf(["/team/crisis", "/team/firms", "/team/rescue"]);
+// The two chats: a company and the firms it talks to or hired (hire chat), and the three teams of a squad (squad chat).
+const hireChat: NavItem = { n: "07", label: "Hire chat", href: "/team/messages", active: under("/team/messages") };
+const squadChat = (n: string): NavItem => ({ n, label: "Squad chat", href: "/team/chat", active: under("/team/chat") });
 // Rounds 2 and 3 of a PRIMUS night both happen in the crisis room (the crises, then the Round 3 draft): the item of
 // the round on now lights up there.
 const room = (round: 2 | 3) => (p: string, r: number | null) => roomPages(p) && (round === 3 ? r === 3 : r !== 3);
@@ -57,6 +60,8 @@ export const NAV: Record<string, readonly NavItem[]> = {
     qa,
     market,
     { n: "06", label: "Round 3: Draft & New MVP", href: "/team/crisis#round-3", active: room(3) },
+    hireChat,
+    squadChat("08"),
   ],
   CONSULTING: [
     home,
@@ -65,6 +70,8 @@ export const NAV: Record<string, readonly NavItem[]> = {
     qa,
     market,
     { n: "06", label: "Round 3: Auction & Crisis", href: "/team/crisis#round-3", active: room(3) },
+    hireChat,
+    squadChat("08"),
   ],
   FINANCE: [
     home,
@@ -74,6 +81,7 @@ export const NAV: Record<string, readonly NavItem[]> = {
     market,
     { n: "06", label: "Trade", href: "/team/trade", active: (p) => under("/team/trade")(p) && !desk.test(p) && !under("/team/trade/ipo")(p) },
     { n: "07", label: "Finance Desk", href: "/team/trade#desk", active: (p) => desk.test(p) },
+    squadChat("08"),
   ],
 };
 const navFor = (track: string) => NAV[track] ?? NAV.PRODUCT!;
