@@ -119,6 +119,25 @@ describe("staff roles: who may call what", () => {
     );
   });
 
+  test("after the draw the desk cannot admit a team that has no squad", async () => {
+    const walkIn = "select public.desk_check_in($1, 'PRODUCT', null, 'Late team', '[{\"full_name\": \"Ravi\"}]'::jsonb) as r";
+    const card = n.ev.plan.teams.find((t) => t.track === "PRODUCT")!.code;
+    const byCard = "select public.desk_check_in($1, null, $2, 'Late team', '[{\"full_name\": \"Ravi\"}]'::jsonb) as r";
+    expect((await rowsAs<{ r: { ok: boolean } }>(db.pool, staff.REGISTRATION, walkIn, [n.eventId]))[0]!.r.ok).toBe(true);
+    await db.pool.query("update events set drawn_at = now() where id = $1", [n.eventId]);
+    try {
+      for (const [sql, args] of [[walkIn, [n.eventId]], [byCard, [n.eventId, card]]] as const) {
+        expect((await rowsAs<{ r: unknown }>(db.pool, staff.REGISTRATION, sql, [...args]))[0]!.r).toMatchObject({
+          ok: false,
+          code: "NOT_DRAWN",
+          message: "This team was not drawn into a squad.",
+        });
+      }
+    } finally {
+      await db.pool.query("update events set drawn_at = null where id = $1", [n.eventId]);
+    }
+  });
+
   test("a desk's call really changes the game (committed, as the page would)", async () => {
     expect(await n.call(staff.REGISTRATION, "set_desk_check_in", n.eventId, true)).toMatchObject({ ok: true });
     expect((await n.one("select desk_check_in from events where id = $1", [n.eventId])).desk_check_in).toBe(true);

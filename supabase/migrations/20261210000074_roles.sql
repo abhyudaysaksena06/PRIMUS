@@ -120,6 +120,17 @@ select app.patch_one_function(f::regprocedure, 'perform app.require_organiser();
     'public.set_registration_open(uuid, boolean)'
   ]) f;
 
+-- After the squad draw the desk admits only drawn teams: a walk-in or a desk edit cannot re-admit a card the draw
+-- left out (it has no squad, so no company or fund).
+select app.patch_one_function('public.desk_check_in(uuid, public.track, text, text, jsonb, uuid, boolean, jsonb)'::regprocedure,
+$o$  v_new := v_team.checked_in_at is null;
+$o$,
+$n$  if (select e.drawn_at from public.events e where e.id = p_event) is not null and (app.squad_of_team(v_team.id)).id is null then
+    return app.fail('NOT_DRAWN', 'This team was not drawn into a squad.');
+  end if;
+  v_new := v_team.checked_in_at is null;
+$n$);
+
 -- Judging operations (release_scores, apply_appeal and dismiss_appeal stay organiser-only).
 select app.patch_one_function(f::regprocedure, 'perform app.require_organiser();', 'perform app.require_judge_ops();')
   from unnest(array[
