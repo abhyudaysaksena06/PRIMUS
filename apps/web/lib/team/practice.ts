@@ -10,6 +10,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { candleTicks, practiceCandles, PRACTICE } from "@msim/engine";
 import { supabaseService } from "@/lib/supabase/service";
+import { admittedOnly, deskCheckInOn } from "@/lib/admin/admitted";
 
 export interface PracticeTicker {
   /** The key of the ticker's prices (practice_ticks.ticker_team_id). */
@@ -75,15 +76,14 @@ export async function loadPracticeMarket(eventId: string): Promise<PracticeMarke
 export async function practiceTickers(eventId: string): Promise<PracticeTicker[]> {
   const market = await loadPracticeMarket(eventId);
   if (market?.companies) return market.companies;
-  const { data, error } = await supabaseService()
-    .from("teams")
-    .select("id, code, name")
-    .eq("event_id", eventId)
-    .eq("track", "PRODUCT")
-    .order("code")
-    .range(0, 999);
+  const sb = supabaseService();
+  const [{ data, error }, deskOn] = await Promise.all([
+    sb.from("teams").select("id, code, name, checked_in_at").eq("event_id", eventId).eq("track", "PRODUCT").order("code").range(0, 999),
+    deskCheckInOn(sb, eventId),
+  ]);
   if (error) throw new Error(`Could not read the practice companies: ${error.message}`);
-  return (data ?? []) as PracticeTicker[];
+  // With desk check-in on, only the Product teams the desk has checked in (lib/admin/admitted.ts).
+  return admittedOnly((data ?? []) as (PracticeTicker & { checked_in_at: string | null })[], deskOn).map(({ id, code, name }) => ({ id, code, name }));
 }
 
 /** Switch off only: stores the price paths if Round 1 has started and they are not there yet; returns the market. */

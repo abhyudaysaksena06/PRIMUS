@@ -46,7 +46,7 @@ export default async function LedgerPage({
     loadBooks(sb, event.id, base.companies),
     sb.from("corrections").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "PENDING"),
   ]);
-  const refs = ledgerRefs(base.teams, base.companies, base.rounds);
+  const refs = ledgerRefs(base.allTeams, base.companies, base.rounds);
   const lines = page ? ledgerLines(page.rows, refs) : [];
   const path = `/admin/${slug}/ledger`;
   const tickers = base.companies.flatMap((c) => (c.ticker ? [c.ticker] : [])).sort();

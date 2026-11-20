@@ -17,6 +17,7 @@ import {
   type TeamRef,
 } from "./ledger";
 import type { CorrectionRow, StaffRef } from "./ledger-corrections";
+import { admittedOnly, deskCheckInOn } from "./admitted";
 
 export const ROWS_PER_REQUEST = 1000;
 
@@ -65,6 +66,7 @@ function must<T>(r: { data: T | null; error: { message: string } | null }, what:
 }
 
 export interface LedgerTeam extends TeamRef {
+  checked_in_at?: string | null;
   cash_cents: number | string;
   collateral_cents: number | string;
   disqualified: boolean;
@@ -76,17 +78,20 @@ export interface LedgerCompany extends CompanyRef {
 }
 
 export interface LedgerBase {
+  /** The teams that may be listed (pickers): with desk check-in on, only the checked-in ones (lib/admin/admitted.ts). */
   teams: LedgerTeam[];
+  /** Every team of the event: only to turn ids of rows into codes. */
+  allTeams: LedgerTeam[];
   companies: LedgerCompany[];
   rounds: RoundRef[];
 }
 
 /** The event's teams (with their cash), companies and rounds: what turns ids into codes, tickers and numbers. */
 export async function loadLedgerBase(sb: SupabaseClient, eventId: string): Promise<LedgerBase> {
-  const [teams, companies, rounds] = await Promise.all([
+  const [teams, companies, rounds, deskOn] = await Promise.all([
     sb
       .from("teams")
-      .select("id, code, track, name, cash_cents, collateral_cents, disqualified, disqualified_reason")
+      .select("id, code, track, name, cash_cents, collateral_cents, disqualified, disqualified_reason, checked_in_at")
       .eq("event_id", eventId)
       .order("code")
       .then((r) => must(r, "teams") as LedgerTeam[]),
@@ -102,8 +107,9 @@ export async function loadLedgerBase(sb: SupabaseClient, eventId: string): Promi
       .eq("event_id", eventId)
       .order("number")
       .then((r) => must(r, "rounds") as RoundRef[]),
+    deskCheckInOn(sb, eventId),
   ]);
-  return { teams, companies, rounds };
+  return { teams: admittedOnly(teams, deskOn), allTeams: teams, companies, rounds };
 }
 
 export const LEDGER_COLUMNS = "id, created_at, txn_id, kind, team_id, company_id, lot, cash_delta_cents, share_delta, price_cents, round_id, memo";

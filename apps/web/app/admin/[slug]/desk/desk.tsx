@@ -65,7 +65,20 @@ const fromTeam = (t: ListTeam, fallback: Track): Draft => ({
   extra: t.extra,
 });
 
-export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string; list: ListTeam[]; editable: boolean; canCheckOut: boolean }) {
+export function Desk({
+  eventId,
+  list,
+  nextFree,
+  editable,
+  canCheckOut,
+}: {
+  eventId: string;
+  list: ListTeam[];
+  /** Per track, the lowest card code nobody is checked in on (null when the track has no free card). */
+  nextFree?: Partial<Record<Track, string | null>>;
+  editable: boolean;
+  canCheckOut: boolean;
+}) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -152,7 +165,7 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
     <div className="space-y-6">
       {handed ? (
         <p className="guide-alert text-lg" data-testid="desk-handed">
-          Give them login card <b className="font-mono text-2xl">{handed}</b>
+          Checked in as <b className="font-mono text-2xl">{handed}</b> — hand over card <b className="font-mono text-2xl">{handed}</b>
         </p>
       ) : null}
       <ResultMessage result={result} />
@@ -185,6 +198,17 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
                   data-testid="desk-card"
                 />
               </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  className={buttonClass.secondary}
+                  disabled={!nextFree?.[draft.track]}
+                  onClick={() => setDraft({ ...draft, pick: nextFree?.[draft.track] ?? "" })}
+                  data-testid="desk-next-free"
+                >
+                  {nextFree?.[draft.track] ? `Next free card: ${nextFree[draft.track]}` : "No free card"}
+                </button>
+              </div>
             </div>
           )}
           <div className="grid gap-3 sm:grid-cols-2">

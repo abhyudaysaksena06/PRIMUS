@@ -5,6 +5,7 @@ import { rpc } from "@/lib/rpc";
 import { supabaseServer } from "@/lib/supabase/server";
 import { parseHealth, type AdminHealth, type HealthTeam, type PingRow } from "./health";
 import { fetchAll } from "./rounds";
+import { admittedOnly, deskCheckInOn } from "./admitted";
 
 export interface ErrorRow {
   id: number;
@@ -25,19 +26,19 @@ export const ERROR_ROWS = 50;
 
 export async function loadHealthData(eventId: string): Promise<HealthData> {
   const sb = await supabaseServer();
-  const [health, teams, pings, errors] = await Promise.all([
+  const [health, teams, pings, errors, deskOn] = await Promise.all([
     rpc("admin_health", { p_event: eventId }).then((r) => {
       if (!r.ok) throw new Error(`admin_health: ${r.message ?? r.code}`);
       return parseHealth(r.data);
     }),
     sb
       .from("teams")
-      .select("id, code, track")
+      .select("id, code, track, checked_in_at")
       .eq("event_id", eventId)
       .order("code")
       .then((r) => {
         if (r.error) throw new Error(`teams: ${r.error.message}`);
-        return r.data as HealthTeam[];
+        return r.data as (HealthTeam & { checked_in_at: string | null })[];
       }),
     fetchAll<PingRow>((from, to) =>
       sb
@@ -59,6 +60,8 @@ export async function loadHealthData(eventId: string): Promise<HealthData> {
         if (r.error) throw new Error(`error_log: ${r.error.message}`);
         return r.data as ErrorRow[];
       }),
+    deskCheckInOn(sb, eventId),
   ]);
-  return { health, teams, pings, errors };
+  // With desk check-in on, the cards not checked in yet are not teams of the event: they are not listed as silent.
+  return { health, teams: admittedOnly(teams, deskOn).map(({ id, code, track }) => ({ id, code, track })), pings, errors };
 }
