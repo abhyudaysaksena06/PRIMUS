@@ -5,7 +5,8 @@ import { loadBook, loadReleased } from "@/lib/team/market-data";
 import { BOOK_PUBLIC_FROM, BOOK_TITLES, openBooks, parseBookKind, verdict } from "@/lib/team/market";
 import { VerdictDetail } from "../verdict-detail";
 import { supabaseServer } from "@/lib/supabase/server";
-import { Badge, Notice, Panel } from "@/components/ui/ui";
+import { Badge, Notice } from "@/components/ui/ui";
+import { MarketCard } from "../card";
 import { Submission } from "../submission";
 import { CrisisCard } from "../crisis-card";
 import { BookTabs } from "../tabs";
@@ -26,7 +27,7 @@ export default async function BookPage({ searchParams }: PageProps<"/team/market
   const open = openBooks(status.phase, released);
   if (!open.includes(kind)) {
     return (
-      <div className="space-y-4">
+      <div className="market-board market-type space-y-4">
         <BookTabs open={open} current={kind} />
         <Notice>{BOOK_PUBLIC_FROM[kind]}</Notice>
       </div>
@@ -37,17 +38,17 @@ export default async function BookPage({ searchParams }: PageProps<"/team/market
   const entries = kind === "CRISIS" ? companies.filter((c) => c.crisis_card_id).length : book.submissions.size;
 
   return (
-    <div className="space-y-6">
+    <div className="market-board market-type space-y-6">
       <BookTabs open={open} current={kind} />
-      <Panel title={`${BOOK_TITLES[kind]} (${entries} of ${companies.length})`}>
+      <MarketCard title={`${BOOK_TITLES[kind]} (${entries} of ${companies.length})`}>
         <nav aria-label="Companies" className="flex flex-wrap gap-1.5">
           {companies.map((c) => (
-            <a key={c.id} href={`#${c.ticker}`} className="rounded bg-raised px-2 py-1 font-mono text-xs font-semibold text-paper hover:bg-phosphor-deep">
+            <a key={c.id} href={`#${c.ticker}`} className="inline-flex min-h-8 items-center rounded-[5px] border border-[#4a5662] bg-[var(--mx-black)] px-2.5 font-mono text-xs font-semibold text-paper hover:bg-raised">
               {c.ticker}
             </a>
           ))}
         </nav>
-      </Panel>
+      </MarketCard>
       {companies.map((c) => {
         const s = kind === "CRISIS" ? undefined : book.submissions.get(c.id);
         const score = book.scores.get(c.id);
@@ -55,7 +56,7 @@ export default async function BookPage({ searchParams }: PageProps<"/team/market
         const crisis = c.crisis_card_id ? book.crises.get(c.crisis_card_id) : undefined;
         return (
           <section key={c.id} id={c.ticker ?? c.id} className="scroll-mt-4" aria-label={`${c.ticker} ${BOOK_TITLES[kind].toLowerCase()}`}>
-            <Panel
+            <MarketCard
               title={
                 <span className="flex flex-wrap items-baseline gap-2">
                   <Link href={`/team/market/${c.ticker}`} className="font-mono underline underline-offset-2">
@@ -92,7 +93,7 @@ export default async function BookPage({ searchParams }: PageProps<"/team/market
                   {v ? <VerdictDetail v={v} /> : null}
                 </>
               )}
-            </Panel>
+            </MarketCard>
           </section>
         );
       })}

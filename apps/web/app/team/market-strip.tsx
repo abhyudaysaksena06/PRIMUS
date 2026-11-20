@@ -6,7 +6,7 @@ import { changeSinceIpoBp, toneOf } from "@/lib/display/board";
 import { bp, money } from "@/lib/format";
 import { supabaseServer } from "@/lib/supabase/server";
 
-const TONE = { up: "text-[var(--term-green)]", down: "text-[var(--term-red)]", flat: "text-muted" } as const;
+const TONE = { up: "text-[#00D68F]", down: "text-[#FF5364]", flat: "text-[#9aa5b1]" } as const;
 const ARROW = { up: "▲", down: "▼", flat: "▬" } as const;
 
 export interface StripQuote {
@@ -45,9 +45,9 @@ export function QuoteStrip({ quotes }: { quotes: StripQuote[] }) {
   const strip = quotes.map((q) => {
     const tone = toneOf(q.changeBp);
     return (
-      <span key={q.ticker} className="mr-6 inline-flex items-baseline gap-1.5 whitespace-nowrap">
-        <span className="font-bold text-[var(--term-amber)]">{q.ticker}</span>
-        <span className="text-paper tabular-nums">{money(q.price)}</span>
+      <span key={q.ticker} className="inline-flex items-baseline gap-1.5 whitespace-nowrap border-r border-white/10 px-4">
+        <span className="font-bold text-[color:var(--track-accent,#ffd84d)]">{q.ticker}</span>
+        <span className="tabular-nums text-[#e5ebf3]">{money(q.price)}</span>
         <span className={`tabular-nums ${TONE[tone]}`}>
           {ARROW[tone]}
           {bp(q.changeBp)}
@@ -56,12 +56,23 @@ export function QuoteStrip({ quotes }: { quotes: StripQuote[] }) {
     );
   });
   const seconds = Math.max(40, quotes.length * 3);
+  // Drawn like the demo's event-news belt: a fixed label cell, then the prices running past.
   return (
-    <div className="h-7 overflow-hidden border-t border-line bg-ink text-xs" role="marquee" aria-label="Prices since the IPO price" data-testid="market-strip">
-      <div className="msim-ticker-track flex h-full w-max items-center" style={{ ["--ticker-seconds" as string]: `${seconds}s` }}>
-        <div className="flex min-w-[100vw] items-center pl-4">{strip}</div>
-        <div className="flex min-w-[100vw] items-center pl-4" aria-hidden>
-          {strip}
+    <div
+      className="grid h-9 grid-cols-[auto_minmax(0,1fr)] overflow-hidden border-t border-[#343b46] bg-[#0b1017] font-mono text-xs font-semibold"
+      role="marquee"
+      aria-label="Prices since the IPO price"
+      data-testid="market-strip"
+    >
+      <span className="grid place-content-center border-r border-[#343b46] bg-[#141b24] px-3 text-[10px] uppercase tracking-[0.08em] text-[color:var(--track-accent,#ffd84d)]" aria-hidden>
+        Since IPO
+      </span>
+      <div className="min-w-0 overflow-hidden">
+        <div className="msim-ticker-track flex h-full w-max items-center" style={{ ["--ticker-seconds" as string]: `${seconds}s` }}>
+          <div className="flex min-w-[100vw] items-center">{strip}</div>
+          <div className="flex min-w-[100vw] items-center" aria-hidden>
+            {strip}
+          </div>
         </div>
       </div>
     </div>

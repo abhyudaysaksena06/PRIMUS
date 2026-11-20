@@ -6,7 +6,8 @@ import { loadMarketList, loadReleased } from "@/lib/team/market-data";
 import { marketLines, marketOpensText, openBooks, sign } from "@/lib/team/market";
 import { supabaseServer } from "@/lib/supabase/server";
 import { bp, money } from "@/lib/format";
-import { Badge, Notice, Panel, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Table, Td } from "@/components/ui/ui";
+import { MarketCard, MarketHeader } from "./card";
 import { Sparkline } from "@/components/ui/line-chart";
 import { BookTabs } from "./tabs";
 import { loadSectorRace } from "@/lib/team/sectors-data";
@@ -30,9 +31,11 @@ export default async function MarketPage() {
   if (!phaseReached(status.phase, "READING")) {
     const { data } = await sb.from("phases").select("starts_at").eq("event_id", event.id).eq("code", "READING").maybeSingle<{ starts_at: string }>();
     return (
-      <Panel title="Market">
-        <Notice>{marketOpensText(data?.starts_at)}</Notice>
-      </Panel>
+      <div className="market-board market-type">
+        <MarketCard title="Market">
+          <Notice>{marketOpensText(data?.starts_at)}</Notice>
+        </MarketCard>
+      </div>
     );
   }
   const [list, released, race, chart, openRound] = await Promise.all([
@@ -48,6 +51,11 @@ export default async function MarketPage() {
 
   return (
     <div className="market-board market-type space-y-6">
+      <MarketHeader
+        title="Market"
+        sub={`${lines.length} listed ${lines.length === 1 ? "company" : "companies"} · prices move at each clearing, crisis and score reveal`}
+        aside={list.lastRound ? <>Last cleared: <span className="font-semibold text-paper">round {list.lastRound.number}</span></> : "No round cleared yet"}
+      />
       <BookTabs open={openBooks(status.phase, released)} current="PRICES" />
       {priced.length ? (
         <section className="market-chart">
@@ -57,7 +65,7 @@ export default async function MarketPage() {
         </section>
       ) : null}
       {lines.length ? (
-        <Panel title="Market heatmap">
+        <MarketCard title="Market heatmap">
           <p className="mb-3 text-sm text-paper">
             {list.lastRound ? `Price moves from clearing round ${list.lastRound.number}.` : "Price moves appear after the first clearing."}
           </p>
@@ -69,15 +77,15 @@ export default async function MarketPage() {
             tag: own?.id === line.id ? "Yours" : undefined,
             href: `/team/market/${line.ticker}`,
           }))} />
-        </Panel>
+        </MarketCard>
       ) : null}
       {race ? (
-        <Panel title="Sector race">
+        <MarketCard title="Sector race">
           <p className="mb-3 text-sm text-paper">Each sector&apos;s average share-price change since its companies&apos; IPO. Which sector is winning?</p>
           <SectorRace race={race} mine={ctx.sector} />
-        </Panel>
+        </MarketCard>
       ) : null}
-      <Panel title={`Listed companies (${lines.length})`}>
+      <MarketCard title={`Listed companies (${lines.length})`}>
         {!released.PITCH ? (
           <p className="mb-3 text-sm text-paper">IPO prices are released at the IPO, with the pitch scores. Until then, read the pitch book.</p>
         ) : null}
@@ -129,7 +137,7 @@ export default async function MarketPage() {
           In ticker order. {list.lastRound ? `The last column is the move in round ${list.lastRound.number}, the last round cleared. ` : ""}Open a company for
           everything public about it and its price history, round by round.
         </p>
-      </Panel>
+      </MarketCard>
     </div>
   );
 }

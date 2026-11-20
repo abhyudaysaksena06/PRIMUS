@@ -244,24 +244,24 @@ function Quote({
       </dl>
       {live ? (
         <p className="text-sm" data-testid="indicative-price">
-          <span className="text-[#BACBB9]">Round {roundNumber} would clear at </span>
-          <b className="font-mono text-[color:var(--desk-accent)]">{money(now)}</b>
+          <span className="text-muted">Round {roundNumber} would clear at </span>
+          <b className="font-mono text-[color:var(--desk-accent,var(--market-accent))]">{money(now)}</b>
           <span className={tone}>
             {" "}
             ({move >= 0 ? "+" : "−"}
             {movePct.toFixed(1)}%)
           </span>
-          <span className="text-[#BACBB9]"> if no other order came</span>
+          <span className="text-muted"> if no other order came</span>
         </p>
       ) : null}
     </div>
   );
 }
 
-function QuoteFact({ label, value, tone = "text-[#F2F5F3]" }: { label: string; value: string; tone?: string }) {
+function QuoteFact({ label, value, tone = "text-paper" }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="min-w-0 rounded border border-white/10 bg-[#11110d] p-2">
-      <dt className="text-xs text-[#BACBB9]">{label}</dt>
+    <div className="min-w-0 rounded border border-white/10 bg-black/25 p-2">
+      <dt className="text-xs text-muted">{label}</dt>
       <dd className={`mt-1 break-words font-mono text-xs font-semibold tabular-nums ${tone}`}>{value}</dd>
     </div>
   );
