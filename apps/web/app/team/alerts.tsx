@@ -79,10 +79,10 @@ function remember(key: string, thresholds: number[]) {
 }
 
 const TONE = {
-  // Opaque cards (a toast sits over the page's own text), with a coloured left edge as the demo's alerts.
-  info: "border-line border-l-[3px] border-l-phosphor bg-raised text-phosphor",
-  good: "border-phosphor-dim border-l-[3px] border-l-phosphor bg-raised text-phosphor",
-  warn: "border-warn/60 border-l-[3px] border-l-warn bg-raised text-warn",
+  // The demo's alerts (a coloured left edge), on an opaque card: a toast sits over the page's own text.
+  info: "guide-alert",
+  good: "guide-alert guide-toast-good",
+  warn: "guide-alert guide-warning",
 } as const;
 
 export function Alerts({ tasks, track, teamId }: { tasks: AlertTask[]; track: Track; teamId: string }) {
@@ -136,19 +136,18 @@ export function Alerts({ tasks, track, teamId }: { tasks: AlertTask[]; track: Tr
     <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:left-auto sm:w-96" aria-live="polite" role="status" data-testid="alerts">
       {/* On a phone only the newest toast shows, so a stack never covers a form (the order ticket's button). */}
       {toasts.map((t, i) => (
-        <div
-          key={t.id}
-          className={`pointer-events-auto ${i < toasts.length - 1 ? "hidden sm:flex" : "flex"} w-full items-start gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg ${TONE[t.tone]}`}
-        >
-          <span className="flex-1 font-medium [overflow-wrap:anywhere]">{t.text}</span>
-          {t.href && t.href !== path ? (
-            <Link href={t.href} className="whitespace-nowrap font-semibold underline underline-offset-2">
-              Open
-            </Link>
-          ) : null}
-          <button type="button" aria-label="Dismiss" className="text-muted hover:text-phosphor" onClick={() => setToasts((all) => all.filter((x) => x.id !== t.id))}>
-            ×
-          </button>
+        <div key={t.id} className={`guide-toast pointer-events-auto ${i < toasts.length - 1 ? "hidden sm:block" : "block"} w-full`}>
+          <div className={`${TONE[t.tone]} flex items-start gap-3`}>
+            <span className="flex-1 font-semibold [overflow-wrap:anywhere]">{t.text}</span>
+            {t.href && t.href !== path ? (
+              <Link href={t.href} className="guide-btn secondary whitespace-nowrap">
+                Open
+              </Link>
+            ) : null}
+            <button type="button" aria-label="Dismiss" className="guide-toast-close" onClick={() => setToasts((all) => all.filter((x) => x.id !== t.id))}>
+              ×
+            </button>
+          </div>
         </div>
       ))}
     </div>
@@ -189,7 +188,7 @@ export function SoundToggle() {
       onClick={toggle}
       aria-pressed={on}
       title={on ? "Alert sound and vibration on" : "Alert sound and vibration off"}
-      className="rounded px-1.5 py-0.5 text-xs font-medium text-paper hover:bg-raised"
+      className="px-1.5 py-0.5 text-paper hover:text-[var(--track-accent)]"
       data-testid="sound-toggle"
     >
       {/* On a phone only the bell shows; the words stay for screen readers. */}

@@ -1,35 +1,24 @@
 "use client";
 
-// The steps of the crisis under way as a row of pills: done (✓), on now (with the time left) and later. The step on
-// now follows the server clock on the screen itself, so the row is right on every page without a re-read. On a phone
-// only the step on now is spelled out (the others show their tick or number) and the arrows are left out, so the row
-// takes one or two lines.
+// The steps of the crisis under way as a row of the demo's chips: done (✓), on now (with the time left) and later. The
+// step on now follows the server clock on the screen itself, so the row is right without a re-read. On a phone only
+// the step on now is spelled out (the others show their tick or number), so the row takes one or two lines.
 
 import { Countdown } from "@/components/ui/countdown";
 import { useDeadlineNow } from "@/lib/live/clock";
 import { stepStates, type CrisisStep } from "@/lib/team/crisis-steps";
 
-export function CrisisSteps({ steps, label, danger = false }: { steps: readonly CrisisStep[]; label: string; danger?: boolean }) {
+export function CrisisSteps({ steps, label }: { steps: readonly CrisisStep[]; label: string }) {
   const now = useDeadlineNow();
   const states = stepStates(steps, now);
-  const on = danger ? "border-danger bg-danger text-ink" : "border-phosphor bg-phosphor text-ink";
+  // The demo's chips: the step on now lit in the track's colour, the done ones ticked, the rest quiet.
   return (
-    <ol className="flex flex-wrap items-center gap-x-1 gap-y-1.5 text-sm" aria-label={label} data-testid="crisis-steps" suppressHydrationWarning>
+    <ol className="mt-1.5 flex flex-wrap items-center gap-1.5" aria-label={label} data-testid="crisis-steps" suppressHydrationWarning>
       {steps.map((s, i) => {
         const st = states[i]!;
         return (
           <li key={s.key} className="flex items-center gap-1" aria-current={st === "now" ? "step" : undefined} data-step={s.key} data-state={st} suppressHydrationWarning>
-            {i > 0 ? (
-              <span aria-hidden className="hidden text-muted sm:inline">
-                →
-              </span>
-            ) : null}
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-semibold ${
-                st === "now" ? on : st === "done" ? "border-phosphor-dim text-phosphor-mid" : "border-line text-muted"
-              }`}
-              suppressHydrationWarning
-            >
+            <span className={`guide-chip gap-1.5 ${st === "now" ? "active" : st === "later" ? "opacity-60" : ""}`} suppressHydrationWarning>
               <span aria-hidden suppressHydrationWarning>
                 {st === "done" ? "✓" : i + 1}
               </span>

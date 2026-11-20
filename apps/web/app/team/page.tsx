@@ -1,52 +1,98 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { phaseReached } from "@msim/engine";
+import { phaseReached, type Track } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { loadHomeData } from "@/lib/team/home-data";
 import { holdingsView, homePlan, teamTimeline, type HomeTask, type TaskState } from "@/lib/team/home";
 import { featureOn } from "@/lib/event-status";
 import { withAssigned } from "@/lib/team/assigned-data";
 import { loadPastRounds } from "@/lib/team/past-rounds-data";
+import type { PastRound } from "@/lib/team/past-rounds";
 import { MyTimeline } from "./my-timeline";
-import { PastRounds } from "./past-rounds";
-import { QrCard } from "./qr-card";
-import { clock, count, money } from "@/lib/format";
+import { bp, clock, count, money } from "@/lib/format";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { Countdown } from "@/components/ui/countdown";
-import { BulletinItem } from "./bulletins/bulletin";
-import { inThisRound } from "@/lib/team/focus";
+import { jobFor, stageInfo, stageOf, STEPS, type Stage } from "@/lib/team/focus";
 import { Glyph } from "@/components/ui/matrix/glyph";
 import { scoreNow } from "@/lib/team/badges";
 import { loadBadges } from "@/lib/team/badges-data";
-import { BadgesCard } from "./badges-card";
 import { loadPulse } from "@/lib/team/pulse-data";
-import { PulseCard } from "./pulse-card";
 import { Celebrations } from "./celebrations";
 import { BIG_MOVE_BP } from "@/lib/team/pulse";
-import { BentoGrid } from "@/components/ui/terminal-bento-grid";
 import { GuideMetric, GuidePageTitle, GuidePanel } from "@/components/guide/guide";
 import { loadCrisisReport } from "@/lib/team/report-data";
-import { CrisisReportCard } from "./crisis-report";
-import { HowToPlayCard } from "./how-to-play";
-import { stageOf } from "@/lib/team/focus";
+import { CrisisReportLine } from "./crisis-report";
+import { crisisHeadline, crisisSteps } from "@/lib/team/crisis-steps";
+import { CrisisSteps } from "./crisis-steps";
+import { PhaseEnd } from "./phase-end";
+import { BULLETIN_KIND_LABELS, type BulletinKind } from "@/lib/admin/content-bulletins";
 
 export const metadata: Metadata = { title: "Home" };
 
-const STATE: Record<TaskState, { icon: string; label: string; chip: string } | null> = {
-  todo: { icon: "📝", label: "To do", chip: "text-warn" },
-  waiting: { icon: "⏳", label: "Waiting for partners", chip: "text-phosphor-mid" },
-  done: { icon: "✅", label: "Done", chip: "text-phosphor" },
+const STATE: Record<TaskState, { icon: string; label: string } | null> = {
+  todo: { icon: "📝", label: "To do" },
+  waiting: { icon: "⏳", label: "Waiting for partners" },
+  done: { icon: "✅", label: "Done" },
   info: null,
 };
 
-// Home, kept simple: one big card with the thing to do now (or "all done"), a short checklist of the rest, three
-// tiles (cash, shares, squad), what comes next, and the latest news. Deadlines count down against the server clock;
-// the page re-reads itself when one passes, and while a squad window is open (a partner's confirmation or
-// submission sends no broadcast).
+const TRACK_WORD: Record<Track, string> = { PRODUCT: "Product", CONSULTING: "Consulting", FINANCE: "Finance" };
+const ROUNDS: Stage[] = ["ROUND_1", "ROUND_2", "ROUND_3"];
+/** The demo's workspace buttons (app/demo/dashboard), each to the real page for that round. */
+const WORKSPACE: Record<Track, { label: string; href: string; quiet?: boolean }[]> = {
+  PRODUCT: [
+    { label: "ROUND 1: IDEA & MVP →", href: "/team/squad" },
+    { label: "ROUND 2: CRISIS & HIRE →", href: "/team/crisis" },
+    { label: "ROUND 3: DRAFT & NEW MVP →", href: "/team/crisis#round-3" },
+  ],
+  CONSULTING: [
+    { label: "ROUND 1 CRISIS →", href: "/team/squad" },
+    { label: "ROUND 2 RESCUE →", href: "/team/crisis" },
+    { label: "ROUND 3 AUCTION & CRISIS →", href: "/team/crisis#round-3" },
+  ],
+  FINANCE: [
+    { label: "R1: CAPITAL →", href: "/team/trade/ipo", quiet: true },
+    { label: "R2: MVP DEALS →", href: "/team/crisis" },
+  ],
+};
+/** The demo's intro line under the greeting, per track, with the real company where there is one. */
+const INTRO: Record<Track, (own: string | null) => string> = {
+  PRODUCT: (own) =>
+    `Live workspace for ${own ?? "your squad's company"}. Build and pitch your MVP in Round 1, hire a consulting firm through each crisis in Round 2, and draft your final problem in Round 3.`,
+  CONSULTING: (own) =>
+    `Live consulting workspace for PRIMUS ’26${own ? `, in the squad of ${own}` : ""}. Solve your crisis case in Round 1, win clients and write their advice memos through each crisis in Round 2, and take on a final client in Round 3.`,
+  FINANCE: () =>
+    "Your Finance team starts with its fund's capital. Bid in the IPO in Round 1, read each crisis and the companies' answers in Round 2, and trade your portfolio on the Finance Desk through Round 3.",
+};
+
+/** The finished round's line: what was sent, its score and its price move, in a few words. */
+function pastLine(rounds: PastRound[], round: 1 | 2 | 3): string | null {
+  const mine = rounds.filter((r) => (r.title.startsWith("Crisis") ? 2 : r.title.startsWith("Round 3") ? 3 : 1) === round);
+  const bits = mine.flatMap((r) =>
+    r.entries.map((e) =>
+      [
+        e.label,
+        e.submission ? `${e.submission.auto_submitted ? "submitted for you" : "submitted"} ${clock(e.submission.submitted_at)}` : "nothing submitted",
+        e.score === null ? "score not released yet" : `score ${e.score}/100`,
+        e.moveBp !== null ? `${e.moveOf ?? "price"} ${bp(e.moveBp)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    ),
+  );
+  return bits.length ? bits.join("; ") : null;
+}
+
+// Home is the demo's dashboard (app/demo/dashboard), slot for slot, with the real figures: the greeting and its line,
+// three metric cards, then "Do this now" (the three rounds as numbered steps, the step on now with its time left,
+// the open tasks, the workspace buttons and three tiles) beside the live feed of bulletins, then the night at a
+// glance beside the latest news. Deadlines count down against the server clock; the page re-reads itself when one
+// passes, and while a squad window is open (a partner's confirmation or submission sends no broadcast).
 export default async function TeamHome() {
   const ctx = await loadTeamContext();
   const { team, squad, company, status } = ctx;
+  const format = ctx.event.format;
   const data = await loadHomeData(ctx);
   // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
   const facts = await withAssigned({ ...data.facts, submitLast5: featureOn(status, "submit_last_5") }, company?.id ?? null);
@@ -54,9 +100,10 @@ export default async function TeamHome() {
   // Every deadline of the night for this team, and the rounds already over (with what the team sent in them).
   const timeline = teamTimeline(facts);
   const closed = new Set(timeline.filter((i) => i.state === "past").map((i) => i.key));
-  const past = await loadPastRounds(ctx, (code) => closed.has(code));
+  const past = (await loadPastRounds(ctx, (code) => closed.has(code))) ?? [];
   const holdings = holdingsView(data.holdings, data.companies);
-  // The team's own score now, and its badges (both only about this team: the rankings stay hidden until the awards).
+  // The team's own score now (only about this team: the rankings stay hidden until the awards); its badges are
+  // announced by the pop-ups.
   const score = scoreNow(team.track, team.cash, holdings.total, company?.ipo_price ?? null);
   const badges = await loadBadges(score.value);
   const nowMs = data.facts.nowMs;
@@ -65,197 +112,307 @@ export default async function TeamHome() {
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   const squadWork = plan.now.some((t) => ["PROBLEM_PICK", "PITCH", "FEE", "DEAL", "PLAN", "FLASH", "HIRE", "OFFERS", "DRAFT"].includes(t.key) && t.state !== "done");
   const marketOpen = phaseReached(status.phase, "READING");
-  // The last trading round's headline (public prices only), once the market is open.
+  // The last trading round's move of the team's own company, for the pop-up.
   const pulse = marketOpen ? await loadPulse(ctx.event.id) : null;
-  // The big card: the first task still to do (they come in the order they close); the rest form the checklist.
+  // The first task still to do (they come in the order they close) leads the list.
   const main = plan.now.find((t) => t.state === "todo") ?? null;
-  // Coming up: only this round's deadlines (later rounds stay out of sight until they start).
-  const comingUp = plan.next.filter((n) => inThisRound(status.phase, n.key));
   const rest = plan.now.filter((t) => t !== main);
   // A PRIMUS event from Round 2: the team's own line per crisis (its scores, price moves, firm and stars).
-  const primusOn = ctx.event.format === "PRIMUS" && phaseReached(status.phase, "PRESSURE") && team.track !== "FINANCE";
+  const primusOn = format === "PRIMUS" && phaseReached(status.phase, "PRESSURE") && team.track !== "FINANCE";
   const report = primusOn
     ? await loadCrisisReport(ctx, data.facts.primus?.k ?? (phaseReached(status.phase, "CLOSE") ? 5 : null), data.facts.primus?.draft?.statement?.title ?? null)
     : null;
 
-  const trackWord = team.track === "PRODUCT" ? "Product" : team.track === "CONSULTING" ? "Consulting" : "Finance";
-  const ownLine = company?.ticker
-    ? `${company.name ?? company.ticker} (${company.ticker} · ${money(company.market_price)})`
-    : company
-      ? "your squad's company (named, with its ticker, on the PRD)"
-      : null;
+  // Where the night is: the round on now, the step of the night, and (PRIMUS Rounds 2 and 3) the crisis steps.
+  const stage = stageOf(status.phase);
+  const info = stageInfo(stage, format);
+  const primusRound = format === "PRIMUS" && (status.phase === "PRESSURE" || status.phase === "SATURATION");
+  const k = data.facts.primus?.k ?? null;
+  const step = primusRound ? crisisHeadline(status.phase, k, null) : STEPS[status.phase];
+  const steps =
+    primusRound && k !== null
+      ? crisisSteps(
+          team.track,
+          k,
+          Object.fromEntries(data.facts.deadlines.map((d) => [d.code, d.at])),
+          k === 5 && (data.facts.primus?.workOpen === true || data.facts.primus?.hiringK === 5),
+        )
+      : [];
+  const at = ROUNDS.indexOf(stage);
 
-  // The demo's dashboard (app/demo/dashboard): the greeting, three metric cards, then "Do this now" beside the live
-  // feed, then the night at a glance beside the latest news.
+  const trackWord = TRACK_WORD[team.track];
+  const ownLine = company?.ticker
+    ? `${company.name ?? company.ticker} (${company.ticker} · ${money(company.market_price)}/sh)`
+    : company
+      ? (company.name ?? null)
+      : null;
+  const squadLabel = squad ? `Squad ${String(squad.number).padStart(2, "0")}` : null;
+  const kindOf = (kd: string): string => BULLETIN_KIND_LABELS[(kd in BULLETIN_KIND_LABELS ? kd : "GENERAL") as BulletinKind].toUpperCase();
+
+  const squadValue = squad ? (
+    <span data-testid="home-squad">{squadLabel}</span>
+  ) : (
+    <span data-testid="home-squad">NOT DRAWN</span>
+  );
+  const squadDelta = squad ? (
+    <span data-testid="home-company">
+      {company?.ticker ? (
+        <>
+          {company.name ?? company.ticker} ({company.ticker})
+          {marketOpen ? (
+            <>
+              {" · "}
+              <Link href={`/team/market/${company.ticker}`} className="underline underline-offset-2">
+                IN THE MARKET
+              </Link>
+            </>
+          ) : null}
+        </>
+      ) : (
+        "NAMED, WITH ITS TICKER, ON THE PRD"
+      )}
+    </span>
+  ) : (
+    <>Not drawn yet.{data.facts.phaseStarts.SQUAD_DRAW ? ` Squads are drawn at ${clock(data.facts.phaseStarts.SQUAD_DRAW)}.` : ""}</>
+  );
+  const scoreCard = (
+    <GuideMetric
+      label={team.track === "CONSULTING" ? "EARNED SO FAR" : "YOUR SCORE NOW"}
+      value={score.value === null ? "—" : money(score.value)}
+      valueTestId="score-now-value"
+      delta={
+        score.changeBp !== null ? (
+          <span data-testid="score-now-change">
+            {score.changeBp >= 0 ? "▲ +" : "▼ "}
+            {(score.changeBp / 100).toFixed(2)}% SINCE THE START
+          </span>
+        ) : (
+          "ONLY YOUR OWN SCORE: RANKINGS ARE REVEALED AT THE AWARDS"
+        )
+      }
+    />
+  );
+  const holdingsWords = holdings.unpriced
+    ? `${count(holdings.unpriced)} ${holdings.unpriced === 1 ? "LINE" : "LINES"} WITHOUT A PRICE UNTIL THE IPO`
+    : `${count(holdings.lines.length)} ${holdings.lines.length === 1 ? "LINE" : "LINES"} HELD`;
+
+  // The three tiles under the workspace buttons (the demo's guide-metric tiles).
+  const tiles: [string, string][] =
+    team.track === "PRODUCT"
+      ? [
+          ["SHARE PRICE", company?.ticker ? money(company.market_price) : "—"],
+          ["CASH", money(team.cash)],
+          ["SHARES WORTH", money(holdings.total)],
+        ]
+      : team.track === "CONSULTING"
+        ? [
+            ["TEAM", team.code],
+            ["EARNED", score.value === null ? "—" : money(score.value)],
+            ["SQUAD", squad ? (company?.ticker ?? squadLabel ?? "—") : "—"],
+          ]
+        : [
+            ["CASH", money(team.cash)],
+            ["SHARES WORTH", money(holdings.total)],
+            ["LINES", count(holdings.lines.length)],
+          ];
+
   return (
     <div className="guide-home">
       <RefreshAt at={times[0] ?? null} />
       <AutoRefresh everyMs={15_000} active={squadWork} />
 
-      {/* The greeting is a line, not a heading: the page's headings stay as they were (the team code is the h1). */}
+      {/* The greeting is the demo's page head; it is a line, not a heading (the team code is the page's h1). */}
       <GuidePageTitle
         as="p"
         eyebrow={`TEAM HOME / ${team.track} TRACK · ${team.code}`}
         title={`Good evening, ${team.name || `Team ${team.code}`}.`}
-        sub={
-          ownLine
-            ? `Live ${trackWord.toLowerCase()} workspace for ${ownLine}. Everything here is the live event: your tasks, your money and the news as it is published.`
-            : `Live ${trackWord.toLowerCase()} workspace. Everything here is the live event: your tasks, your money and the news as it is published.`
-        }
+        sub={INTRO[team.track](ownLine)}
       />
 
-      <HowToPlayCard track={team.track} format={ctx.event.format} open={stageOf(status.phase) === "BEFORE"} sector={ctx.sector} />
-
-      <ScoreNow track={team.track} score={score} />
-
-      <div className="guide-grid three mt-4">
-        <GuideMetric
-          label="CASH"
-          value={<span data-testid="home-cash">{money(team.cash)}</span>}
-          delta={team.track === "FINANCE" ? `COLLATERAL LOCKED ${money(team.collateral)}` : "AVAILABLE NOW"}
-        />
-        <GuideMetric
-          label={holdings.closing ? "SHARES (CLOSING PRICES)" : "SHARES WORTH"}
-          value={<span data-testid="home-holdings-value">{money(holdings.total)}</span>}
-          delta={
-            holdings.unpriced
-              ? `${count(holdings.unpriced)} ${holdings.unpriced === 1 ? "LINE" : "LINES"} WITHOUT A PRICE UNTIL THE IPO`
-              : `${count(holdings.lines.length)} ${holdings.lines.length === 1 ? "LINE" : "LINES"} HELD`
-          }
-        />
-        <div className="guide-metric">
-          <small>YOUR SQUAD</small>
-          {squad ? (
-            <>
-              <b data-testid="home-squad">Squad {String(squad.number).padStart(2, "0")}</b>
-              <span data-testid="home-company">
-                {company?.ticker ? (
-                  <>
-                    {company.name ?? company.ticker} ({company.ticker})
-                    {marketOpen ? (
-                      <>
-                        {" · "}
-                        <Link href={`/team/market/${company.ticker}`} className="underline underline-offset-2">
-                          in the market
-                        </Link>
-                      </>
-                    ) : null}
-                  </>
-                ) : (
-                  "Named, with its ticker, on the PRD (by the pitch deadline)."
-                )}
-              </span>
-            </>
-          ) : (
-            <>
-              <b>NOT DRAWN</b>
-              <span data-testid="home-squad">
-                Not drawn yet.
-                {data.facts.phaseStarts.SQUAD_DRAW ? ` Squads are drawn at ${clock(data.facts.phaseStarts.SQUAD_DRAW)}.` : ""}
-              </span>
-            </>
-          )}
+      {team.track === "FINANCE" ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link className="guide-btn" href="/team/crisis">
+            OPEN ROUND 2: PRODUCT MVPs &amp; SHARE DEALS →
+          </Link>
+          <Link className="guide-btn secondary" href="/team/trade">
+            OPEN FINANCE DESK →
+          </Link>
+          <Link className="guide-chip" href="/team/market">
+            Round 3 trading desk
+          </Link>
         </div>
+      ) : null}
+
+      <div className={`guide-grid three ${team.track === "FINANCE" ? "mt-4" : ""}`}>
+        {team.track === "FINANCE" ? (
+          <>
+            <GuideMetric
+              label="AVAILABLE CASH"
+              value={<span data-testid="home-cash">{money(team.cash)}</span>}
+              delta={`COLLATERAL LOCKED ${money(team.collateral)}`}
+            />
+            {scoreCard}
+            <GuideMetric
+              label={holdings.closing ? "SHARES (CLOSING PRICES)" : "SHARES & PORTFOLIO"}
+              value={<span data-testid="home-holdings-value">{money(holdings.total)}</span>}
+              delta={
+                <>
+                  {holdingsWords} · {squadValue}
+                </>
+              }
+            />
+          </>
+        ) : (
+          <>
+            <GuideMetric
+              label={team.track === "PRODUCT" ? "CASH & SHARES" : "CASH & FEE SHARES"}
+              value={<span data-testid="home-cash">{money(team.cash)}</span>}
+              delta={
+                <>
+                  {holdings.closing ? "SHARES AT CLOSING PRICES " : "SHARES WORTH "}
+                  <span data-testid="home-holdings-value">{money(holdings.total)}</span> · {holdingsWords}
+                </>
+              }
+            />
+            {scoreCard}
+            <GuideMetric label="YOUR SQUAD" value={squadValue} delta={squadDelta} />
+          </>
+        )}
       </div>
 
       <div className="guide-grid two mt-4">
-        <GuidePanel title="Do this now" tag={main ? "LIVE TASK" : "ALL CLEAR"}>
-          {main ? (
-            <ul aria-label="What to do now">
-              <BigTask t={main} />
+        <GuidePanel title="Do this now" tag={main ? "LIVE TASK" : "LIVE END-TO-END WORKFLOW"}>
+          <section className="guide-alert guide-warning" aria-label="Where we are">
+            <b>
+              {trackWord} three-round workflow · {info.round ? `Round ${info.round} of 3 · ${info.title}` : info.title}
+            </b>
+            <br />
+            {ROUNDS.map((r, i) => {
+              const n = (i + 1) as 1 | 2 | 3;
+              const done = i < at || stage === "RESULTS";
+              const now = i === at;
+              const pastWords = pastLine(past, n);
+              return (
+                <div key={r} className={`mt-1.5 ${now ? "font-semibold" : done ? "" : "opacity-75"}`} data-state={done ? "done" : now ? "now" : "later"}>
+                  {n}. <b>Round {n}:</b>{" "}
+                  {now ? (
+                    <>
+                      {step.name}
+                      {status.phase_ends_at ? (
+                        <>
+                          {" · "}
+                          <PhaseEnd endsAt={status.phase_ends_at} phase={status.phase} gate={status.gate} next={status.next_phase} variant="left" className="" />
+                        </>
+                      ) : null}
+                      <span className="block font-normal opacity-90">{step.what}</span>
+                      {steps.length ? <CrisisSteps steps={steps} label={k === 5 ? "Steps of Round 3" : `Steps of crisis ${k}`} /> : null}
+                    </>
+                  ) : done ? (
+                    <>✓ {pastWords ?? "Done."}</>
+                  ) : (
+                    jobFor(team.track, r, format)
+                  )}
+                  {n === 2 && report && (now || done) ? <CrisisReportLine report={report} /> : null}
+                  {n === 3 && report && now && !steps.length ? <CrisisReportLine report={report} /> : null}
+                </div>
+              );
+            })}
+            <p className="mt-2 border-t border-current/20 pt-2" data-testid="your-job">
+              <Glyph e="🎯" /> Your job: {jobFor(team.track, stage, format)}
+            </p>
+          </section>
+
+          {main ? null : (
+            <p className="guide-muted mt-3" data-testid="home-idle">
+              {plan.idle}
+            </p>
+          )}
+          {plan.now.length ? (
+            <ul aria-label="What to do now" className="mt-3 space-y-2">
+              {main ? <TaskRow t={main} big /> : null}
               {rest.map((t) => (
-                <SmallTask key={t.key} t={t} />
+                <TaskRow key={t.key} t={t} />
               ))}
             </ul>
-          ) : (
-            <>
-              <div className="guide-alert guide-warning">
-                <h3 className="text-[13px] font-bold">{plan.now.length ? "Nothing to press right now" : "Nothing to do yet"}</h3>
-                <p className="mt-1" data-testid="home-idle">
-                  {plan.idle}
-                </p>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <b className="text-sm">
+                {trackWord} Workspace ({team.code})
+              </b>
+              <p className="guide-muted mt-1">
+                {team.track === "FINANCE" ? "Jump directly to Round 1 Capital, Round 2 MVP Share Deals, or the Finance Desk." : "Jump directly to Round 1, Round 2, Round 3 or Live Q&A."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {WORKSPACE[team.track].map((w) => (
+                <Link key={w.label} className={`guide-btn ${w.quiet ? "secondary" : ""}`} href={w.href}>
+                  {w.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {tiles.map(([label, value]) => (
+              <div className="guide-metric" key={label}>
+                <small>{label}</small>
+                <b className="text-lg [overflow-wrap:anywhere]">{value}</b>
               </div>
-              {plan.now.length ? (
-                <ul aria-label="What to do now" className="mt-3">
-                  {plan.now.map((t) => (
-                    <SmallTask key={t.key} t={t} />
-                  ))}
-                </ul>
-              ) : null}
-            </>
-          )}
+            ))}
+          </div>
         </GuidePanel>
 
-        <GuidePanel
-          title="Latest news"
-          tag={
-            <Link href="/team/bulletins" className="underline underline-offset-2">
-              All bulletins
-            </Link>
-          }
-          aria-label="Latest news"
-        >
+        <GuidePanel title="Live 3-track event feed" tag="BULLETINS · REAL-TIME" aria-label="Latest news">
           {data.bulletins.length === 0 ? (
             <p className="guide-muted">No bulletins yet.</p>
           ) : (
-            <ul className="guide-scroll-box compact" aria-label="Latest bulletins">
+            <ul className="guide-scroll-box compact space-y-2" aria-label="Latest bulletins">
               {data.bulletins.map((b) => (
-                <li key={b.id}>
-                  <BulletinItem b={b} clamp />
+                <li key={b.id} className="guide-feed-item">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="guide-chip">{kindOf(b.kind)}</span>
+                    <time dateTime={b.published_at} className="guide-feed-time">
+                      {clock(b.published_at, true)} IST
+                    </time>
+                  </div>
+                  <p className="mt-1.5 text-[11px] font-bold">{b.title}</p>
+                  {b.body ? <p className="guide-muted mt-1 line-clamp-3 whitespace-pre-wrap">{b.body}</p> : null}
                 </li>
               ))}
             </ul>
           )}
         </GuidePanel>
       </div>
-
-      {report ? (
-        <div className="mt-4">
-          <BentoGrid>
-            <CrisisReportCard report={report} />
-          </BentoGrid>
-        </div>
-      ) : null}
-
-      {past && past.length > 0 ? (
-        <div className="mt-4">
-          <PastRounds rounds={past} />
-        </div>
-      ) : null}
 
       <div className="guide-grid two mt-4">
-        <MyTimeline items={timeline} />
-        <GuidePanel title="Coming up this round" tag="IST" aria-label="Coming up this round">
-          {comingUp.length === 0 ? (
-            <p className="guide-muted">Nothing else this round.</p>
+        <MyTimeline items={timeline} tag={`${team.track} IST TIMETABLE`} />
+        <GuidePanel title="Latest news" tag="EVENT-WIDE">
+          {data.bulletins.length === 0 ? (
+            <div className="guide-alert">Announcements appear here as they are published.</div>
           ) : (
-            <ul aria-label="Coming up">
-              {comingUp.map((n) => (
-                <li key={n.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-[var(--line-neutral)] py-2.5 text-[12px] last:border-0">
-                  <span className="min-w-0">
-                    {n.href ? (
-                      <Link href={n.href} className="font-semibold underline-offset-2 hover:underline">
-                        {n.title}
-                      </Link>
-                    ) : (
-                      <span className="font-semibold">{n.title}</span>
-                    )}
-                  </span>
-                  <span className="guide-task-due">
-                    {clock(n.at)} · in <Countdown to={n.at} passed="now" />
-                  </span>
-                </li>
+            <div className="space-y-3">
+              {data.bulletins.slice(0, 2).map((b, i) => (
+                <div key={b.id} className={`guide-alert ${i === 0 ? "guide-warning" : ""}`}>
+                  <b>
+                    {b.title.toUpperCase()} · {clock(b.published_at)} IST
+                  </b>
+                  {b.body ? (
+                    <>
+                      <br />
+                      <span className="line-clamp-3">{b.body}</span>
+                    </>
+                  ) : null}
+                </div>
               ))}
-            </ul>
+            </div>
           )}
+          <Link href="/team/bulletins" className="guide-accent-link mt-4 inline-block text-xs">
+            Open all news →
+          </Link>
         </GuidePanel>
       </div>
 
-      {pulse ? (
-        <div className="mt-4">
-          <PulseCard pulse={pulse} mine={company?.ticker ?? null} />
-        </div>
-      ) : null}
       <Celebrations
         teamId={team.id}
         badges={(badges ?? []).filter((b) => b.earned).map((b) => ({ key: b.key, icon: b.icon, name: b.name }))}
@@ -265,49 +422,6 @@ export default async function TeamHome() {
         })()}
       />
 
-      <div className="guide-grid two mt-4">
-        <GuidePanel title="Your shares" tag={`${count(holdings.lines.length)} LINES`} aria-label="Your shares">
-          {holdings.lines.length === 0 ? (
-            <p className="guide-muted">{squad ? "No shares." : "Shares are issued at the squad draw."}</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="guide-table" aria-label="Your holdings">
-                <thead>
-                  <tr>
-                    {["Company", "Lot", "Shares", "Price", "Value"].map((h) => (
-                      <th key={h} scope="col">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {holdings.lines.map((l) => (
-                    <tr key={l.key}>
-                      <td className="font-mono font-semibold">{l.ticker ?? <span className="font-sans font-normal">{l.name}</span>}</td>
-                      <td>{l.lotLabel}</td>
-                      <td className="text-right font-mono">{count(l.qty)}</td>
-                      <td className="text-right font-mono">{money(l.price)}</td>
-                      <td className={`text-right font-mono ${l.value !== null && l.value < 0 ? "text-danger-soft" : ""}`}>{money(l.value)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {holdings.lines.some((l) => l.lot === "SHORT") ? (
-            <p className="guide-muted mt-2">A short is shares owed: its value is what covering it would cost now.</p>
-          ) : null}
-        </GuidePanel>
-        <QrCard track={team.track} />
-      </div>
-
-      {badges ? (
-        <div className="mt-4">
-          <BadgesCard badges={badges} />
-        </div>
-      ) : null}
-
       {status.paused ? (
         <p className="guide-alert guide-warning mt-4">While the event is paused, countdowns keep running but no deadline passes; each moves later on resume.</p>
       ) : null}
@@ -315,90 +429,43 @@ export default async function TeamHome() {
   );
 }
 
-/** The team's own value now and how it has moved since its start (a consultancy shows what it has earned): the
- *  demo's metric card, full width. */
-function ScoreNow({ track, score }: { track: string; score: ReturnType<typeof scoreNow> }) {
-  if (score.value === null) return null;
-  const up = score.changeBp !== null && score.changeBp >= 0;
-  return (
-    <section className="guide-metric guide-score-now mt-4 flex flex-wrap items-center justify-between gap-3" aria-label="Your score now" data-testid="score-now">
-      <div>
-        <small>{track === "CONSULTING" ? "EARNED SO FAR" : "YOUR SCORE NOW"}</small>
-        <b data-testid="score-now-value">{money(score.value)}</b>
-      </div>
-      {score.changeBp !== null ? (
-        <p className={`guide-chip ${up ? "" : "guide-chip-down"}`} data-testid="score-now-change">
-          {up ? "▲ +" : "▼ "}
-          {(score.changeBp / 100).toFixed(2)}% <span className="ml-1 opacity-70">since the start</span>
-        </p>
-      ) : (
-        <p className="guide-muted">Only your own score: who is winning stays a secret until the awards!</p>
-      )}
-    </section>
-  );
-}
-
-function Due({ t }: { t: HomeTask }) {
-  if (!t.due) return null;
-  return (
-    <p className="guide-task-due">
-      {t.dueLabel} · {clock(t.due)}
-      <b>
-        <Countdown to={t.due} passed="closed" />
-      </b>
-    </p>
-  );
-}
-
-/** The one thing to do now: the demo's amber alert, with the time left and the demo's button. */
-function BigTask({ t }: { t: HomeTask }) {
-  return (
-    <li className="guide-alert guide-warning guide-task-big mb-3" data-testid={`task-${t.key}`} data-state={t.state}>
-      <p className="mx-taskbar-pill">
-        <Glyph e="📝" spoken /> Do this now
-      </p>
-      {/* On a phone the countdown sits under the text, so the text keeps the full width. */}
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h3>{t.title}</h3>
-          <p className="mt-1.5 text-[12px] leading-relaxed opacity-90">{t.detail}</p>
-        </div>
-        <Due t={t} />
-      </div>
-      {t.href ? (
-        <Link href={t.href} className="guide-btn mt-4">
-          {t.linkLabel}
-          <span aria-hidden> →</span>
-        </Link>
-      ) : null}
-    </li>
-  );
-}
-
-/** Everything else for now, as the demo's feed rows: a state chip, the title and a line, the time and a button. */
-function SmallTask({ t }: { t: HomeTask }) {
+/** A task as the demo's feed row: a state chip, the title and a line, the time left and the demo's button. The first
+ *  one to do is lit in the track's colour. */
+function TaskRow({ t, big = false }: { t: HomeTask; big?: boolean }) {
   const st = STATE[t.state];
   return (
-    <li className="guide-task-row" data-testid={`task-${t.key}`} data-state={t.state}>
-      <div className="min-w-[12rem] flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          {st ? (
-            <span className="guide-chip">
-              <Glyph e={st.icon} /> {t.stateLabel ?? st.label}
-            </span>
-          ) : null}
-          <h3>{t.title}</h3>
+    <li className={`guide-feed-item ${big ? "is-now" : ""}`} data-testid={`task-${t.key}`} data-state={t.state}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {big ? (
+              <span className="guide-chip active">
+                <Glyph e="📝" spoken /> Do this now
+              </span>
+            ) : st ? (
+              <span className="guide-chip">
+                <Glyph e={st.icon} /> {t.stateLabel ?? st.label}
+              </span>
+            ) : null}
+            <h3 className="text-[12px] font-bold">{t.title}</h3>
+          </div>
+          <p className="guide-muted mt-1">{t.detail}</p>
         </div>
-        <p className="guide-muted mt-1">{t.detail}</p>
-      </div>
-      <div className="flex items-center gap-3">
-        <Due t={t} />
-        {t.href ? (
-          <Link href={t.href} className={`guide-btn ${t.state === "todo" ? "" : "secondary"}`}>
-            {t.linkLabel}
-          </Link>
+        {t.due ? (
+          <p className="guide-task-due">
+            {t.dueLabel} · {clock(t.due)}
+            <b>
+              <Countdown to={t.due} passed="closed" />
+            </b>
+          </p>
         ) : null}
       </div>
+      {t.href ? (
+        <Link href={t.href} className={`guide-btn mt-2.5 ${big || t.state === "todo" ? "" : "secondary"}`}>
+          {t.linkLabel}
+          {big ? <span aria-hidden> →</span> : null}
+        </Link>
+      ) : null}
     </li>
   );
 }

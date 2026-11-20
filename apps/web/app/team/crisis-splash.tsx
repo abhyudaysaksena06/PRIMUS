@@ -11,8 +11,7 @@ import type { Track } from "@msim/engine";
 import { useServerNow } from "@/lib/live/clock";
 import { cardKey, cardLine, popupNow, revealKey, revealLines, type CrisisPopups, type RevealNotice, type SplashCard } from "@/lib/team/crisis-popup";
 import { Glyph } from "@/components/ui/matrix/glyph";
-import FocusFrameBorder from "@/components/ui/shine-border-06";
-import { CrisisCallouts, crisisParts } from "./crisis-focus-card";
+import { crisisParts } from "./crisis-focus-card";
 
 export type { CrisisPopups, RevealNotice, SplashCard };
 
@@ -54,9 +53,11 @@ export function CrisisSplash({ card, own, popups = null }: { card: SplashCard | 
     setClosed((c) => [...c, key]);
   };
   const k = show.kind === "card" ? show.card.k : show.reveal.k;
+  // The demo's pop-up (app/demo/rescue): a dimmed backdrop and one of the demo's panels, the crisis in its alerts and
+  // the demo's buttons.
   return (
     <div
-      className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/85 p-4 motion-safe:animate-[fadein_.25s_ease-out]"
+      className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain bg-black/80 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label={k === 5 ? "Round 3" : `Crisis ${k}`}
@@ -65,25 +66,25 @@ export function CrisisSplash({ card, own, popups = null }: { card: SplashCard | 
     >
       {/* A long card (one with a twist) scrolls on a small phone instead of being cut off. */}
       <div className="flex min-h-full items-center justify-center">
-        {/* The card in the pulsing focus frame (components/ui/shine-border-06), in danger red. */}
-        <FocusFrameBorder
-          color="var(--color-danger)"
-          duration={2.4}
-          className="w-full max-w-xl motion-safe:animate-[cardflip_.6s_ease-out]"
-          contentClassName="border-2 border-danger bg-ink shadow-[0_0_60px_rgba(255,59,59,.35)]"
-        >
-          <div className="p-6 text-center">
+        <section className="guide-panel guide-popup">
+          <div className="guide-panel-head">
+            <h2>
+              <Glyph e="🚨" /> {show.kind === "card" ? (show.card.k === 5 ? "Round 3" : `Crisis ${show.card.k} of 4`) : "New crisis"}
+            </h2>
+            <span>{show.kind === "card" ? show.card.category.toUpperCase() : "LIVE · ALL TRACKS"}</span>
+          </div>
+          <div className="guide-panel-body">
             {show.kind === "card" ? <CardBody card={show.card} line={cardLine(own, popups)} /> : <RevealBody reveal={show.reveal} track={popups!.track} />}
-            <div className="mt-5 flex flex-wrap justify-center gap-3">
-              <Link href="/team/crisis" onClick={close} className="mx-key mx-key-solid rounded-xl px-5 py-3 text-base font-extrabold">
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link href="/team/crisis" onClick={close} className="guide-btn">
                 Open the crisis room →
               </Link>
-              <button type="button" onClick={close} className="mx-key mx-key-quiet rounded-xl px-5 py-3 text-base">
+              <button type="button" onClick={close} className="guide-btn secondary">
                 Got it
               </button>
             </div>
           </div>
-        </FocusFrameBorder>
+        </section>
       </div>
     </div>
   );
@@ -93,19 +94,23 @@ function CardBody({ card, line }: { card: SplashCard; line: string }) {
   const parts = crisisParts(card.body);
   return (
     <>
-      <p className="font-mono text-sm font-bold uppercase tracking-[0.3em] text-danger-soft">{card.k === 5 ? "Round 3" : `Crisis ${card.k} of 4`}</p>
-      <p className="mt-3 text-6xl text-danger" aria-hidden>
-        <Glyph e="🚨" />
-      </p>
-      <p className="mt-3 text-xs font-bold uppercase tracking-widest text-danger-soft">{card.category}</p>
-      <h2 className="mt-1 text-3xl font-extrabold leading-tight text-[var(--term-amber)]">{card.title}</h2>
-      <p className={`mt-3 whitespace-pre-wrap text-base text-paper ${parts.situation.length > 220 ? "text-left" : ""}`}>{parts.situation}</p>
-      {parts.twist || parts.decide ? (
-        <div className="mt-4 flex flex-col gap-3">
-          <CrisisCallouts twist={parts.twist} decide={parts.decide} />
+      <p className="guide-popup-title">{card.title}</p>
+      <p className="guide-muted mt-2 whitespace-pre-wrap text-[12px]">{parts.situation}</p>
+      {parts.twist ? (
+        <div className="guide-alert guide-warning mt-3" data-testid="crisis-twist">
+          <b>THE TWIST</b>
+          <br />
+          <span className="whitespace-pre-wrap">{parts.twist}</span>
         </div>
       ) : null}
-      <p className="mt-4 rounded-lg border border-danger/60 px-3 py-2 text-sm font-semibold text-danger-soft">{line}</p>
+      {parts.decide ? (
+        <div className="guide-alert guide-danger mt-3" data-testid="crisis-decide">
+          <b>YOUR PLAN MUST DECIDE</b>
+          <br />
+          <span className="whitespace-pre-wrap">{parts.decide}</span>
+        </div>
+      ) : null}
+      <p className="guide-alert guide-danger mt-3 font-semibold">{line}</p>
     </>
   );
 }
@@ -114,16 +119,14 @@ function RevealBody({ reveal, track }: { reveal: RevealNotice; track: Track }) {
   const { title, lines } = revealLines(reveal, track);
   return (
     <>
-      <p className="font-mono text-sm font-bold uppercase tracking-[0.3em] text-danger-soft">New crisis</p>
-      <p className="mt-3 text-6xl text-danger" aria-hidden>
-        <Glyph e="🚨" />
-      </p>
-      <h2 className="mt-3 text-3xl font-extrabold uppercase leading-tight text-[var(--term-amber)]">{title}</h2>
-      {lines.map((l) => (
-        <p key={l} className="mt-3 text-base text-paper">
-          {l}
-        </p>
-      ))}
+      <p className="guide-popup-title">{title}</p>
+      <div className="guide-alert guide-danger mt-3">
+        {lines.map((l, i) => (
+          <p key={l} className={i ? "mt-1.5" : undefined}>
+            {l}
+          </p>
+        ))}
+      </div>
     </>
   );
 }
