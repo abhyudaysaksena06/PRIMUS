@@ -9,6 +9,8 @@ import { clock, money } from "@/lib/format";
 import type { TeamContext } from "@/lib/team/context";
 import type { CrisisRoomData } from "@/lib/team/crisis-data";
 import {
+  DRAFT_PICKERS,
+  DRAFT_RULE,
   FIRM_CLIENTS_PER_SUBROUND,
   draftState,
   feeBand,
@@ -52,9 +54,16 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   const sent = ws && planType ? currentSubmission(ws.submissions, planType) : null;
   const rateable = mine ? data.engagements.filter((e) => e.company_id === mine.id && ratingOpen(e.k, data.deadlines, nowMs, pause)) : [];
   const draft = draftState(data.picks, mine?.id ?? null);
-  // A missed pick: a random statement of the sector with room (switch draft_random_fallback), else the least crowded.
+  // A missed pick: a random statement no picker has taken yet (by sector, migration 088; switch draft_random_fallback),
+  // else the least crowded (by sector: also one nobody has picked).
   const randomDefault = featureOn(ctx.status, "draft_random_fallback");
-  const missed = randomDefault ? "a random statement of your sector that still has room" : "the statement with the fewest companies";
+  const missed = draft.bySector
+    ? randomDefault
+      ? "a random statement nobody has picked yet"
+      : "the lowest-numbered statement nobody has picked yet"
+    : randomDefault
+      ? "a random statement of your sector that still has room"
+      : "the statement with the fewest companies";
   const counts = statementCounts(data.picks);
   const myStatement = draft.mine?.statement_id ? data.statements.find((s) => s.id === draft.mine!.statement_id) : undefined;
   const band = k === 5 ? feeBand(ctx.team.cash) : null;
@@ -141,25 +150,38 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
               ? `You work on statement ${myStatement.number}: ${myStatement.title}.`
               : draft.myTurn
                 ? "It is your pick: choose now."
-                : draft.mine
-                  ? `${draft.ahead === 1 ? "1 company picks" : `${draft.ahead} companies pick`} before you. Read the statements while you wait.`
-                  : "The draft order appears when Round 3 starts."
+                : draft.auto
+                  ? `You do not pick: you are given a statement at random when your sector's ${DRAFT_PICKERS} pickers are done.`
+                  : draft.mine
+                    ? `${draft.ahead === 1 ? "1 company picks" : `${draft.ahead} companies pick`} before you. Read the statements while you wait.`
+                    : "The draft order appears when Round 3 starts."
           }
         >
           {myStatement ? (
             <GuideAlert>
               Your company works on statement {myStatement.number}: <strong>{myStatement.title}</strong>
-              {draft.mine?.by_default ? " (given by default: no pick in time)" : ""}.
+              {draft.mine?.auto
+                ? " (given at random: only the 10 lowest-scoring companies in each sector pick)"
+                : draft.mine?.by_default
+                  ? " (given by default: no pick in time)"
+                  : ""}
+              .
             </GuideAlert>
           ) : draft.myTurn ? (
             <GuideAlert tone="warn">
               It is your pick: choose a statement before <Countdown to={draft.current!.closes_at} className="font-semibold" /> runs out, or you get{" "}
               {missed}.
             </GuideAlert>
+          ) : draft.auto ? (
+            <GuideAlert>
+              Only the {DRAFT_PICKERS} lowest-scoring companies in each sector pick, and your company is not one of them. When your sector&apos;s pickers
+              are done ({draft.ahead} still to pick), your company is given a statement at random: always one of the statements with the fewest
+              companies so far, so the sector is spread evenly across its statements.
+            </GuideAlert>
           ) : draft.mine ? (
             <GuideAlert>
               {draft.bySector
-                ? `You pick ${draft.place === 1 ? "first" : ordinal(draft.place ?? 1)} of ${draft.queueSize} in your sector (lowest score so far picks first). `
+                ? `You pick ${draft.place === 1 ? "first" : ordinal(draft.place ?? 1)} of the ${draft.queueSize} pickers in your sector (lowest score so far picks first; each statement once). `
                 : `You pick ${draft.mine.pick_no === 1 ? "first" : `at number ${draft.mine.pick_no}`} (lowest score so far picks first). `}
               {draft.ahead} pick{draft.ahead === 1 ? "" : "s"} before yours.
             </GuideAlert>
@@ -172,9 +194,9 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
           <HowItWorks testId="draft-rules">
             <p>
               {draft.bySector
-                ? "Each sector drafts its own statements, all sectors at the same time: in your sector companies pick one at a time, the lowest score so far first, with 20 seconds each."
+                ? `${DRAFT_RULE} All sectors draft at the same time.`
                 : "Companies pick one at a time, the lowest score so far first, with 20 seconds each."}{" "}
-              No pick in time: you get {missed}.
+              A picker with no pick in time gets {missed}.
             </p>
             <p>
               Each company is judged on its own solution; sharing a statement does not change your price move. A rise is scaled by your score so far
@@ -189,14 +211,16 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
           <ul className="mt-3 space-y-2" aria-label="Problem statements">
             {draftableStatements(data.statements, data.mySector).map((s) => {
               const n = counts.get(s.id) ?? 0;
-              const full = n >= s.cap;
+              // By sector, each statement can be picked once: taken by a picker, it is closed to the later pickers.
+              const taken = draft.bySector && !draft.pickersDone && n >= 1;
+              const full = n >= s.cap || taken;
               return (
                 <li key={s.id} className="border border-[#294832] p-3.5" data-testid={`statement-${s.number}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="guide-chip">#{s.number}</span>
                     <span className="guide-label !mb-1.5 !mt-0 uppercase">{s.title}</span>
                     <Chip tone={full ? "red" : "slate"}>
-                      {n}/{s.cap} {full ? "full" : "companies"}
+                      {taken ? "taken" : `${n}/${s.cap} ${full ? "full" : "companies"}`}
                     </Chip>
                     {draft.myTurn && !full ? (
                       <span className="ml-auto">

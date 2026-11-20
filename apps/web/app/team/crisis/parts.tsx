@@ -186,6 +186,7 @@ export function OnTheClock({ data }: { data: CrisisRoomData }) {
             <span className="guide-chip active mr-2">{name(h.queue)}</span>
             <span className="font-mono text-[#39ff88]">{companyLabel(data.companies.find((x) => x.id === h.pick.company_id))}</span> · pick {h.place} of {h.size} ·{" "}
             <Countdown to={h.pick.closes_at} passed="time is up" className="font-mono text-[#39ff88]" /> · {h.left} still to pick
+            {h.others > 0 ? ` · then ${h.others} given a statement at random` : ""}
           </li>
         ))}
       </ul>

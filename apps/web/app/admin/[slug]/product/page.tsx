@@ -1,3 +1,4 @@
+import { DRAFT_RULE, draftHeads } from "@/lib/team/crisis";
 import type { Metadata } from "next";
 import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { loadSquads, loadSubmissions, mark } from "@/lib/admin/tracks-data";
@@ -19,7 +20,7 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
   const [status, { squads }, subs] = await Promise.all([loadEventStatus(event.id), loadSquads(event.id), loadSubmissions(event.id)]);
   const sb = await supabaseServer();
   const [picks, statements] = await Promise.all([
-    sb.from("draft_picks").select("company_id, pick_no, closes_at, statement_id, by_default").eq("event_id", event.id).order("pick_no"),
+    sb.from("draft_picks").select("company_id, pick_no, closes_at, statement_id, by_default, sector, auto").eq("event_id", event.id).order("pick_no"),
     sb.from("problem_statements").select("id, number, title, cap, sector").eq("event_id", event.id).order("number"),
   ]);
   // Round 2 equity raises (migration 067): which company sold how much of itself, to which fund, at what price.
@@ -36,10 +37,20 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
   const sub = (company: string | undefined, type: string) => subs.find((s) => s.company_id === company && s.type === type);
   const companies = squads.filter((s) => s.company);
   const done = (type: string) => companies.filter((s) => sub(s.company!.id, type)?.submitted_at).length;
-  const draftPicks = (picks.data ?? []) as { company_id: string; pick_no: number; closes_at: string; statement_id: string | null; by_default: boolean }[];
+  const draftPicks = (picks.data ?? []) as {
+    company_id: string;
+    pick_no: number;
+    closes_at: string;
+    statement_id: string | null;
+    by_default: boolean;
+    sector?: string | null;
+    auto?: boolean;
+  }[];
   const stRows = (statements.data ?? []) as { id: string; number: number; title: string; cap: number; sector: string | null }[];
   const ticker = new Map(companies.map((s) => [s.company!.id, s.company!.ticker ?? "—"]));
-  const onClock = draftPicks.find((p) => p.statement_id === null) ?? null;
+  // Each sector's picker on the clock (migration 088: only the 10 lowest-scoring of each sector pick).
+  const heads = draftHeads(draftPicks);
+  const onClock = heads[0]?.pick ?? draftPicks.find((p) => p.statement_id === null) ?? null;
   // Room in the statements: in an event split across sectors, each sector's statements must fit that sector's companies.
   const room = stRows.reduce((t, x) => t + x.cap, 0);
   const norm = (v: string | null | undefined) => (v ?? "").trim().toLowerCase();
@@ -113,16 +124,25 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
             </Notice>
           ) : draftPicks.length === 0 ? (
             <p className="text-sm text-paper">
-              {stRows.length} statements, room for {room} companies ({companies.length} play). The draft starts with Round 3: lowest score so far first, 20 seconds each.
+              {stRows.length} statements, room for {room} companies ({companies.length} play). The draft starts with Round 3. {DRAFT_RULE}
             </p>
           ) : onClock ? (
             <p className="text-sm text-paper">
-              On the clock: <strong className="font-mono">{ticker.get(onClock.company_id)}</strong> (pick {onClock.pick_no} of {draftPicks.length}) ·{" "}
-              <Countdown to={onClock.closes_at} passed="given by default on the next heartbeat" /> · {draftPicks.filter((p) => p.statement_id).length} picked.
+              On the clock:{" "}
+              {heads.map((h, i) => (
+                <span key={h.queue}>
+                  {i ? " · " : ""}
+                  {h.queue ? `${h.queue} ` : ""}
+                  <strong className="font-mono">{ticker.get(h.pick.company_id)}</strong> (pick {h.place} of {h.size}
+                  {h.others ? `, then ${h.others} given at random` : ""}) <Countdown to={h.pick.closes_at} passed="given by default on the next heartbeat" />
+                </span>
+              ))}{" "}
+              · {draftPicks.filter((p) => p.statement_id).length} of {draftPicks.length} have a statement.
             </p>
           ) : (
             <p className="text-sm font-semibold text-phosphor">
-              The draft is over: every company has its statement ({draftPicks.filter((p) => p.by_default).length} given by default).
+              The draft is over: every company has its statement ({draftPicks.filter((p) => p.by_default && !p.auto).length} missed picks,{" "}
+              {draftPicks.filter((p) => p.auto).length} given at random).
             </p>
           )}
           {draftPicks.length ? (
@@ -135,14 +155,16 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
                     <Td>{s.sector ?? "—"}</Td>
                     <Td>{s.title}</Td>
                     <Td mono>
-                      {on.length}/{s.cap} {on.map((p) => `${ticker.get(p.company_id)}${p.by_default ? "*" : ""}`).join(" ")}
+                      {on.length}/{s.cap} {on.map((p) => `${ticker.get(p.company_id)}${p.auto ? "†" : p.by_default ? "*" : ""}`).join(" ")}
                     </Td>
                   </tr>
                 );
               })}
             </Table>
           ) : null}
-          <p className="guide-muted mt-2">* given by default (no pick in time).</p>
+          <p className="guide-muted mt-2">
+            {DRAFT_RULE} * a picker with no pick in time (given a random statement nobody had picked) · † given at random (not one of the 10 pickers).
+          </p>
         </Panel>
       ) : null}
 

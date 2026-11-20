@@ -20,6 +20,12 @@ describe("the draft clock on the projector", () => {
     ]);
   });
 
+  test("the pickers and the others of each sector (migration 088)", () => {
+    expect(parseDraftHeads({ heads: [{ sector: "fmcg", ticker: "LOWA", closes_at: "2026-11-20T23:20:15Z", place: 3, queue: 10, others: 57 }] })).toEqual([
+      { sector: "fmcg", ticker: "LOWA", closes_at: "2026-11-20T23:20:15Z", place: 3, queue: 10, others: 57 },
+    ]);
+  });
+
   test("no function or no heads: the single queue", () => {
     expect(parseDraftHeads(null)).toEqual([]);
     expect(parseDraftHeads({ by_sector: false })).toEqual([]);

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   countersLeft,
   currentSubround,
+  DRAFT_RULE,
   draftHeads,
   draftState,
   feeBand,
@@ -154,6 +155,19 @@ describe("the Round 3 draft", () => {
     // One queue (an older draft, or the switch off): the heads are the one first pick.
     expect(draftHeads([pick("a", 1, "s1"), pick("b", 2)]).map((h) => [h.queue, h.pick.company_id, h.place])).toEqual([["", "b", 2]]);
     expect(draftState([pick("a", 1, "s1"), pick("b", 2)], "b")).toMatchObject({ bySector: false, place: 2, queueSize: 2 });
+  });
+  test("migration 088: the others of a sector never pick; the queue counts only the pickers", () => {
+    const at = (p: DraftPickRow, sector: string, auto = false) => ({ ...p, sector, auto });
+    // FMCG: f1 and f2 pick; f3 and f4 are given a statement at random when they are done.
+    const picks = [at(pick("f1", 1, "s1"), "fmcg"), at(pick("f2", 2), "fmcg"), at(pick("f3", 3), "fmcg", true), at(pick("f4", 4), "fmcg", true)];
+    expect(draftState(picks, "f2")).toMatchObject({ myTurn: true, place: 2, queueSize: 2, auto: false, others: 2, pickersDone: false });
+    expect(draftState(picks, "f3")).toMatchObject({ myTurn: false, place: null, queueSize: 2, auto: true, ahead: 1, done: false });
+    expect(draftHeads(picks).map((h) => [h.queue, h.pick.company_id, h.place, h.size, h.left, h.others])).toEqual([["fmcg", "f2", 2, 2, 1, 2]]);
+    // The pickers are done: no head, though the others still wait for their statements (for a moment: same transaction).
+    const picked = picks.map((p) => (p.company_id === "f2" ? { ...p, statement_id: "s2" } : p));
+    expect(draftHeads(picked)).toEqual([]);
+    expect(draftState(picked, "f4")).toMatchObject({ myTurn: false, pickersDone: true, done: false });
+    expect(DRAFT_RULE).toContain("The 10 lowest-scoring companies in each sector pick a statement");
   });
 });
 
