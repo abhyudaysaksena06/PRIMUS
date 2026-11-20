@@ -11,6 +11,9 @@ import type { NextConfig } from "next";
 // Every judge prompt: the classic four and PRIMUS's CRISIS, ADVICE and SOLUTION (lib/judge/prompts.ts PROMPT_FILES).
 const PROMPTS = ["../../prompts/*.md"];
 const CALIBRATION = "../../prompts/calibration/pitches.json";
+// The judge-only case briefs (lib/judge/cases.ts): traced for the worker route ONLY, never for a team page (a crisis
+// brief describes a crisis card, sealed until hiring closes).
+const CASE_BRIEFS = "../../prompts/cases/**/*.md";
 
 // Security headers on every response. No page may be framed by another site (a framed trade or sign-in page could be
 // clickjacked); browsers must not guess content types; links out carry only the origin; no page uses the camera,
@@ -33,7 +36,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
   outputFileTracingIncludes: {
     // The worker: every prompt, and the calibration samples when calibration_input has no text.
-    "/api/judge/work": [...PROMPTS, CALIBRATION],
+    "/api/judge/work": [...PROMPTS, CALIBRATION, CASE_BRIEFS],
     // The calibration page: the samples and the PITCH prompt they are judged with.
     "/admin/\\[slug\\]/judge/calibration": ["../../prompts/PITCH.md", CALIBRATION],
     // The prompts page for teams: the published prompts.

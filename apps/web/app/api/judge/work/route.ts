@@ -7,12 +7,13 @@
 // model of the event's current slot (no run used; a success is trusted for 60 s). It answers 502 when that check fails
 // or when the worker stopped on an error it cannot get past (lib/judge/reply.ts), so the console's loop switches off.
 // The queue is worked as the service role; the organiser check happens here first, and the claim and report
-// functions are not callable by signed-in users at all. prompts/ is read at run time: next.config.ts traces it in.
+// functions are not callable by signed-in users at all. prompts/ (with the judge-only case briefs in prompts/cases/) is read at run time: next.config.ts traces it in.
 
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
 import { can } from "@/lib/auth/routes";
 import {
+  caseBriefLoader,
   checkJudgeModel,
   createJudge,
   fakeJudgeRefusal,
@@ -112,6 +113,8 @@ export async function POST(request: Request) {
     concurrency: config.concurrency,
     models: config.models,
     prompts,
+    // Judge-only case briefs (prompts/cases/); none found means the request is built as without them.
+    caseBriefs: caseBriefLoader(undefined, (line) => console.warn(line)),
     eventId: event.id,
     abortSignal,
     log: (line) => console.warn(line),

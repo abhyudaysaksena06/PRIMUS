@@ -10,6 +10,7 @@
 // The database and the judge are passed in, so the loop is tested with an in-memory queue and a fake judge.
 
 import type { SubmissionType } from "@msim/engine";
+import { runPromptSha, type CaseBrief } from "./cases";
 import type { JudgePrompt } from "./prompts";
 import { buildJudgeRequest, type BuiltRequest } from "./request";
 import {
@@ -49,6 +50,11 @@ export interface WorkerOptions {
   models: Record<JudgeSlot, string>;
   /** The system prompt for a type (prompts/<TYPE>.md). */
   prompts: (type: SubmissionType) => Pick<JudgePrompt, "text" | "sha">;
+  /**
+   * The case brief for a run's input (prompts/cases/, lib/judge/cases.ts), sent in <case_brief> and folded into the
+   * run's prompt_sha. Omitted, or null for a run, or throwing: the request is built exactly as without briefs.
+   */
+  caseBriefs?: (input: JudgeInput) => CaseBrief | null;
   /** For log lines only. */
   eventId?: string;
   now?: () => number;
@@ -199,10 +205,16 @@ export async function runWorker(o: WorkerOptions): Promise<WorkerSummary> {
     if (job.kind === "judge") {
       const input = await o.db.input(job.run.run_id);
       const prompt = o.prompts(input.type);
-      const built = buildJudgeRequest(input, prompt.text);
+      let brief: CaseBrief | null = null;
+      try {
+        brief = o.caseBriefs?.(input) ?? null;
+      } catch (e) {
+        log(`case brief for run ${job.run.run_id.slice(0, 8)} not read, judging without it: ${errorText(e)}`);
+      }
+      const built = buildJudgeRequest(input, prompt.text, brief);
       // Recorded even when nothing was stripped: finish_judge_run fails a run whose submission was never checked.
       if (!input.injections_recorded) await recordOnce(input.submission_id, built.injections);
-      return { built, prompt, type: input.type };
+      return { built, prompt: { text: prompt.text, sha: runPromptSha(prompt, built.caseBrief) }, type: input.type };
     }
     const input = await o.db.calibrationInput(job.run.run_id);
     if (!input.text || input.text.trim() === "") throw new Error(`calibration sample ${input.sample_no} has no text`);

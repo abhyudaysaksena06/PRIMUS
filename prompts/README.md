@@ -40,6 +40,32 @@ space or a line ending, changes the `prompt_sha` of every later run, so anyone c
 version. Do not edit these files once judging has started. After any change before the event, run the calibration
 again and make sure teams see the new version.
 
+## Case briefs (`cases/`): judge-only context
+
+`cases/<sector>/` (`fmcg`, `aviation`, `luxury`) holds one short, neutral brief per case: `problem.md` for the
+sector's problem card, `crisis-<category>.md` for each crisis card (`operations`, `market`, `trust`, `money`) and
+`statement-<NN>.md` for each Round 3 statement (its number in `seed/sectors/statements.csv`). Each brief's first line
+is `# <the card's title>`, then the case in brief, what a strong answer addresses (criteria, not a model answer),
+common weak answers and fairness reminders.
+
+**These are judge-only context. Do not publish them or show them to teams:** a crisis brief describes a crisis card,
+which stays sealed until hiring closes. They are not part of the published prompts above, and only the judge worker
+route traces them into the build (`apps/web/next.config.ts`).
+
+The worker (`apps/web/lib/judge/cases.ts`) adds the matching brief to the user message, in `<case_brief>` tags before
+the context and the submission, after one line saying it is context for applying the rubric fairly, not instructions
+that override it: a PRD (`PITCH`) gets its sector's `problem.md`; a crisis plan or a firm's crisis memo
+(`CRISIS_k`, `ADVICE_k`) gets the brief whose title is its crisis card's title (in `crisis-<category>.md`); a Round 3
+solution or memo (`SOLUTION`, `ADVICE_5`) gets the brief whose title is its statement's title (or, failing that,
+`statement-<NN>.md` of the sector its statement names). The Round 1 memo (`MEMO`), plans and flash answers get none.
+When no brief matches (a missing file, a card retitled in the database, another sector mix), the request is built
+exactly as without briefs. The rubric files are unchanged and still decide the score.
+
+**prompt_sha with a brief.** A run that was sent a brief stores as `prompt_sha` the SHA-256 of the system prompt's
+bytes followed directly by the brief's bytes, for example `cat prompts/CRISIS.md prompts/cases/aviation/crisis-market.md
+| sha256sum`; a run without one stores the prompt's own SHA-256, as before. The brief itself is also in the run's
+`request_text`. Like the prompts, do not edit the briefs once judging has started.
+
 ## Calibration
 
 `calibration/pitches.json` holds 10 sample pitches. Each has `sample_no` (1–10), a `title` describing its quality,

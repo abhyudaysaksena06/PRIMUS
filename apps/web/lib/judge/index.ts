@@ -12,6 +12,7 @@ import type { JudgeFn } from "./types";
 export { judgeConfig, hasApiCredential, rejectsSampling, JUDGE_DEFAULTS, type JudgeConfig } from "./config";
 export { supabaseJudgeDb, queueCounts, type QueueCounts } from "./db";
 export { promptLoader, loadPrompt, findPromptsDir, type JudgePrompt } from "./prompts";
+export { caseBriefLoader, type CaseBrief } from "./cases";
 export { loadCalibrationSamples, type CalibrationSample } from "./calibration";
 export { runWorker, RUN_TIMEOUT_MS, type JudgeDb, type WorkerSummary } from "./worker";
 export { workReply, modelCheckReply, type WorkReply } from "./reply";
