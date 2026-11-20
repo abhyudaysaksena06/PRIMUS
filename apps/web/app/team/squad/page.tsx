@@ -7,10 +7,10 @@ import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { loadTeamContext } from "@/lib/team/context";
 import { SUBMISSION_PATHS, pickState, submissionStatus, submissionWindow, whoLabel, type SubmissionStatus } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
-import { Badge, Panel } from "@/components/ui/ui";
+import { Chip, GuidePanel } from "../crisis/guide";
 import { Due } from "./due";
 import { squadGate } from "./parts";
-import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
+import { HowItWorks } from "@/components/ui/how-it-works";
 
 export const metadata: Metadata = { title: "Squad" };
 
@@ -40,81 +40,80 @@ export default async function SquadOverview() {
   const draftName = typeof pitchDraft.company_name === "string" ? pitchDraft.company_name.trim() : "";
   const draftTicker = typeof pitchDraft.ticker === "string" ? pitchDraft.ticker.trim().toUpperCase() : "";
 
+  const squadNo = String(squad.number).padStart(2, "0");
   return (
-    <div className="space-y-4">
+    <div className="guide-stack">
       {/* Drafts saved by the partner team send no realtime message: re-read while something can still change. */}
       <AutoRefresh everyMs={15_000} active={pick.open || pick.defaultPending || windows.some((x) => x.stage === "OPEN")} />
 
-      <Panel title={`Squad ${String(squad.number).padStart(2, "0")}`}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <h3 className="pd-label">Company</h3>
-            {ctx.company?.ticker ? (
-              <p className="mt-2 text-2xl font-bold tracking-tight text-paper" data-testid="squad-company">
-                {ctx.company.name ?? "—"} <span className="font-mono text-[var(--term-amber)]">({ctx.company.ticker})</span>
-              </p>
+      <div className="guide-grid two">
+        <GuidePanel
+          title={pick.oneCase ? "The case" : "Your problem card"}
+          tag={pick.oneCase ? "EVERY SQUAD" : "PROBLEM CARD"}
+          actions={
+            <Link href="/team/squad/problem">
+              {pick.oneCase ? "Read the case" : pick.canPick ? (pick.chosenId ? "Change the pick" : "Pick a card") : "See the cards"}
+            </Link>
+          }
+        >
+          <div data-testid="squad-problem">
+            {chosen ? (
+              <>
+                <Chip tone="active">
+                  SQUAD {squadNo} · {chosen.sector}
+                </Chip>{" "}
+                {pick.oneCase ? <Chip tone="green">Every squad</Chip> : pick.byDefault ? <Chip tone="amber">Chosen by default</Chip> : <Chip tone="green">Picked</Chip>}
+                <h3 className="mt-3 text-xl font-semibold text-paper">{chosen.title}</h3>
+              </>
             ) : (
-              <p className="mt-1 text-sm text-paper" data-testid="squad-company">
-                No name or ticker claimed yet: they are claimed when the PRD is submitted.
-                {draftName || draftTicker ? (
-                  <span className="block text-muted">
-                    In the draft: {draftName || "—"}
-                    {draftTicker ? <span className="font-mono"> ({draftTicker})</span> : null}
-                  </span>
-                ) : null}
-              </p>
+              <p className="text-xl font-semibold text-paper">Not picked yet.</p>
+            )}
+            <p className="guide-muted mt-2">{pick.note}</p>
+            {pick.oneCase ? null : (
+              <div className="guide-alert mt-3">
+                <b>Pick closes:</b> <Due at={ws.deadlines.PROBLEM_PICK ?? null} {...pause} />
+              </div>
             )}
           </div>
-          <div>
-            <h3 className="pd-label">Teams</h3>
-            <ul className="mt-1 space-y-2 text-sm" aria-label="Squad teams">
-              {TRACKS.map((t) => {
-                const mine = ids[t] === ctx.team.id;
-                return (
-                  <li key={t} className={mine ? "pd-card pd-card-hot px-3 py-2" : "pd-card px-3 py-2"}>
-                    <span className="font-semibold text-phosphor">{TRACK_LABELS[t]}</span>{" "}
-                    {mine ? (
-                      <Badge tone="blue">Your team · {ctx.team.code}</Badge>
-                    ) : (
-                      <span className="text-muted">· partner team</span>
-                    )}
-                    <span className="block text-xs text-paper">{ROLE_WORK[t]}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </div>
-      </Panel>
+        </GuidePanel>
 
-      <Panel
-        title={pick.oneCase ? "The case" : "Problem card"}
-        actions={
-          <Link href="/team/squad/problem" className="text-sm font-semibold underline">
-            {pick.oneCase ? "Read the case" : pick.canPick ? (pick.chosenId ? "Change the pick" : "Pick a card") : "See the cards"}
-          </Link>
-        }
-      >
-        <div className="space-y-1 text-sm" data-testid="squad-problem">
-          {chosen ? (
-            <p>
-              <span className="font-semibold text-phosphor">{chosen.title}</span> <span className="text-muted">({chosen.sector})</span>{" "}
-              {pick.oneCase ? <Badge tone="green">Every squad</Badge> : pick.byDefault ? <Badge tone="amber">Chosen by default</Badge> : <Badge tone="green">Picked</Badge>}
+        <GuidePanel title={`Squad ${squadNo}`} tag={`TEAM ${ctx.team.code} · ${TRACK_LABELS[ctx.team.track].toUpperCase()} TRACK`}>
+          <label className="guide-label !mt-0">COMPANY / PRODUCT NAME</label>
+          {ctx.company?.ticker ? (
+            <p className="guide-mono text-2xl font-bold tracking-tight text-paper" data-testid="squad-company">
+              {ctx.company.name ?? "—"} <span className="font-mono text-[#39ff88]">({ctx.company.ticker})</span>
             </p>
           ) : (
-            <p className="font-semibold text-phosphor">Not picked yet.</p>
-          )}
-          <p className="text-paper">{pick.note}</p>
-          {pick.oneCase ? null : (
-            <p className="text-paper">
-              Pick closes: <Due at={ws.deadlines.PROBLEM_PICK ?? null} {...pause} />
+            <p className="text-sm text-paper" data-testid="squad-company">
+              No name or ticker claimed yet: they are claimed when the PRD is submitted.
+              {draftName || draftTicker ? (
+                <span className="guide-muted block">
+                  In the draft: {draftName || "—"}
+                  {draftTicker ? <span className="font-mono"> ({draftTicker})</span> : null}
+                </span>
+              ) : null}
             </p>
           )}
-        </div>
-      </Panel>
+          <label className="guide-label">TEAMS</label>
+          <ul className="space-y-2" aria-label="Squad teams">
+            {TRACKS.map((t) => {
+              const mine = ids[t] === ctx.team.id;
+              return (
+                <li key={t} className="border border-[#294832] p-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <b className="text-xs text-paper">{TRACK_LABELS[t]}</b>
+                    {mine ? <Chip tone="active">Your team · {ctx.team.code}</Chip> : <span className="guide-status">PARTNER TEAM</span>}
+                  </div>
+                  <span className="guide-muted mt-1 block">{ROLE_WORK[t]}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </GuidePanel>
+      </div>
 
-      <Panel title={thisRound.length < 3 ? "This round" : "Submissions"}>
-        <ul className="grid gap-3 lg:grid-cols-3">
+      <GuidePanel title={thisRound.length < 3 ? "This round" : "Submissions"} tag={`${thisRound.length} ${thisRound.length === 1 ? "SUBMISSION" : "SUBMISSIONS"}`}>
+        <ul className="guide-grid three">
           {statuses.map((s, i) =>
             thisRound.includes(s.type) ? (
               <StatusCard key={s.type} s={s} who={(id) => whoLabel(squad, ctx.team.id, id)} due={windows[i]!.deadline} pause={pause} />
@@ -125,7 +124,7 @@ export default async function SquadOverview() {
           <p>Only the last version submitted on time is judged; a saved draft that is not submitted is not judged.</p>
           {ws.deadlines.DEAL ? <p>The deal must be fully signed by {clock(ws.deadlines.DEAL)}, or the plan score is capped at 50.</p> : null}
         </HowItWorks>
-      </Panel>
+      </GuidePanel>
     </div>
   );
 }
@@ -142,17 +141,18 @@ function StatusCard({
   pause: { paused: boolean; pausedAt: string | null };
 }) {
   return (
-    <li className="pd-card" aria-label={s.label} data-testid={`status-${s.type}`}>
+    <li className="guide-metric min-w-0" aria-label={s.label} data-testid={`status-${s.type}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base font-bold text-paper">{s.label}</h3>
-        <Badge tone={s.state.tone}>{s.state.text}</Badge>
+        <small>{s.label.toUpperCase()}</small>
+        <Chip tone={s.state.tone}>{s.state.text}</Chip>
       </div>
-      <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
-        <dt className="text-muted">Due</dt>
+      <h3 className="mt-2 text-base font-bold text-paper">{s.label}</h3>
+      <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs text-paper">
+        <dt className="guide-muted">Due</dt>
         <dd>
           <Due at={due} {...pause} />
         </dd>
-        <dt className="text-muted">Draft</dt>
+        <dt className="guide-muted">Draft</dt>
         <dd data-testid={`draft-${s.type}`}>
           {s.draft ? (
             <>
@@ -162,12 +162,12 @@ function StatusCard({
             "Not saved yet"
           )}
         </dd>
-        <dt className="text-muted">Submitted</dt>
+        <dt className="guide-muted">Submitted</dt>
         <dd data-testid={`submitted-${s.type}`}>
           {s.current ? (
             <>
               <span className="font-mono">{clock(s.current.submittedAt, true)}</span> by {who(s.current.by)} · {s.current.words} words ·{" "}
-              {s.current.late ? <Badge tone="red">late</Badge> : "on time"} · current (judged)
+              {s.current.late ? <Chip tone="red">late</Chip> : "on time"} · current (judged)
             </>
           ) : (
             "Not submitted"
@@ -175,15 +175,15 @@ function StatusCard({
         </dd>
         {s.superseded > 0 ? (
           <>
-            <dt className="text-muted">Earlier</dt>
+            <dt className="guide-muted">Earlier</dt>
             <dd>
               {s.superseded} superseded {s.superseded === 1 ? "version" : "versions"}
             </dd>
           </>
         ) : null}
       </dl>
-      {s.changedSinceSubmit ? <p className="mt-2 text-xs text-warn">The saved draft differs from the submitted version.</p> : null}
-      <Link href={SUBMISSION_PATHS[s.type]} className="pd-chip mt-3 hover:underline">
+      {s.changedSinceSubmit ? <p className="guide-alert guide-warning mt-2">The saved draft differs from the submitted version.</p> : null}
+      <Link href={SUBMISSION_PATHS[s.type]} className="guide-btn secondary mt-3">
         Open the {s.label.toLowerCase()}
       </Link>
     </li>

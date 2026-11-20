@@ -6,9 +6,10 @@ import type { TeamContext } from "@/lib/team/context";
 import { backupKey, toSnapshot } from "@/lib/team/editor";
 import { SUBMISSION_LABELS, currentSubmission, submissionVersions, whoLabel, type SubmissionWindow } from "@/lib/team/squad";
 import { pauseOf, type SquadWorkspace } from "@/lib/team/squad-data";
-import { Badge } from "@/components/ui/ui";
+
 import { ContentView } from "./parts";
 import { DraftEditor } from "./draft-editor";
+import { Chip } from "../crisis/guide";
 
 const EMPTY = { version: 0, content: {}, updatedAt: null, updatedBy: null };
 
@@ -40,7 +41,7 @@ export function SubmissionEditor({ ctx, ws, type, win }: { ctx: TeamContext; ws:
         submitted={cur ? { content: cur.content, submittedAt: cur.submitted_at } : null}
       />
       <section className="mt-6" aria-label="Submitted versions" data-testid="submitted-versions">
-        <h3 className="pd-label">Submitted versions</h3>
+        <h3 className="guide-label uppercase">Submitted versions</h3>
         {versions.length === 0 ? (
           <p className="mt-1 text-sm text-muted">
             No {SUBMISSION_LABELS[type].toLowerCase()} has been submitted yet. If nobody submits, the last saved draft is submitted for you at the
@@ -50,11 +51,11 @@ export function SubmissionEditor({ ctx, ws, type, win }: { ctx: TeamContext; ws:
           <ul className="mt-2 space-y-2">
             {versions.map((v) => (
               <li key={v.id}>
-                <details className="pd-card px-3 py-2" open={v.current && versions.length === 1}>
+                <details className="border border-[#294832] p-3.5 px-3 py-2" open={v.current && versions.length === 1}>
                   <summary className="cursor-pointer text-sm">
                     <span className="font-mono">{clock(v.submittedAt, true)}</span> · by {who(v.by)} · {v.words} words{" "}
-                    {v.current ? <Badge tone="green">Current · judged</Badge> : <Badge tone="slate">Superseded</Badge>}{" "}
-                    {v.late ? <Badge tone="red">Late</Badge> : null}
+                    {v.current ? <Chip tone="green">Current · judged</Chip> : <Chip tone="slate">Superseded</Chip>}{" "}
+                    {v.late ? <Chip tone="red">Late</Chip> : null}
                   </summary>
                   <div className="mt-3">
                     <ContentView type={type} content={v.content} />

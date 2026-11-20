@@ -3,13 +3,13 @@ import type { SubmissionType } from "@msim/engine";
 import type { TeamContext } from "@/lib/team/context";
 import { sectionAllowed } from "@/lib/team/sections";
 import { fieldSpecs } from "@/lib/team/editor";
-import { Notice } from "@/components/ui/ui";
+import { GuideAlert } from "../crisis/guide";
 
 /** The notice a page shows instead of the workspace: to a Finance team, and to everyone before the squads exist. */
 export function squadGate(ctx: TeamContext) {
   if (!sectionAllowed(ctx.team.track, "/squad")) {
     return (
-      <Notice tone="blue">
+      <GuideAlert>
         The squad workspace is for the Product and Consulting teams. Your squad&apos;s deal is signed under{" "}
         <Link href="/team/rescue" className="font-semibold underline">
           Rescue
@@ -19,11 +19,11 @@ export function squadGate(ctx: TeamContext) {
           Trade
         </Link>
         .
-      </Notice>
+      </GuideAlert>
     );
   }
   if (!ctx.squad) {
-    return <Notice>The squads are formed at the squad draw. Your squad workspace opens then.</Notice>;
+    return <GuideAlert>The squads are formed at the squad draw. Your squad workspace opens then.</GuideAlert>;
   }
   return null;
 }
@@ -36,7 +36,7 @@ export function ContentView({ type, content }: { type: SubmissionType; content: 
         const v = typeof content[f.key] === "string" ? (content[f.key] as string) : "";
         return (
           <div key={f.key}>
-            <dt className="pd-label">{f.label}</dt>
+            <dt className="guide-label uppercase">{f.label}</dt>
             <dd className="mt-1 whitespace-pre-wrap text-paper">{v.trim() === "" ? <span className="text-muted">—</span> : v}</dd>
           </div>
         );

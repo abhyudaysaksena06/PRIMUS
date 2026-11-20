@@ -5,12 +5,13 @@ import { currentSubround, subroundTimeline, subroundTitle, withDraftEnd } from "
 import { sectionAllowed } from "@/lib/team/sections";
 import { pauseOf } from "@/lib/team/squad-data";
 import { RefreshAt } from "@/lib/live/refresh-at";
-import { Notice } from "@/components/ui/ui";
+
 import { ProductRoom } from "./product";
 import { ConsultingRoom } from "./consulting";
 import { FinanceRoom } from "./finance";
 import { Timeline } from "./parts";
 import { RoomShell } from "./room-shell";
+import { GuideAlert } from "./guide";
 
 export const metadata: Metadata = { title: "Crisis room" };
 
@@ -19,9 +20,9 @@ export const metadata: Metadata = { title: "Crisis room" };
 // read the cards, the hires and the draft. The page re-reads at each step of the sub-round's timeline.
 export default async function CrisisRoomPage() {
   const ctx = await loadTeamContext();
-  if (!sectionAllowed(ctx.team.track, "/crisis")) return <Notice>This section is not part of your team&apos;s portal.</Notice>;
+  if (!sectionAllowed(ctx.team.track, "/crisis")) return <GuideAlert>This section is not part of your team&apos;s portal.</GuideAlert>;
   const data = await loadCrisisRoom(ctx);
-  if (data.format !== "PRIMUS") return <Notice>Tonight&apos;s event plays the classic format: there is no crisis room. See Squad and Rescue.</Notice>;
+  if (data.format !== "PRIMUS") return <GuideAlert>Tonight&apos;s event plays the classic format: there is no crisis room. See Squad and Rescue.</GuideAlert>;
   const k = currentSubround(ctx.status.phase, data.subrounds);
   const nowMs = new Date(ctx.status.server_time).getTime();
   data.deadlines = withDraftEnd(data.deadlines, data.picks, nowMs);
@@ -38,11 +39,11 @@ export default async function CrisisRoomPage() {
     <RoomShell track={track} eyebrow={k === null ? "Rounds 2 and 3" : subroundTitle(k)} title={track === "CONSULTING" ? "Engagements" : "Crisis room"} lede={lede}>
       <RefreshAt at={nextAt} />
       {k === null ? (
-        <Notice>
+        <GuideAlert>
           {ctx.status.phase === "PRESSURE"
             ? "Round 2 is under way: the first crisis card is revealed soon. This page updates by itself."
             : "The crisis room opens in Round 2, after the IPO."}
-        </Notice>
+        </GuideAlert>
       ) : (
         <Timeline k={k} steps={steps} />
       )}

@@ -4,7 +4,7 @@ import { memoCase } from "@/lib/judge/prompts";
 import { loadTeamContext } from "@/lib/team/context";
 import { submissionWindow } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
-import { Panel } from "@/components/ui/ui";
+import { GuidePanel } from "../../crisis/guide";
 import { Due } from "../due";
 import { squadGate } from "../parts";
 import { SubmissionEditor } from "../submission";
@@ -21,27 +21,28 @@ export default async function MemoPage() {
   const win = submissionWindow("MEMO", ctx.team.track, windowInput(ctx, ws));
   const paragraphs = memoCase();
   return (
-    <>
-      <Panel title="The case">
-        <div className="space-y-3 text-sm text-paper" data-testid="memo-case">
+    <div className="guide-stack">
+      <GuidePanel title="The crisis to solve" tag="ROUND 1 · CRISIS CASE">
+        <div className="guide-muted space-y-3" data-testid="memo-case">
           {paragraphs.length ? paragraphs.map((p, i) => <p key={i}>{p}</p>) : <p>The case is published here before the event.</p>}
         </div>
-      </Panel>
-      <Panel
+      </GuidePanel>
+      <GuidePanel
         title="Crisis memo"
+        tag={`6 PARTS · ${RULES.WORD_LIMIT.MEMO} WORDS TOTAL`}
         actions={
-          <span className="text-sm text-paper">
-            Due <Due at={win.deadline} {...pauseOf(ctx)} testId="memo-due" />
+          <span className="guide-status">
+            DUE <Due at={win.deadline} {...pauseOf(ctx)} testId="memo-due" />
           </span>
         }
       >
-        <p className="mb-4 text-sm text-paper">
+        <p className="guide-alert mb-4">
           Your recommendation to the founders: up to {RULES.WORD_LIMIT.MEMO} words across the six sections. The AI judge scores the diagnosis (25),
           options and trade-offs (20), the recommendation (20), the numbers (15), risks (10) and next steps (10). The score moves no price: it
           sets your firm&apos;s reputation bonus, $500 × (score − 50), paid at settlement.
         </p>
         <SubmissionEditor ctx={ctx} ws={ws} type="MEMO" win={win} />
-      </Panel>
-    </>
+      </GuidePanel>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import { loadTeamContext } from "@/lib/team/context";
 import { currentSubmission, submissionWindow } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
 import { RefreshAt } from "@/lib/live/refresh-at";
-import { Panel } from "@/components/ui/ui";
+import { GuidePanel } from "../../crisis/guide";
 import { Due } from "../due";
 import { squadGate } from "../parts";
 import { SubmissionEditor } from "../submission";
@@ -24,17 +24,18 @@ export default async function PlanPage() {
   const cur = currentSubmission(ws.submissions, "PLAN");
   const dealDeadline = ws.deadlines.DEAL ?? null;
   return (
-    <Panel
+    <GuidePanel
       title="Rescue plan"
+      tag={`${RULES.WORD_LIMIT.PLAN} WORDS · WRITTEN BY BOTH TEAMS`}
       actions={
-        <span className="text-sm text-paper">
-          Due <Due at={win.deadline} {...pauseOf(ctx)} testId="plan-due" />
+        <span className="guide-status">
+          DUE <Due at={win.deadline} {...pauseOf(ctx)} testId="plan-due" />
         </span>
       }
     >
       {/* The deal is signed elsewhere (Rescue) and its signatures send no realtime message: re-read at its deadline. */}
       <RefreshAt at={dealDeadline} />
-      <div className="mb-3">
+      <div className="guide-alert mb-3">
         <DoThis testId="plan-todo">Write how your company survives the crisis (up to {RULES.WORD_LIMIT.PLAN} words), together with your partner, then press Submit.</DoThis>
         <HowItWorks testId="plan-howto">
           <p>
@@ -54,6 +55,6 @@ export default async function PlanPage() {
         />
       </div>
       <SubmissionEditor ctx={ctx} ws={ws} type="PLAN" win={win} />
-    </Panel>
+    </GuidePanel>
   );
 }

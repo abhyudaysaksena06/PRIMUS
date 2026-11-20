@@ -17,11 +17,12 @@ import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { ActionForm } from "@/components/ui/action";
 import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
-import { Badge, Notice, inputClass } from "@/components/ui/ui";
+
 import { ContentView } from "../squad/parts";
 import { DraftEditor } from "../squad/draft-editor";
 import { makeOfferTo, saveFirmProfile } from "./actions";
 import { CardsOf, EngagementTable, FirmLeague, OfferCard, StatementBoard, Step, TermsFields, companyLabel, type StepState } from "./parts";
+import { Chip, GuideAlert } from "./guide";
 
 const EMPTY = { version: 0, content: {}, updatedAt: null, updatedBy: null };
 
@@ -86,7 +87,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
           : `Writing closed at ${dueAt}.`;
 
   return (
-    <div className="space-y-4">
+    <div className="guide-stack">
       <Step
         n={1}
         title="Your firm's profile"
@@ -97,7 +98,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         <DoThis testId="profile-todo">Say what your firm is good at and what it asks for, then press Save profile.</DoThis>
         {myRate !== null && (minBidOn || (drawOn && !r3)) ? (
           <p className="mt-2 text-sm text-paper" data-testid="my-base-rate">
-            Your base rate: <strong className="text-[var(--term-amber)]">{rateText(myRate)}</strong> of a company ({rateShares(myRate).toLocaleString("en-US")}{" "}
+            Your base rate: <strong className="text-[#39ff88]">{rateText(myRate)}</strong> of a company ({rateShares(myRate).toLocaleString("en-US")}{" "}
             shares), set by your Round 1 memo score.
             {minBidOn ? " It is your minimum bid: no offer for less can be made or accepted." : ""}
             {drawOn && !r3 ? " A company the draw gives you pays it." : ""}
@@ -105,7 +106,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         ) : null}
         <p className="mb-3 mt-1 text-sm text-paper">
           Every Product team sees this in the firm directory.{" "}
-          <Link href={`/team/firms/${encodeURIComponent(ctx.team.code)}`} className="text-[var(--term-amber)] hover:underline">
+          <Link href={`/team/firms/${encodeURIComponent(ctx.team.code)}`} className="text-[#39ff88] hover:underline">
             See your public profile →
           </Link>
         </p>
@@ -113,23 +114,23 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm sm:col-span-2">
               <span className="font-semibold text-paper">Headline</span>
-              <input name="headline" maxLength={140} defaultValue={profile?.headline ?? ""} placeholder="Turnarounds for hardware start-ups" className={`${inputClass} mt-1`} />
+              <input name="headline" maxLength={140} defaultValue={profile?.headline ?? ""} placeholder="Turnarounds for hardware start-ups" className={`guide-input mt-1`} />
             </label>
             <label className="block text-sm">
               <span className="font-semibold text-paper">Specialities (comma-separated, up to 8)</span>
-              <input name="specialities" defaultValue={profile?.specialities.join(", ") ?? ""} placeholder="supply chain, pricing, PR" className={`${inputClass} mt-1`} />
+              <input name="specialities" defaultValue={profile?.specialities.join(", ") ?? ""} placeholder="supply chain, pricing, PR" className={`guide-input mt-1`} />
             </label>
             <label className="block text-sm">
               <span className="font-semibold text-paper">Asking fee ($)</span>
-              <input name="asking" inputMode="decimal" defaultValue={profile ? (profile.asking_cents / 100).toFixed(2) : ""} className={`${inputClass} mt-1 font-mono`} />
+              <input name="asking" inputMode="decimal" defaultValue={profile ? (profile.asking_cents / 100).toFixed(2) : ""} className={`guide-input mt-1 font-mono`} />
             </label>
             <label className="block text-sm sm:col-span-2">
               <span className="font-semibold text-paper">Rate card</span>
-              <textarea name="rate_card" maxLength={600} rows={3} defaultValue={profile?.rate_card ?? ""} className={`${inputClass} mt-1`} />
+              <textarea name="rate_card" maxLength={600} rows={3} defaultValue={profile?.rate_card ?? ""} className={`guide-input mt-1`} />
             </label>
             <label className="block text-sm sm:col-span-2">
               <span className="font-semibold text-paper">About the firm (who you are, how you work, past wins)</span>
-              <textarea name="about" maxLength={1000} rows={4} defaultValue={profile?.about ?? ""} className={`${inputClass} mt-1`} />
+              <textarea name="about" maxLength={1000} rows={4} defaultValue={profile?.about ?? ""} className={`guide-input mt-1`} />
             </label>
           </div>
         </ActionForm>
@@ -137,7 +138,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
 
       <Step n={2} title="Answer offers from companies" state={offersState} summary={offersSummary} testId="step-offers" open={offers.length > 0 && (hiring || myTurn > 0)}>
         {offers.length === 0 ? (
-          <p className="text-sm text-muted">No offer yet. A complete profile helps.</p>
+          <p className="guide-muted">No offer yet. A complete profile helps.</p>
         ) : (
           <ul className="space-y-2">
             {offers.map((o) => (
@@ -146,8 +147,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
           </ul>
         )}
         {hiring && clients.length < FIRM_CLIENTS_PER_SUBROUND ? (
-          <details className="pd-card mt-3" data-testid="pitch-a-company">
-            <summary className="pd-summary-btn">Pitch a company yourself</summary>
+          <details className="border border-[#294832] p-3.5 mt-3" data-testid="pitch-a-company">
+            <summary className="guide-btn secondary cursor-pointer list-none">Pitch a company yourself</summary>
             <p className="mt-2 text-sm text-paper">
               You do not have to wait to be asked. Write to a company to talk terms, or send it an offer and it answers first.
             </p>
@@ -157,12 +158,12 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                 <li key={co.id} className="border-b border-line pb-3 last:border-b-0">
                   <div className="flex items-baseline gap-2">
                     <span className="pd-code">{companyLabel(co)}</span>
-                    <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[var(--term-amber)] hover:underline">
+                    <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[#39ff88] hover:underline">
                       Talk to them →
                     </Link>
                   </div>
                   {minBidOn && myRate !== null ? (
-                    <p className="mt-1 text-xs text-[var(--term-amber)]" data-testid={`pitch-min-bid-${co.ticker ?? co.id}`}>
+                    <p className="mt-1 text-xs text-[#39ff88]" data-testid={`pitch-min-bid-${co.ticker ?? co.id}`}>
                       Your minimum bid: {minBidText(myRate, co.market_price)}.
                     </p>
                   ) : null}
@@ -175,7 +176,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                     />
                     <label className="mt-2 block text-sm">
                       <span className="font-semibold text-paper">Note (optional)</span>
-                      <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`${inputClass} mt-1`} />
+                      <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`guide-input mt-1`} />
                     </label>
                   </ActionForm>
                 </li>
@@ -211,12 +212,12 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
               const cur = memoSent(e.company_id);
               const squadOf = { product_team_id: c?.product_team_id ?? "", consulting_team_id: me, finance_team_id: "" };
               return (
-                <section key={e.id} id={`client-${e.company_id}`} className="pd-card scroll-mt-32" aria-label={`Client ${label}`} data-testid="client">
+                <section key={e.id} id={`client-${e.company_id}`} className="border border-[#294832] p-3.5 scroll-mt-32" aria-label={`Client ${label}`} data-testid="client">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="pd-code text-base">Client {label}</h3>
                     <span className="font-mono text-sm text-paper">fee {termsText(money(e.cash_cents), e.shares)}</span>
-                    {cur ? <Badge tone="green">Memo sent {clock(cur.submitted_at)}</Badge> : <Badge tone="amber">Memo not sent</Badge>}
-                    <Link href={`/team/messages?c=${e.company_id}&f=${me}`} className="ml-auto text-sm font-semibold text-[var(--term-amber)] hover:underline">
+                    {cur ? <Chip tone="green">Memo sent {clock(cur.submitted_at)}</Chip> : <Chip tone="amber">Memo not sent</Chip>}
+                    <Link href={`/team/messages?c=${e.company_id}&f=${me}`} className="ml-auto text-sm font-semibold text-[#39ff88] hover:underline">
                       Chat with this client →
                     </Link>
                   </div>
@@ -231,16 +232,16 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                     </div>
                   )}
                   {r3 ? null : (
-                    <details className="pd-card mt-3" open={!!(planSub ?? planDraft)}>
-                      <summary className="pd-summary-btn">
-                        The client&apos;s response plan {planSub ? <Badge tone="green">Submitted {clock(planSub.submitted_at)}</Badge> : planDraft ? <Badge tone="amber">Draft v{planDraft.version}</Badge> : <Badge tone="slate">Not started</Badge>}
+                    <details className="border border-[#294832] p-3.5 mt-3" open={!!(planSub ?? planDraft)}>
+                      <summary className="guide-btn secondary cursor-pointer list-none">
+                        The client&apos;s response plan {planSub ? <Chip tone="green">Submitted {clock(planSub.submitted_at)}</Chip> : planDraft ? <Chip tone="amber">Draft v{planDraft.version}</Chip> : <Chip tone="slate">Not started</Chip>}
                       </summary>
                       <div className="mt-2">
-                        {planSub ?? planDraft ? <ContentView type={plan} content={(planSub ?? planDraft)!.content} /> : <p className="text-sm text-muted">Nothing written yet.</p>}
+                        {planSub ?? planDraft ? <ContentView type={plan} content={(planSub ?? planDraft)!.content} /> : <p className="guide-muted">Nothing written yet.</p>}
                       </div>
                     </details>
                   )}
-                  <h4 className="pd-label mb-2 mt-5">Your advice memo · up to {RULES.WORD_LIMIT[memo]} words</h4>
+                  <h4 className="guide-label uppercase mb-2 mt-5">Your advice memo · up to {RULES.WORD_LIMIT[memo]} words</h4>
                   <DraftEditor
                     type={memo}
                     draft={toSnapshot(draftRow) ?? EMPTY}
@@ -261,8 +262,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                     </p>
                   ) : null}
                   {r3 ? (
-                    <details className="pd-card mt-4" data-testid="solution-coedit">
-                      <summary className="pd-summary-btn">
+                    <details className="border border-[#294832] p-3.5 mt-4" data-testid="solution-coedit">
+                      <summary className="guide-btn secondary cursor-pointer list-none">
                         The solution, written with your client · up to {RULES.WORD_LIMIT.SOLUTION} words
                       </summary>
                       <p className="my-2 text-sm text-paper">You can edit it with your client: each save shows for both. Your client submits it.</p>
@@ -290,7 +291,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
             })}
           </div>
         ) : (
-          <Notice>No client this {r3 ? "round" : "crisis"} yet. Clients appear here once you accept an offer (or a company accepts your counter).</Notice>
+          <GuideAlert>No client this {r3 ? "round" : "crisis"} yet. Clients appear here once you accept an offer (or a company accepts your counter).</GuideAlert>
         )}
         <HowItWorks label="How you earn" testId="memo-rules">
           <p>Your fee is paid at the due time if your memo for that client is submitted; otherwise the client gets it back.</p>
@@ -300,7 +301,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
 
       {r3 ? <StatementBoard data={data} /> : null}
 
-      <details className="pd-fold" data-testid="firm-results">
+      <details className="guide-panel guide-fold" data-testid="firm-results">
         <summary>Your results: clients, ratings and the firm league</summary>
         <div className="space-y-4 p-4 sm:p-5">
           <EngagementTable data={data} rows={data.engagements.filter((e) => e.firm_team_id === me)} title="Your engagements" />

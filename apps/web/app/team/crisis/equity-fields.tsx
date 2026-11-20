@@ -7,7 +7,6 @@
 import { useState } from "react";
 import { money } from "@/lib/format";
 import { equityText, parsePct, pctOf, stakeValue } from "@/lib/team/equity";
-import { inputClass } from "@/components/ui/ui";
 
 export function EquityFields({
   shares = 0,
@@ -31,13 +30,13 @@ export function EquityFields({
   return (
     <div className="grid gap-2" data-testid={testId}>
       <label className="block text-sm">
-        <span className="pd-label">{label}</span>
+        <span className="guide-label uppercase">{label}</span>
         <input
           inputMode="decimal"
           value={pct}
           onChange={(e) => setPct(e.target.value)}
           placeholder="e.g. 5"
-          className={`${inputClass} mt-1 font-mono`}
+          className={`guide-input mt-1 font-mono`}
           aria-describedby={`${testId}-value`}
         />
       </label>
@@ -54,12 +53,12 @@ export function EquityFields({
         <details open={cash > 0}>
           <summary className="cursor-pointer text-xs font-semibold text-muted">Add cash as well (optional)</summary>
           <label className="mt-1 block text-sm">
-            <span className="pd-label">Cash ($)</span>
-            <input name="cash" inputMode="decimal" defaultValue={(cash / 100).toFixed(2)} className={`${inputClass} mt-1 font-mono`} />
+            <span className="guide-label uppercase">Cash ($)</span>
+            <input name="cash" inputMode="decimal" defaultValue={(cash / 100).toFixed(2)} className={`guide-input mt-1 font-mono`} />
           </label>
         </details>
       ) : null}
-      {hint ? <p className="text-xs text-muted">{hint}</p> : null}
+      {hint ? <p className="guide-muted">{hint}</p> : null}
     </div>
   );
 }

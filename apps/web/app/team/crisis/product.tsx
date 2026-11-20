@@ -30,12 +30,13 @@ import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data"
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
 import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
-import { Badge, Notice, inputClass } from "@/components/ui/ui";
+
 import { SubmissionEditor } from "../squad/submission";
 import { makeOffer, pickStatement, rateFirm } from "./actions";
 import { DraftWatch } from "./draft-watch";
 import { ProductRaisePanel } from "./raises";
 import { CardsOf, EngagementTable, OfferCard, OnTheClock, StatementCrowd, Step, TermsFields, companyLabel, type StepState } from "./parts";
+import { Chip, GuideAlert } from "./guide";
 
 export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data: CrisisRoomData; k: number | null; nowMs: number }) {
   const pause = pauseOf(ctx);
@@ -122,7 +123,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
         : `Opens at ${dueAt}, when writing closes.`;
 
   return (
-    <div className="space-y-4">
+    <div className="guide-stack">
       {r3 ? (
         <DraftWatch eventId={ctx.event.id} companyId={mine.id} active={draft.bySector && !draft.done && data.picks.length > 0} />
       ) : null}
@@ -144,24 +145,24 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
           }
         >
           {myStatement ? (
-            <Notice tone="green">
+            <GuideAlert>
               Your company works on statement {myStatement.number}: <strong>{myStatement.title}</strong>
               {draft.mine?.by_default ? " (given by default: no pick in time)" : ""}.
-            </Notice>
+            </GuideAlert>
           ) : draft.myTurn ? (
-            <Notice tone="amber">
+            <GuideAlert tone="warn">
               It is your pick: choose a statement before <Countdown to={draft.current!.closes_at} className="font-semibold" /> runs out, or you get{" "}
               {missed}.
-            </Notice>
+            </GuideAlert>
           ) : draft.mine ? (
-            <Notice>
+            <GuideAlert>
               {draft.bySector
                 ? `You pick ${draft.place === 1 ? "first" : ordinal(draft.place ?? 1)} of ${draft.queueSize} in your sector (lowest score so far picks first). `
                 : `You pick ${draft.mine.pick_no === 1 ? "first" : `at number ${draft.mine.pick_no}`} (lowest score so far picks first). `}
               {draft.ahead} pick{draft.ahead === 1 ? "" : "s"} before yours.
-            </Notice>
+            </GuideAlert>
           ) : (
-            <Notice>The draft order appears when Round 3 starts.</Notice>
+            <GuideAlert>The draft order appears when Round 3 starts.</GuideAlert>
           )}
           <div className="mt-2">
             <OnTheClock data={data} />
@@ -180,7 +181,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
           </HowItWorks>
           {data.mySector && data.statements.some((s) => s.sector) ? (
             <p className="mt-2 text-sm font-semibold text-paper" data-testid="my-sector">
-              Your sector: <span className="text-[var(--term-amber)]">{data.mySector}</span>. You pick from its statements only.
+              Your sector: <span className="text-[#39ff88]">{data.mySector}</span>. You pick from its statements only.
             </p>
           ) : null}
           <ul className="mt-3 space-y-2" aria-label="Problem statements">
@@ -188,13 +189,13 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
               const n = counts.get(s.id) ?? 0;
               const full = n >= s.cap;
               return (
-                <li key={s.id} className="pd-card" data-testid={`statement-${s.number}`}>
+                <li key={s.id} className="border border-[#294832] p-3.5" data-testid={`statement-${s.number}`}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="pd-chip">#{s.number}</span>
+                    <span className="guide-chip">#{s.number}</span>
                     <span className="font-semibold text-paper">{s.title}</span>
-                    <Badge tone={full ? "red" : "slate"}>
+                    <Chip tone={full ? "red" : "slate"}>
                       {n}/{s.cap} {full ? "full" : "companies"}
-                    </Badge>
+                    </Chip>
                     {draft.myTurn && !full ? (
                       <span className="ml-auto">
                         <ActionButton variant="primary" confirm={`Click again to pick #${s.number}`} action={pickStatement.bind(null, s.id, `statement ${s.number}`)}>
@@ -203,13 +204,13 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-paper">{s.body}</p>
+                  <p className="guide-muted mt-1.5 whitespace-pre-wrap">{s.body}</p>
                   {groups.get(s.id) ? <StatementCrowd group={groups.get(s.id)!} /> : null}
                 </li>
               );
             })}
           </ul>
-          {data.statements.length === 0 ? <p className="text-sm text-muted">The organisers have not published the statements yet.</p> : null}
+          {data.statements.length === 0 ? <p className="guide-muted">The organisers have not published the statements yet.</p> : null}
         </Step>
       ) : (
         <Step n={1} title="Read your crisis card" state="read" testId="step-card" summary="A new problem hit your company, and every share price fell 5%.">
@@ -224,7 +225,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
 
       <Step n={2} title="Hire a consulting firm" state={hireState} summary={hireSummary} testId="step-hire" open={hireState === "now" || hireState === "done"}>
         {engaged ? (
-          <Notice tone="green">
+          <GuideAlert>
             {assignedNote ? (
               <span data-testid="hire-assigned">{assignedNote}</span>
             ) : (
@@ -240,9 +241,9 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
             <Link href={`/team/messages?c=${engaged.company_id}&f=${engaged.firm_team_id}`} className="font-semibold underline">
               Chat with your firm →
             </Link>
-          </Notice>
+          </GuideAlert>
         ) : !hiring ? (
-          <Notice>{r3 && !draft.done ? "Hiring opens when the draft ends." : `Hiring for this ${r3 ? "round" : "crisis"} is closed.`}</Notice>
+          <GuideAlert>{r3 && !draft.done ? "Hiring opens when the draft ends." : `Hiring for this ${r3 ? "round" : "crisis"} is closed.`}</GuideAlert>
         ) : (
           <>
             <DoThis testId="hire-todo">Choose a firm below, open &quot;Make an offer&quot; and send it. Hiring closes at {hireAt}.</DoThis>
@@ -269,7 +270,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
               ) : null}
             </HowItWorks>
             {listed.length === 0 ? (
-              <Notice tone="amber">Every firm has {FIRM_CLIENTS_PER_SUBROUND} clients for this {r3 ? "round" : "crisis"}: there is no firm left to offer.</Notice>
+              <GuideAlert tone="warn">Every firm has {FIRM_CLIENTS_PER_SUBROUND} clients for this {r3 ? "round" : "crisis"}: there is no firm left to offer.</GuideAlert>
             ) : null}
             {data.firms.length > listed.length ? (
               <p className="mt-2 text-xs text-muted" data-testid="full-firms-hidden">
@@ -277,25 +278,25 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 not shown.
               </p>
             ) : null}
-            <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Firm directory">
+            <ul className="guide-grid two mt-3" aria-label="Firm directory">
               {listed.map((f) => {
                 const p = data.profiles.get(f.team_id);
                 const open = myOffers.some((o) => o.firm_team_id === f.team_id && o.status === "OPEN");
                 const minShares = minBidOn && f.base_rate_bp !== null ? rateShares(f.base_rate_bp) : 0;
                 return (
-                  <li key={f.team_id} className="pd-card" data-testid={`firm-${f.code}`}>
+                  <li key={f.team_id} className="border border-[#294832] p-3.5" data-testid={`firm-${f.code}`}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="pd-chip pd-chip-solid hover:underline">
+                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="guide-chip guide-chip-solid hover:underline">
                         {f.code}
                       </Link>
                       <span className="font-semibold text-paper">{f.name}</span>
-                      {f.avg_rating !== null ? <Badge tone="slate">★ {f.avg_rating.toFixed(1)}</Badge> : null}
+                      {f.avg_rating !== null ? <Chip tone="slate">★ {f.avg_rating.toFixed(1)}</Chip> : null}
                     </div>
                     {p?.headline ? <p className="mt-1 text-sm font-semibold text-paper">{p.headline}</p> : null}
                     {p?.specialities.length ? <p className="mt-1 text-xs text-[var(--term-cyan)]">{p.specialities.join(" · ")}</p> : null}
                     {p?.rate_card ? <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{p.rate_card}</p> : null}
                     {f.base_rate_bp !== null && (minBidOn || (drawOn && !r3)) ? (
-                      <p className="mt-1 text-xs text-[var(--term-amber)]" data-testid={`firm-rate-${f.code}`}>
+                      <p className="mt-1 text-xs text-[#39ff88]" data-testid={`firm-rate-${f.code}`}>
                         {minBidOn
                           ? `Minimum bid: ${minBidText(f.base_rate_bp, mine.market_price)}.`
                           : `Base rate: ${rateText(f.base_rate_bp)} (the fee if the draw gives you this firm).`}
@@ -303,13 +304,13 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                     ) : null}
                     <p className="mt-1 text-xs text-muted">
                       Asks for {p && p.asking_cents > 0 ? money(p.asking_cents) : "—"} ·{" "}
-                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="text-[var(--term-amber)] hover:underline">
+                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="text-[#39ff88] hover:underline">
                         Full profile
                       </Link>
                     </p>
                     {!open ? (
                       <details className="mt-2">
-                        <summary className="pd-summary-btn">Make an offer</summary>
+                        <summary className="guide-btn secondary cursor-pointer list-none">Make an offer</summary>
                         <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit="Send offer" className="mt-2" resetOnSuccess>
                           {/* In Round 3 the fee must be worth 5–20% of the company's cash: start inside that band. */}
                           <TermsFields
@@ -324,7 +325,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                           />
                           <label className="mt-2 block text-sm">
                             <span className="font-semibold text-paper">Note (optional)</span>
-                            <input name="note" maxLength={300} className={`${inputClass} mt-1`} />
+                            <input name="note" maxLength={300} className={`guide-input mt-1`} />
                           </label>
                         </ActionForm>
                       </details>
@@ -339,7 +340,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
         )}
         {myOffers.length ? (
           <>
-            <h3 className="pd-label mb-2 mt-5">Your offers</h3>
+            <h3 className="guide-label uppercase mb-2 mt-5">Your offers</h3>
             <ul className="space-y-2">
               {myOffers.map((o) => (
                 <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={firmById.get(o.firm_team_id)?.code ?? "Firm"} priceCents={mine.market_price} />
@@ -404,7 +405,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted">{rateSummary}</p>
+          <p className="guide-muted">{rateSummary}</p>
         )}
         <HowItWorks testId="rate-rules">
           <p>Rate how much the firm helped, from 1 to 5 stars. Each star above 3 adds $1,000 to the firm&apos;s bonus; each star below 3 takes $1,000 away.</p>
@@ -424,12 +425,12 @@ function History({ data, k, companyId }: { data: CrisisRoomData; k: number | nul
   const mine = data.engagements.filter((e) => e.company_id === companyId);
   if (past.length === 0 && mine.length === 0) return null;
   return (
-    <details className="pd-fold" data-testid="crisis-history">
+    <details className="guide-panel guide-fold" data-testid="crisis-history">
       <summary>Earlier crises and your firms</summary>
       <div className="space-y-4 p-4 sm:p-5">
         {past.map((pk) => (
           <section key={pk}>
-            <h3 className="pd-label mb-2">{subroundTitle(pk)}</h3>
+            <h3 className="guide-label uppercase mb-2">{subroundTitle(pk)}</h3>
             <CardsOf data={data} k={pk} only={[companyId]} />
           </section>
         ))}

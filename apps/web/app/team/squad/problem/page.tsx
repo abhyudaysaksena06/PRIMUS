@@ -5,7 +5,7 @@ import { loadTeamContext } from "@/lib/team/context";
 import { pickState } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
 import { ActionButton } from "@/components/ui/action";
-import { Badge, Notice, Panel } from "@/components/ui/ui";
+import { GuideAlert, GuidePanel, Chip } from "../../crisis/guide";
 import { pickProblemCard } from "../actions";
 import { Due } from "../due";
 import { squadGate } from "../parts";
@@ -34,41 +34,42 @@ export default async function ProblemCardPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="guide-stack">
       {/* A pick sends no realtime message: the partner's screens and other devices re-read while it can change. */}
       <AutoRefresh everyMs={10_000} active={pick.open || pick.defaultPending} />
       <RefreshAt at={deadline} />
-      <Panel
+      <GuidePanel
         title={pick.oneCase ? "The case" : "Problem card"}
+        tag={pick.oneCase ? "EVERY SQUAD" : `${ws.cards.length} DEALT · PICK 1`}
         actions={
           pick.oneCase ? null : (
-            <span className="text-sm text-paper">
-              Pick closes <Due at={deadline} {...pauseOf(ctx)} testId="pick-due" />
+            <span className="guide-status">
+              PICK CLOSES <Due at={deadline} {...pauseOf(ctx)} testId="pick-due" />
             </span>
           )
         }
       >
-        <Notice tone={pick.canPick && !pick.chosenId ? "amber" : "slate"}>{pick.note}</Notice>
+        <GuideAlert tone={pick.canPick && !pick.chosenId ? "warn" : "info"}>{pick.note}</GuideAlert>
         {ws.cards.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">No cards have been dealt to your squad.</p>
+          <p className="guide-muted">No cards have been dealt to your squad.</p>
         ) : (
-          <ol className={`mt-3 grid gap-3 ${pick.oneCase ? "" : "md:grid-cols-3"}`}>
+          <ol className={`guide-grid ${pick.oneCase ? "" : "three"}`}>
             {ws.cards.map((c, i) => {
               const chosen = c.id === pick.chosenId;
               return (
                 <li
                   key={c.id}
                   aria-label={`Card ${i + 1}: ${c.title}`}
-                  className={`pd-card flex flex-col ${chosen ? "pd-card-hot" : ""}`}
+                  className={`flex flex-col border p-3.5 ${chosen ? "border-[#39ff88]" : "border-[#294832]"}`}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
-                    <span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Chip tone={chosen ? "active" : "slate"}>
                       {pick.oneCase ? "Same case for every squad" : `Card ${i + 1} of 3`} · No. {c.number} · {c.sector}
-                    </span>
-                    {pick.oneCase ? null : chosen ? <Badge tone={pick.byDefault ? "amber" : "green"}>{pick.byDefault ? "Chosen by default" : "Picked"}</Badge> : null}
+                    </Chip>
+                    {pick.oneCase ? null : chosen ? <Chip tone={pick.byDefault ? "amber" : "green"}>{pick.byDefault ? "Chosen by default" : "Picked"}</Chip> : null}
                   </div>
-                  <h3 className="mt-2 text-lg font-bold leading-snug text-paper">{c.title}</h3>
-                  <p className="mt-1 flex-1 whitespace-pre-wrap text-sm text-paper">{c.body}</p>
+                  <h3 className="mt-3 text-xl font-semibold leading-snug text-paper">{c.title}</h3>
+                  <p className="guide-muted mt-2 flex-1 whitespace-pre-wrap">{c.body}</p>
                   {pick.canPick && !chosen ? (
                     <div className="mt-3">
                       <ActionButton action={pickProblemCard.bind(null, c.id, c.title)} confirm={`Click again to pick “${c.title}”`}>
@@ -81,8 +82,8 @@ export default async function ProblemCardPage() {
             })}
           </ol>
         )}
-        {!pick.mayPick && !pick.oneCase ? <p className="mt-3 text-sm text-muted">The Product team picks the card; you see its pick here.</p> : null}
-      </Panel>
+        {!pick.mayPick && !pick.oneCase ? <p className="guide-muted">The Product team picks the card; you see its pick here.</p> : null}
+      </GuidePanel>
     </div>
   );
 }

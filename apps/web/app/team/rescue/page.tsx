@@ -4,10 +4,12 @@ import { loadRescue, pauseOf } from "@/lib/team/rescue-data";
 import { dealView, feeView } from "@/lib/team/rescue";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
-import { Notice } from "@/components/ui/ui";
+
 import { CrisisPanel } from "./crisis";
 import { DealPanel } from "./deal-panel";
 import { FeePanel } from "./fee-panel";
+import { GuideAlert } from "../crisis/guide";
+import { RoomShell } from "../crisis/room-shell";
 
 export const metadata: Metadata = { title: "Rescue" };
 
@@ -19,9 +21,11 @@ export default async function RescuePage() {
   const ctx = await loadTeamContext();
   if (!ctx.squad) {
     return (
-      <Notice>
-        The squads are formed at the squad draw. After the crisis at 00:30, your squad agrees the advisor&apos;s fee and the rescue deal here.
-      </Notice>
+      <RoomShell track={ctx.team.track} eyebrow="Rescue" title="The rescue deal">
+        <GuideAlert>
+          The squads are formed at the squad draw. After the crisis at 00:30, your squad agrees the advisor&apos;s fee and the rescue deal here.
+        </GuideAlert>
+      </RoomShell>
     );
   }
   const data = await loadRescue(ctx);
@@ -36,7 +40,13 @@ export default async function RescuePage() {
   const ahead = (at: string | undefined) => (at && Date.parse(at) > nowMs ? at : null);
 
   return (
-    <div className="space-y-4">
+    <RoomShell
+      track={ctx.team.track}
+      eyebrow={`Rescue · Squad ${String(ctx.squad.number).padStart(2, "0")}`}
+      title="The rescue deal"
+      lede="Your squad agrees the advisor's fee and the rescue deal here, after the crisis."
+      className="guide-stack"
+    >
       <AutoRefresh everyMs={10_000} active={live} />
       <RefreshAt at={ahead(data.deadlines.FEE)} />
       <RefreshAt at={ahead(data.deadlines.DEAL_BONUS)} />
@@ -68,6 +78,6 @@ export default async function RescuePage() {
         fundAvailable={data.fundAvailable}
         retained={data.retained}
       />
-    </div>
+    </RoomShell>
   );
 }
