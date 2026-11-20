@@ -41,7 +41,7 @@ interface Snap {
 }
 
 /** Runs the job, which must take exactly one backup; it equals the event as it is (nothing moved since). */
-async function backup(n: Night): Promise<Snap> {
+async function backup(n: Night, invariants = true): Promise<Snap> {
   const r = await runJob(n);
   expect(r).toMatchObject({ taken: 1, failed: 0 });
   const s = await n.one<Snap>(
@@ -49,12 +49,12 @@ async function backup(n: Night): Promise<Snap> {
     [n.eventId],
   );
   expect(await live(n)).toEqual(s.fingerprint);
-  await n.checkInvariants();
+  if (invariants) await n.checkInvariants();
   return s;
 }
 
 /** Two people restore a backup: the lead asks, `approver` approves, the job runs it. The event must be paused. */
-async function restore(n: Night, snap: Snap, approver = n.second) {
+async function restore(n: Night, snap: Snap, approver = n.second, invariants = true) {
   const asked = await n.ok(n.lead, "request_restore", snap.id, `Replay from ${snap.label}`);
   await n.ok(approver, "approve_restore", asked.restore_id, true, null);
   const before = await live(n);
@@ -66,7 +66,7 @@ async function restore(n: Night, snap: Snap, approver = n.second) {
   // The event is exactly the backup again, still paused, and its ledger adds up.
   expect(await live(n)).toEqual(snap.fingerprint);
   expect((await n.one("select current_phase::text as p, paused from events where id = $1", [n.eventId]))).toEqual({ p: snap.phase, paused: true });
-  await n.checkInvariants();
+  if (invariants) await n.checkInvariants();
   // What it was just before is a backup of its own.
   const safety = await n.one("select kind, label, fingerprint from app.snapshots where id = $1", [req.safety]);
   expect(safety.kind).toBe("SAFETY");
@@ -300,4 +300,170 @@ describe("backups and resets", () => {
       await n.q("create or replace function app.snapshot_keep() returns int language sql immutable as $$ select 200 $$");
     }
   }, 120_000);
+
+  test("size and speed: a whole night's rows for 50 per track, backed up and restored (estimate for 200 per track: x4)", async () => {
+    const n = await Night.create(db.pool, 50, "PRIMUS");
+    const seed = sha256Hex("snapshot-size");
+    await n.org("set_seed_commitment", n.eventId, sha256Hex(seed));
+    await n.advanceTo("SQUAD_DRAW");
+    await n.org("run_lottery", n.eventId, seed, "6");
+    await n.advanceTo("BUILD");
+    await n.deadlinePassed("PITCH");
+    await n.advanceTo("READING");
+    await n.org("seal_missing_scores", n.eventId, "PITCH");
+    await n.deadlinePassed("CALL_1");
+    await n.org("release_scores", n.eventId, "PITCH");
+    await n.advanceTo("IPO");
+    await n.advanceTo("PRESSURE");
+    const E = n.eventId;
+    // A night's worth of rows, written straight in (as the game would have by the end of the night): every trading
+    // round cleared with 5 filled orders per fund and their ledger pairs, prices and ranges; 10 written works per
+    // company (drafts, submissions, 3 judge runs each, a score); chats; the practice market's ticks and trades; the log.
+    const words = `array['market','supplier','growth','customers','cash','risk','plan','price','margin','launch','hire','team','crisis','demand','cost','partner','delay','quality','pilot','city','sales','channel','board','loan','runway','churn','retail','policy','data','trust']`;
+    const text = (len: number) => `(select string_agg((${words})[1 + floor(random() * 30)::int], ' ') from generate_series(1, ${len} + (g % 7)))`;
+    await n.q("update rounds set status = 'CLEARED', opened_at = now(), closed_at = now(), cleared_at = now() where event_id = $1", [E]);
+    await n.q(
+      `insert into orders (event_id, round_id, team_id, company_id, type, qty, status, entry_price, fill_price, filled_at, reserve_cents)
+       select $1, r.id, f.id, c.id, (array['BUY','SELL','SHORT','COVER'])[1 + (g % 4)]::public.order_type, 100 + g * 7, 'FILLED', 1000 + g, 1000 + g, now(), 0
+         from public.rounds r
+        cross join (select id, row_number() over (order by id) as rn from public.teams where event_id = $1 and track = 'FINANCE') f
+        cross join generate_series(1, 5) g
+         join (select id, row_number() over (order by id) as rn from public.companies where event_id = $1) c on c.rn = 1 + ((f.rn * 7 + g * 3 + r.number) % 50)
+        where r.event_id = $1`,
+      [E],
+    );
+    await n.q(
+      `with o as (select o.*, gen_random_uuid() as txn from public.orders o where o.event_id = $1 and o.status = 'FILLED')
+       insert into ledger_entries (event_id, txn_id, kind, team_id, company_id, lot, cash_delta_cents, share_delta, price_cents, round_id, ref_table, ref_id)
+       select event_id, txn, 'TRADE'::public.ledger_kind, team_id, company_id, 'EXCHANGE'::public.lot_type, -qty::bigint * fill_price, qty,
+              fill_price, round_id, 'orders', id from o
+       union all
+       select event_id, txn, 'TRADE'::public.ledger_kind, null::uuid, company_id, null::public.lot_type, qty::bigint * fill_price, -qty,
+              fill_price, round_id, 'orders', id from o`,
+      [E],
+    );
+    await n.q(
+      `insert into round_prices (event_id, company_id, round_id, kind, market_before, market_after, ai_before, ai_after, buy_qty, sell_qty, net_qty, capped_net)
+       select $1, c.id, r.id, 'CLEARING', 1000 + r.number, 1001 + r.number, 1000, 1000, 300, 200, 100, 100
+         from public.rounds r cross join public.companies c where r.event_id = $1 and c.event_id = $1
+       on conflict do nothing`,
+      [E],
+    );
+    await n.q(
+      `insert into round_ranges (round_id, company_id, event_id, open_cents, high_cents, low_cents, last_cents)
+       select r.id, c.id, $1, 1000, 1010, 990, 1001 from public.rounds r cross join public.companies c where r.event_id = $1 and c.event_id = $1
+       on conflict do nothing`,
+      [E],
+    );
+    await n.q(
+      `insert into public_ledger (event_id, kind, label, company_id, ticker, cash_cents, shares, price_cents, round_number, details)
+       select $1, 'TRADING', 'Round ' || r.number || ' · ' || coalesce(c.ticker, 'XXX'), c.id, c.ticker, 123456, 300, 1001, r.number,
+              jsonb_build_object('buy', 300, 'sell', 200, 'net', 100)
+         from public.rounds r cross join public.companies c where r.event_id = $1 and c.event_id = $1`,
+      [E],
+    );
+    await n.q(
+      `insert into holdings (event_id, team_id, company_id, lot, qty, cost_cents)
+       select $1, f.id, c.id, 'EXCHANGE', 500, 500000
+         from (select id, row_number() over (order by id) as rn from public.teams where event_id = $1 and track = 'FINANCE') f
+         join (select id, row_number() over (order by id) as rn from public.companies where event_id = $1) c on (c.rn + f.rn) % 3 = 0
+       on conflict do nothing`,
+      [E],
+    );
+    const types = `array['CRISIS_1','CRISIS_2','CRISIS_3','CRISIS_4','SOLUTION','ADVICE_1','ADVICE_2','ADVICE_3','ADVICE_4','ADVICE_5']`;
+    await n.q(
+      `insert into submission_drafts (event_id, squad_id, company_id, type, content, version)
+       select $1, c.squad_id, c.id, t::public.submission_type,
+              jsonb_build_object('impact', ${text(60)}, 'response', ${text(90)}, 'money', ${text(50)}, 'risks', ${text(50)}, 'next_steps', ${text(40)}), 12
+         from public.companies c cross join unnest(${types}) t cross join lateral (select (abs(hashtext(c.id::text || t)) % 7) as g) gg
+        where c.event_id = $1 on conflict do nothing`,
+      [E],
+    );
+    await n.q(
+      `insert into submissions (event_id, squad_id, company_id, type, content, body_text, word_count, submitted_by_team)
+       select d.event_id, d.squad_id, d.company_id, d.type, d.content, d.content::text, 330, c.product_team_id
+         from public.submission_drafts d join public.companies c on c.id = d.company_id where d.event_id = $1 and d.type <> 'PITCH'`,
+      [E],
+    );
+    await n.q(
+      `insert into judge_runs (event_id, submission_id, company_id, type, run_no, model, status, request_text, raw_response, breakdown, total, rationale, finished_at)
+       select s.event_id, s.id, s.company_id, s.type, k, 'judge-model', 'DONE', ${text(700)}, ${text(250)},
+              jsonb_build_object('impact', 10 + k, 'response', 20, 'money', 15, 'risks', 10, 'fit', 9), 60 + k, ${text(110)}, now()
+         from public.submissions s cross join generate_series(1, 3) k cross join lateral (select (abs(hashtext(s.id::text)) % 7) as g) gg
+        where s.event_id = $1`,
+      [E],
+    );
+    await n.q(
+      `insert into scores (event_id, company_id, type, submission_id, status, run_totals, median, final_score, breakdown, rationale, tier_bp)
+       select s.event_id, s.company_id, s.type, s.id, 'RELEASED', '{61,62,63}', 62, 62,
+              jsonb_build_object('impact', 12, 'response', 20, 'money', 15, 'risks', 10, 'fit', 9), ${text(110)}, 500
+         from public.submissions s cross join lateral (select (abs(hashtext(s.id::text)) % 7) as g) gg
+        where s.event_id = $1 on conflict do nothing`,
+      [E],
+    );
+    await n.q(
+      `insert into squad_messages (event_id, squad_id, team_id, body)
+       select $1, s.id, s.product_team_id, ${text(20)} from public.squads s cross join generate_series(1, 100) g where s.event_id = $1`,
+      [E],
+    );
+    await n.q(
+      `insert into hire_messages (event_id, company_id, firm_team_id, team_id, body)
+       select $1, c.id, s.consulting_team_id, c.product_team_id, ${text(20)}
+         from public.companies c join public.squads s on s.id = c.squad_id cross join generate_series(1, 40) g where c.event_id = $1`,
+      [E],
+    );
+    await n.q(
+      `insert into practice_ticks (event_id, ticker_team_id, step, at, price_cents)
+       select $1, t.id, k, now() + make_interval(secs => k * 5), 1000 + (k % 50)
+         from public.teams t cross join generate_series(0, 479) k where t.event_id = $1 and t.track = 'PRODUCT'`,
+      [E],
+    );
+    await n.q(
+      `insert into practice_trades (event_id, team_id, ticker_team_id, type, qty, price_cents)
+       select $1, f.id, p.id, 'BUY', 100, 1000
+         from public.teams f join public.teams p on p.event_id = f.event_id and p.track = 'PRODUCT'
+        where f.event_id = $1 and f.track = 'FINANCE'`,
+      [E],
+    );
+    await n.q(
+      `insert into event_log (event_id, kind, what) select $1, 'TRADING', 'Trading round ' || g || ' closed and cleared' from generate_series(1, 500) g`,
+      [E],
+    );
+
+    await n.ok(n.lead, "request_snapshot", E, "Measured");
+    const t0 = performance.now();
+    const snap = await backup(n, false); // written straight in, so the ledger does not add up: no invariants here
+    const jobMs = performance.now() - t0;
+    const stats = await n.one(
+      `select s.ms, s.n_rows::int as rows, s.size_bytes::bigint as stored,
+              (select sum(octet_length(p.data::text))::bigint from app.snapshot_parts p where p.snapshot_id = s.id) as raw
+         from app.snapshots s where s.id = $1`,
+      [snap.id],
+    );
+    const top = await n.q(
+      "select tbl, n_rows, bytes::int, octet_length(data::text) as raw from app.snapshot_parts where snapshot_id = $1 order by bytes desc limit 8",
+      [snap.id],
+    );
+    await n.org("pause_event", E);
+    const t1 = performance.now();
+    await restore(n, snap, n.second, false);
+    const restoreMs = performance.now() - t1;
+    const run = await n.one(
+      "select extract(epoch from finished_at - started_at) * 1000 as ms from app.snapshot_restores where event_id = $1 order by id desc limit 1",
+      [E],
+    );
+    // The judge's full texts are still there after the restore.
+    expect((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and raw_response is not null", [E])).c).toBe(1500);
+    const mb = (b: number | string) => `${(Number(b) / 1_048_576).toFixed(1)} MB`;
+    console.log(
+      [
+        `Backup of a synthetic night at 50 per track: ${stats.rows} rows, ${mb(stats.raw)} as JSON, ${mb(stats.stored)} stored (compressed); ` +
+          `taken in ${stats.ms} ms (the job's call ${Math.round(jobMs)} ms)`,
+        `Restore (with its "before" backup) ran in ${Math.round(Number(run.ms))} ms (the job's call ${Math.round(restoreMs)} ms)`,
+        `Largest tables: ${top.map((t) => `${t.tbl} ${t.n_rows} rows ${mb(t.raw)} raw / ${mb(t.bytes)} stored`).join("; ")}`,
+        `Estimate at 200 per track (x4): ${mb(Number(stats.raw) * 4)} as JSON, ${mb(Number(stats.stored) * 4)} stored per backup`,
+      ].join("\n"),
+    );
+    expect(Number(stats.stored)).toBeGreaterThan(0);
+  }, 240_000);
 });
