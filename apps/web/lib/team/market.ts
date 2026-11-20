@@ -80,7 +80,8 @@ export function marketLines(companies: readonly ListedCompany[], lastRound: read
 
 // ───────────────────────────── Price history ─────────────────────────────
 
-export type PriceKind = "IPO" | "CLEARING" | "CRISIS" | "PLAN_TIER" | "FLASH_TIER" | "CLOSE" | "APPEAL";
+// SUB_SHOCK and SUB_TIER are a PRIMUS crisis's −5% shock and the plan/solution verdicts (migration 032).
+export type PriceKind = "IPO" | "CLEARING" | "CRISIS" | "PLAN_TIER" | "FLASH_TIER" | "CLOSE" | "APPEAL" | "SUB_SHOCK" | "SUB_TIER";
 
 export interface PriceRow {
   id: number | string;
@@ -96,6 +97,8 @@ export interface PriceRow {
   cover_qty: number;
   net_qty: number;
   tier_bp: number | null;
+  /** PRIMUS: which crisis (1–4) or Round 3 (5) a SUB_SHOCK or SUB_TIER row belongs to. */
+  subround?: number | null;
   created_at: string;
 }
 
@@ -114,7 +117,7 @@ export interface HistoryLine {
 }
 
 /** For steps recorded in the same transaction (the last clearing and the close): the order of the night. */
-const KIND_ORDER: Record<PriceKind, number> = { IPO: 0, CLEARING: 1, CRISIS: 1, PLAN_TIER: 1, FLASH_TIER: 1, CLOSE: 2, APPEAL: 3 };
+const KIND_ORDER: Record<PriceKind, number> = { IPO: 0, CLEARING: 1, CRISIS: 1, PLAN_TIER: 1, FLASH_TIER: 1, SUB_SHOCK: 1, SUB_TIER: 1, CLOSE: 2, APPEAL: 3 };
 
 /**
  * Every price change of one company, in the order it happened (IPO first, the close last, then any technical appeal
@@ -140,6 +143,15 @@ export function historyLines(rows: readonly PriceRow[]): HistoryLine[] {
         }
         case "CRISIS":
           return { ...base, ...moved(r.market_before), label: "Crisis shock", detail: "−15% on the market and AI prices" };
+        case "SUB_SHOCK":
+          return { ...base, ...moved(r.market_before), label: r.subround ? `Crisis ${r.subround}` : "Crisis", detail: "−5% on the market and AI prices" };
+        case "SUB_TIER":
+          return {
+            ...base,
+            ...moved(r.market_before),
+            label: r.subround === 5 ? "Solution verdict" : r.subround ? `Crisis ${r.subround} plan verdict` : "Verdict",
+            detail: `${bp(r.tier_bp ?? 0)} on the market and AI prices`,
+          };
         case "PLAN_TIER":
           return { ...base, ...moved(r.market_before), label: "Plan tier", detail: `${bp(r.tier_bp ?? 0)} on the market and AI prices` };
         case "FLASH_TIER":
@@ -160,11 +172,14 @@ export function historyLines(rows: readonly PriceRow[]): HistoryLine[] {
             ? { ...base, ...moved(r.market_before), label: "Technical appeal", detail: `${ai}; closing price ${money(r.market_before)} → ${money(r.market_after)}` }
             : { ...base, label: "Technical appeal", change: "—", changeSign: 0, detail: ai };
         }
+        default:
+          // A kind this page does not know yet: shown plainly instead of breaking the page.
+          return { ...base, ...moved(r.market_before), label: String(r.kind), detail: "" };
       }
     });
 }
 
-const MARKERS: Partial<Record<PriceKind, string>> = { IPO: "IPO", CRISIS: "Crisis", PLAN_TIER: "Plan", FLASH_TIER: "Flash", CLOSE: "Close" };
+const MARKERS: Partial<Record<PriceKind, string>> = { IPO: "IPO", CRISIS: "Crisis", PLAN_TIER: "Plan", FLASH_TIER: "Flash", SUB_SHOCK: "Crisis", SUB_TIER: "Verdict", CLOSE: "Close" };
 
 /**
  * The chart of a company's history: the market price step by step, the AI price dashed (it moves only with the IPO,

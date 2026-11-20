@@ -5,7 +5,7 @@
 
 import type { ChartPoint } from "@/lib/chart";
 
-export type PriceKind = "IPO" | "CLEARING" | "CRISIS" | "PLAN_TIER" | "FLASH_TIER" | "CLOSE" | "APPEAL";
+export type PriceKind = "IPO" | "CLEARING" | "CRISIS" | "PLAN_TIER" | "FLASH_TIER" | "CLOSE" | "APPEAL" | "SUB_SHOCK" | "SUB_TIER";
 
 export interface LedgerMove {
   at: string;
@@ -31,12 +31,14 @@ const LABEL: Record<Exclude<PriceKind, "CLEARING">, string> = {
   FLASH_TIER: "Flash verdicts",
   CLOSE: "Close",
   APPEAL: "Appeal",
+  SUB_SHOCK: "Crisis",
+  SUB_TIER: "Verdicts",
 };
-const MARKER: Partial<Record<PriceKind, string>> = { IPO: "IPO", CRISIS: "Crisis", PLAN_TIER: "Plan", FLASH_TIER: "Flash", CLOSE: "Close" };
+const MARKER: Partial<Record<PriceKind, string>> = { IPO: "IPO", CRISIS: "Crisis", PLAN_TIER: "Plan", FLASH_TIER: "Flash", SUB_SHOCK: "Crisis", SUB_TIER: "Verdict", CLOSE: "Close" };
 
 const ms = (iso: string) => new Date(iso).getTime();
 /** Within one transaction: the clearing first, then the crisis or a tier, then the close. */
-const ORDER: Record<PriceKind, number> = { IPO: 0, CLEARING: 1, CRISIS: 2, PLAN_TIER: 2, FLASH_TIER: 2, CLOSE: 3, APPEAL: 4 };
+const ORDER: Record<PriceKind, number> = { IPO: 0, CLEARING: 1, CRISIS: 2, PLAN_TIER: 2, FLASH_TIER: 2, SUB_SHOCK: 2, SUB_TIER: 2, CLOSE: 3, APPEAL: 4 };
 
 export function portfolioSeries(moves: readonly LedgerMove[], steps: readonly PriceStep[]): ChartPoint[] {
   const sortedMoves = [...moves].sort((a, b) => ms(a.at) - ms(b.at));

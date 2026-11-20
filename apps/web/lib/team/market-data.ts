@@ -119,7 +119,7 @@ export async function loadCompanyView(eventId: string, ticker: string, phase: Ph
     fetchAll<Omit<PriceRow, "round_number"> & { round_id: string | null }>((from, to) =>
       sb
         .from("round_prices")
-        .select("id, kind, round_id, market_before, market_after, ai_before, ai_after, buy_qty, sell_qty, short_qty, cover_qty, net_qty, tier_bp, created_at")
+        .select("id, kind, round_id, subround, market_before, market_after, ai_before, ai_after, buy_qty, sell_qty, short_qty, cover_qty, net_qty, tier_bp, created_at")
         .eq("company_id", company.id)
         .order("id")
         .range(from, to),

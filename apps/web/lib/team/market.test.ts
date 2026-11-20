@@ -60,6 +60,17 @@ describe("price history", () => {
     tier_bp: null,
     ...r,
   });
+  test("a PRIMUS night: the crisis shock and the plan and solution verdicts have their own lines (no crash)", () => {
+    const lines = historyLines([
+      row({ id: 1, kind: "IPO", market_after: 1050, ai_after: 1050, tier_bp: 500, created_at: "2026-11-20T17:45:00Z" }),
+      row({ id: 2, kind: "SUB_SHOCK", subround: 1, market_before: 1050, market_after: 998, ai_after: 998, tier_bp: -500, created_at: "2026-11-20T18:00:00Z" }),
+      row({ id: 3, kind: "SUB_TIER", subround: 1, market_before: 998, market_after: 1198, ai_after: 1198, tier_bp: 2000, created_at: "2026-11-20T19:20:00Z" }),
+      row({ id: 4, kind: "SUB_TIER", subround: 5, market_before: 1198, market_after: 1300, ai_after: 1300, tier_bp: 850, created_at: "2026-11-21T00:10:00Z" }),
+    ]);
+    expect(lines.map((l) => l.label)).toEqual(["IPO price", "Crisis 1", "Crisis 1 plan verdict", "Solution verdict"]);
+    expect(chartPoints(lines).map((p) => p.marker)).toEqual(["IPO", "Crisis", "Verdict", "Verdict"]);
+  });
+
   test("IPO first, every round and adjustment in order, the close last; AquaSense's numbers", () => {
     const lines = historyLines([
       row({ id: 9, kind: "CLOSE", market_before: 1400, market_after: 1263, ai_after: 1126, created_at: "2026-10-08T23:30:00Z" }),
