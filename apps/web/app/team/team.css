@@ -367,3 +367,8 @@ li:last-child > .guide-news-story {
 .guide-app .guide-panel table thead {
   background: rgba(255, 255, 255, 0.04);
 }
+
+/* The demo keeps the footer and the news belt at the foot of the screen: on a short page the content grows to fill
+   the window instead of the belt floating mid-screen. */
+.guide-participant-main { display: flex; flex-direction: column; min-height: 100vh; }
+.guide-participant-main > .guide-content { flex: 1 0 auto; }
