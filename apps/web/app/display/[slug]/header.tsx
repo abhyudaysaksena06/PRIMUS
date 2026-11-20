@@ -1,8 +1,8 @@
 // The top of the big screen: the event clock, the phase, the round with its countdown to the close, and a badge
 // reading OPEN, HALTED or PAUSED. Everything is from event_status (the server's view), counted down against the
 // server clock; during a pause the countdowns stand still (the schedule moves later by the pause on resume).
-// Drawn in the /demo projector's look (display.css): a green monospace eyebrow over the phase, and the countdown and
-// the clock in metric tiles.
+// Drawn with the /demo projector's own parts (app/demo/display): its page head (eyebrow, title, line) on the left and
+// its row of .guide-metric tiles (the round, trading and the clock) on the right.
 
 import { PHASE_LABELS } from "@msim/engine";
 import type { EventStatus } from "@/lib/event-status";
@@ -12,68 +12,58 @@ import { Countdown, ServerClock } from "@/components/ui/countdown";
 import { RealtimeDot } from "@/components/ui/realtime-dot";
 import { PhaseTimer } from "./phase-timer";
 
-const BADGE: Record<EventStatus["trading"], string> = {
-  OPEN: "bg-[#39ff88] text-ink",
-  HALTED: "border-2 border-[rgba(91,139,100,.5)] bg-[rgba(57,255,136,.08)] text-[#9fc6a8]",
-  PAUSED: "bg-warn text-ink",
-};
-
 export function DisplayHeader({ event, status }: { event: DisplayEvent; status: EventStatus }) {
   return (
-    <header className="dsp-header flex h-[150px] shrink-0 items-center justify-between gap-8 px-12" data-testid="display-header">
-      <div className="min-w-0 flex-[1.6]">
-        <p className="flex min-w-0 items-center gap-4 truncate text-[26px] font-medium text-[#9db1a1]">
-          <span className="dsp-eyebrow shrink-0 !tracking-[0.14em]" aria-hidden>
-            PRIMUS ’26 ·
+    <header className="guide-stage-head flex h-[150px] shrink-0 items-center gap-6 px-10" data-testid="display-header">
+      <div className="guide-page-head min-w-0 flex-1">
+        <small className="flex min-w-0 items-center gap-4">
+          <span className="shrink-0" aria-hidden>
+            PUBLIC STAGE OUTPUT /
           </span>
-          <span className="truncate">{event.name}</span>
-          {event.is_rehearsal ? <span className="dsp-chip shrink-0 px-3 py-1">Rehearsal ×{event.clock_speed}</span> : null}
-        </p>
-        <p className="dsp-phase mt-1 truncate text-[58px] leading-tight font-black" data-testid="display-phase">
+          <span className="truncate">{event.name.toUpperCase()}</span>
+          {event.is_rehearsal ? <b className="guide-phase shrink-0">REHEARSAL ×{event.clock_speed}</b> : null}
+        </small>
+        <p className="guide-page-title truncate" data-testid="display-phase">
           {PHASE_LABELS[status.phase]}
         </p>
       </div>
 
-      <div className="dsp-metric flex h-[118px] min-w-[440px] flex-col items-center justify-center px-8 text-center" data-testid="display-round">
+      <div className="guide-metric guide-stage-metric min-w-[440px]" data-testid="display-round">
         {status.open_round ? (
           <>
-            <p className="dsp-label text-[26px] font-semibold">
-              {status.paused ? `Round ${status.open_round.number} is paused with` : `Round ${status.open_round.number} closes in`}
-            </p>
+            <small>{status.paused ? `Round ${status.open_round.number} is paused with` : `Round ${status.open_round.number} closes in`}</small>
             {/* While paused the countdown stands still at the time the round had left when the pause began. */}
-            <p className={`font-mono text-[68px] leading-none font-black tabular-nums ${status.paused ? "text-warn" : "dsp-figure"}`}>
+            <b className={status.paused ? "guide-warn" : undefined}>
               <Countdown to={status.open_round.closes_at} passed={status.paused ? "0:00" : "clearing…"} />
-            </p>
+            </b>
           </>
         ) : status.next_round ? (
           <>
-            <p className="dsp-label text-[26px] font-semibold">Round {status.next_round.number} opens</p>
-            {status.paused ? (
-              <p className="text-[52px] leading-none font-black text-warn">after the pause</p>
-            ) : (
-              <p className="dsp-figure text-[68px] leading-none font-black">at {clock(status.next_round.opens_at)}</p>
-            )}
+            <small>Round {status.next_round.number} opens</small>
+            {status.paused ? <b className="guide-warn">after the pause</b> : <b>at {clock(status.next_round.opens_at)}</b>}
           </>
         ) : (
-          <div className="font-mono">
+          <div className="guide-phase-timer">
             <PhaseTimer endsAt={status.phase_ends_at} phase={status.phase} gate={status.gate} next={status.next_phase} paused={status.paused} />
           </div>
         )}
       </div>
 
-      <div className="flex flex-1 items-center justify-end gap-6">
-        <span className={`px-6 py-2 font-mono text-[42px] font-black tracking-wider ${BADGE[status.trading]}`} data-testid="display-trading">
+      <div className="guide-metric guide-stage-metric">
+        <small aria-hidden>Trading</small>
+        <b className="guide-trading-state" data-state={status.trading} data-testid="display-trading">
           {status.trading}
+        </b>
+      </div>
+
+      <div className="guide-metric guide-stage-metric">
+        <small aria-hidden>IST</small>
+        <b>
+          <ServerClock />
+        </b>
+        <span className="guide-stage-live">
+          <RealtimeDot />
         </span>
-        <div className="dsp-metric flex h-[118px] flex-col items-end justify-center px-6 text-right">
-          <ServerClock className="dsp-figure text-[56px] leading-none font-bold" />
-          <div className="mt-2 flex items-center justify-end gap-3 [&_span]:text-[18px]">
-            <span className="dsp-label" aria-hidden>
-              IST
-            </span>
-            <RealtimeDot />
-          </div>
-        </div>
       </div>
     </header>
   );

@@ -37,11 +37,11 @@ async function PitchVerdicts({ eventId }: { eventId: string }) {
       {/* The verdict reveal: one thermal scan. */}
       <ThermalBeam />
       <div className="grid shrink-0 grid-cols-2 gap-8">
-        <div className="dsp-metric px-8 py-5" data-testid="verdicts-listed">
+        <div className="guide-metric px-8 py-5" data-testid="verdicts-listed">
           <p className="text-[30px] font-semibold tracking-wide text-muted uppercase">Companies listed</p>
           <p className="text-[72px] leading-tight font-black tabular-nums">{count(s.listed)}</p>
         </div>
-        <div className="dsp-metric px-8 py-5" data-testid="verdicts-range">
+        <div className="guide-metric px-8 py-5" data-testid="verdicts-range">
           <p className="text-[30px] font-semibold tracking-wide text-muted uppercase">IPO prices</p>
           <p className="text-[72px] leading-tight font-black tabular-nums">
             {s.low === s.high ? money(s.low) : `${money(s.low)} – ${money(s.high)}`}
@@ -61,7 +61,7 @@ async function PitchVerdicts({ eventId }: { eventId: string }) {
           {s.top.map((r, i) => (
             <li
               key={r.id}
-              className="grid grid-cols-[4rem_minmax(0,1fr)_12rem_16rem] items-center gap-6 dsp-mover-row px-5 py-1.5"
+              className="grid grid-cols-[4rem_minmax(0,1fr)_12rem_16rem] items-center gap-6 guide-panel guide-stage-row px-5 py-1.5"
               data-testid={`verdicts-top-${r.ticker}`}
             >
               <span className="text-[40px] font-black text-muted tabular-nums">{ranks[i]}</span>

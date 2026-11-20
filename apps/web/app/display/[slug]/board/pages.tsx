@@ -66,7 +66,7 @@ export function BoardPages({
           <Tile key={t.id} tile={t} round={round} glow={glow} size={compact ? SIZES.compact : SIZES.normal} />
         ))}
       </div>
-      <footer className="dsp-strip flex h-[44px] shrink-0 items-center justify-between gap-8 px-8 font-mono text-[24px] text-[#819c87]">
+      <footer className="guide-footer guide-stage-legend flex h-[44px] shrink-0 items-center justify-between gap-8">
         <p className="min-w-0 truncate" data-testid="board-legend">
           {pending ? (
             "IPO prices are set when the pitch scores are released."
@@ -84,7 +84,7 @@ export function BoardPages({
           )}
         </p>
         {pages > 1 ? (
-          <p className="dsp-green shrink-0 font-mono font-bold tabular-nums" data-testid="board-page" aria-label={`Page ${page + 1} of ${pages}`}>
+          <p className="guide-status shrink-0 tabular-nums" data-testid="board-page" aria-label={`Page ${page + 1} of ${pages}`}>
             {page + 1} / {pages}
           </p>
         ) : null}
@@ -120,7 +120,7 @@ function Tile({ tile: t, round, glow, size }: { tile: BoardTile; round: number |
   const big = lit !== "" && t.changeBp !== null && Math.abs(t.changeBp) >= BIG_MOVE_BP;
   return (
     <div
-      className={`relative flex min-h-0 min-w-0 flex-col justify-between overflow-hidden px-4 ${size.pad} transition-[background-color,box-shadow] duration-1000 ${lit || "dsp-tile"}`}
+      className={`relative flex min-h-0 min-w-0 flex-col justify-between overflow-hidden px-4 ${size.pad} transition-[background-color,box-shadow] duration-1000 ${lit ? `guide-tile ${lit}` : "guide-metric guide-tile"}`}
       data-testid={`tile-${t.ticker}`}
       data-lit={lit ? "true" : undefined}
     >
