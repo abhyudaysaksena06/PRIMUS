@@ -58,7 +58,7 @@ export function LineChart({
           </circle>
         ))}
       </svg>
-      <figcaption className="mt-1 flex flex-wrap gap-x-4 text-xs text-paper">
+      <figcaption className="mt-1 flex flex-wrap gap-x-4 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
         <span className="inline-flex items-center gap-1">
           <span className="inline-block h-0.5 w-5" style={{ background: stroke }} /> {mainName}
         </span>

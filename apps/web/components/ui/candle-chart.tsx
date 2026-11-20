@@ -129,7 +129,7 @@ export function CandleChart({
         </g>
       </svg>
       {caption ? (
-        <figcaption className="mt-1 flex flex-wrap gap-x-4 text-xs text-slate-600">
+        <figcaption className="mt-1 flex flex-wrap gap-x-4 font-mono text-[10px] uppercase tracking-[0.08em] text-muted">
           <span className="inline-flex items-center gap-1">
             <span className="inline-block h-2.5 w-1.5" style={{ background: C.up }} />
             <span className="inline-block h-2.5 w-1.5" style={{ background: C.down }} /> open → close, wick high to low
@@ -169,7 +169,7 @@ function markers(candles: readonly PlacedCandle[], fontSize: number): { c: Place
 
 /** Small candles for a table row or a tile: one per step, from the values in order. */
 export function MiniCandles({ values, label, width = 64, height = 20 }: { values: readonly number[]; label: string; width?: number; height?: number }) {
-  if (values.length < 2) return <span className="text-xs text-slate-400">—</span>;
+  if (values.length < 2) return <span className="text-xs text-muted">—</span>;
   const g = candleGeometry(candlesFrom(values), { width, height, padLeft: 0, padRight: 0, padTop: 1, padBottom: 1 }, 1);
   const tone = { up: C.up, down: C.down, flat: C.flat };
   return (

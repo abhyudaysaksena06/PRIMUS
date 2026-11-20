@@ -87,14 +87,7 @@
   color: #f0f1f4;
 }
 
-/* Panels: actions sit at the right of the head. */
-.guide-admin .guide-panel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
+/* Panels (their actions sit at the right of the head: .guide-panel-actions in globals.css). */
 .guide-admin .guide-panel + .guide-panel,
 .guide-admin .guide-panel-body > .guide-panel {
   margin-top: 14px;
@@ -142,25 +135,11 @@
   background: rgba(57, 255, 136, 0.08) !important;
   color: #39ff88 !important;
 }
-.guide-admin .guide-chip[data-tone="red"] {
-  border-color: rgba(255, 95, 95, 0.45) !important;
-  background: rgba(255, 95, 95, 0.08) !important;
-  color: #ff8a8a !important;
-}
-.guide-admin .guide-chip[data-tone="violet"] {
-  border-color: rgba(169, 139, 255, 0.45) !important;
-  background: rgba(169, 139, 255, 0.1) !important;
-  color: #c9b8ff !important;
-}
+/* (The red, amber and violet chips and the red notice are the shared tones in globals.css.) */
 
-/* Notices: the demo's alert, its warning, and a red one. */
+/* Notices: the demo's alert, its warning, and a green one in the demo's green. */
 .guide-admin .guide-alert {
   font-size: 12px;
-}
-.guide-admin .guide-alert.guide-danger {
-  border-left-color: #ff5f5f !important;
-  background: rgba(120, 24, 24, 0.2) !important;
-  color: #ffc9c9 !important;
 }
 .guide-admin .guide-alert[data-tone="green"] {
   border-left-color: #39ff88 !important;
@@ -218,10 +197,7 @@
 .guide-admin .guide-input {
   display: block;
 }
-/* A field given its own width (w-28, w-64, w-auto…) keeps it; others fill their label, as in the demo. */
-.guide-admin .guide-input[class*=" w-"] {
-  width: revert-layer;
-}
+/* (A field given its own width, w-28, w-64, w-auto…, keeps it: globals.css.) */
 .guide-admin .guide-input {
   border-radius: 0;
   background: #0b0e14;
@@ -353,9 +329,4 @@
 }
 .guide-admin .guide-input {
   font-size: 12px;
-}
-
-/* Anything still drawn by a shared part keeps the console's palette. */
-.guide-admin .mx-eyebrow {
-  color: var(--track-accent);
 }
