@@ -1,8 +1,11 @@
 // The Round 3 draft on the big screen, while it runs: whose pick it is (with its 20 seconds), every statement with the
 // companies on it, and the picks still to come. Public data only (tickers, never team names). It replaces the board,
-// and any results screen still showing, until every company has its statement.
+// and any results screen still showing, until every company has its statement. Picks go to the staff channel only,
+// so the board re-reads itself every 3 s; with one queue per sector (draft_clock) it shows a column per sector.
 
 import { Countdown } from "@/components/ui/countdown";
+import { DRAFT_POLL_MS, parseDraftHeads, sameSector, type DraftHead } from "@/lib/display/draft";
+import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { supabaseServer } from "@/lib/supabase/server";
 import { TakeoverFrame } from "./takeovers/frame";
 
@@ -16,6 +19,8 @@ interface Pick {
 }
 
 export interface DraftBoardData {
+  /** With one queue per sector: the company on the clock in each sector (empty: a single queue). */
+  heads: DraftHead[];
   picks: Pick[];
   statements: { id: string; number: number; title: string; cap: number; sector: string | null }[];
   tickers: Map<string, string>;
@@ -33,14 +38,17 @@ export async function loadLiveDraft(eventId: string): Promise<DraftBoardData | n
     .order("pick_no");
   const rows = (picks ?? []) as Pick[];
   if (rows.length === 0 || rows.every((p) => p.statement_id !== null)) return null;
-  const [st, co, sec] = await Promise.all([
+  const [st, co, sec, clock] = await Promise.all([
     sb.from("problem_statements").select("id, number, title, cap, sector").eq("event_id", eventId).order("number"),
     sb.from("companies").select("id, ticker").eq("event_id", eventId),
     // The display account may not read the squads' problem cards: the draft's sectors come from draft_sectors.
     sb.rpc("draft_sectors", { p_event: eventId }),
+    // One queue per sector (migration 077): who is on the clock in each. Missing or failing: the single queue.
+    sb.rpc("draft_clock", { p_event: eventId }),
   ]);
   const companies = (co.data ?? []) as { id: string; ticker: string | null }[];
   return {
+    heads: clock.error ? [] : parseDraftHeads(clock.data),
     picks: rows,
     statements: (st.data ?? []) as DraftBoardData["statements"],
     tickers: new Map(companies.map((c) => [c.id, c.ticker ?? "—"])),
@@ -49,6 +57,68 @@ export async function loadLiveDraft(eventId: string): Promise<DraftBoardData | n
 }
 
 export function DraftBoard({ data }: { data: DraftBoardData }) {
+  // Picks reach only the staff channel: the projector re-reads the draft every 3 s while it runs.
+  const poll = <AutoRefresh everyMs={DRAFT_POLL_MS} />;
+  return data.heads.length > 1 ? (
+    <>
+      {poll}
+      <SectorDraftBoard data={data} />
+    </>
+  ) : (
+    <>
+      {poll}
+      <QueueDraftBoard data={data} />
+    </>
+  );
+}
+
+/** One queue per sector, all at once: a column per sector with its company on the clock and its statements. */
+function SectorDraftBoard({ data }: { data: DraftBoardData }) {
+  const left = data.picks.filter((p) => p.statement_id === null).length;
+  return (
+    <TakeoverFrame title="Round 3 · the draft" at={data.picks[0]!.opens_at} until={null} tone="bg-[var(--term-amber,#ffa028)] text-ink">
+      <div className="flex h-full flex-col gap-5" data-testid="display-draft">
+        <div className="grid min-h-0 flex-1 gap-6" style={{ gridTemplateColumns: `repeat(${data.heads.length}, minmax(0, 1fr))` }}>
+          {data.heads.map((h) => {
+            const statements = data.statements.filter((s) => sameSector(s.sector, h.sector));
+            return (
+              <section key={h.sector} className="flex min-h-0 flex-col gap-3" data-testid={`display-draft-sector-${h.sector}`}>
+                <p className="truncate text-[30px] font-bold uppercase tracking-widest text-warn">{h.sector}</p>
+                <div className="flex items-end justify-between gap-4 border-b-4 border-phosphor-dim pb-2">
+                  <p className="text-[72px] font-black leading-none text-phosphor">{h.ticker}</p>
+                  <p className="font-mono text-[64px] font-black leading-none tabular-nums text-warn">
+                    <Countdown to={h.closes_at} passed="0:00" />
+                  </p>
+                </div>
+                <ul className="flex min-h-0 flex-col gap-1.5 overflow-hidden">
+                  {statements.map((s) => {
+                    const on = data.picks.filter((p) => p.statement_id === s.id);
+                    const full = on.length >= s.cap;
+                    return (
+                      <li key={s.id} className="flex items-baseline gap-3 text-[24px] leading-tight" data-testid={`display-statement-${s.number}`}>
+                        <span className="font-mono font-bold text-warn">#{s.number}</span>
+                        <span className="min-w-0 flex-1 truncate text-paper">{s.title}</span>
+                        <span className={`font-mono font-bold ${full ? "text-danger" : "text-muted"}`}>
+                          {on.length}/{s.cap}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+        <p className="shrink-0 text-[30px] text-muted">
+          {data.picks.length - left} of {data.picks.length} picked · {left} still to pick
+        </p>
+      </div>
+    </TakeoverFrame>
+  );
+}
+
+/** A single queue: whose pick it is, the statements of its sector with the companies on them, the picks to come. */
+function QueueDraftBoard({ data }: { data: DraftBoardData }) {
   const current = data.picks.find((p) => p.statement_id === null)!;
   const left = data.picks.filter((p) => p.statement_id === null);
   const done = data.picks.length - left.length;
