@@ -112,4 +112,4 @@ export const buttonClass = {
   danger: "guide-btn secondary guide-btn-danger",
 } as const;
 
-export const inputClass = "guide-input";
+export const inputClass = "guide-input w-full";

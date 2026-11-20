@@ -17,7 +17,7 @@ import {
 } from "@/lib/admin/ledger";
 import { loadBooks, loadLedgerBase, loadLedgerPage, type BooksStatus } from "@/lib/admin/ledger-data";
 import { clock, count } from "@/lib/format";
-import { Notice, Panel, Table, Td, buttonClass, inputClass } from "@/app/admin/guide-ui";
+import { Notice, Panel, Table, Td, buttonClass } from "@/app/admin/guide-ui";
 import { LedgerTabs } from "./tabs";
 
 export const metadata: Metadata = { title: "Ledger" };
@@ -57,10 +57,10 @@ export default async function LedgerPage({
       <BooksCheck books={books} />
 
       <Panel title="Ledger">
-        <Form action={path} className="flex flex-wrap items-end gap-2">
+        <Form action={path} className="guide-filter-bar grid grid-cols-1 items-end gap-2.5 sm:grid-cols-[1fr_1.4fr_1fr_auto_auto]">
           <label className="block">
             <span className="guide-label">Team</span>
-            <select name="team" defaultValue={q.team ?? ""} className={`${inputClass} w-36`}>
+            <select name="team" defaultValue={q.team ?? ""} className="guide-select guide-filter-control font-mono">
               <option value="">All</option>
               <option value={EXCHANGE}>Exchange</option>
               {base.teams.map((t) => (
@@ -72,7 +72,7 @@ export default async function LedgerPage({
           </label>
           <label className="block">
             <span className="guide-label">Kind</span>
-            <select name="kind" defaultValue={q.kind ?? ""} className={`${inputClass} w-44`}>
+            <select name="kind" defaultValue={q.kind ?? ""} className="guide-select guide-filter-control font-mono">
               <option value="">All</option>
               {LEDGER_KINDS.map((k) => (
                 <option key={k} value={k}>
@@ -83,7 +83,7 @@ export default async function LedgerPage({
           </label>
           <label className="block">
             <span className="guide-label">Ticker</span>
-            <select name="ticker" defaultValue={q.ticker ?? ""} className={`${inputClass} w-32`}>
+            <select name="ticker" defaultValue={q.ticker ?? ""} className="guide-select guide-filter-control font-mono">
               <option value="">All</option>
               {tickers.map((t) => (
                 <option key={t} value={t}>
@@ -112,7 +112,7 @@ export default async function LedgerPage({
             <Table
               head={["Time", "Transaction", "Kind", "Team", "Ticker", "Lot", "Cash change", "Share change", "Price", "Round", "Memo"]}
               empty={q.team || q.kind || q.ticker ? "No ledger rows match this filter." : "No ledger rows yet."}
-              className="mt-2"
+              className="guide-scroll-box table-8 mt-2"
             >
               {lines.map((l) => (
                 <tr key={l.id}>
