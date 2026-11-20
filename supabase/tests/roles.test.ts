@@ -4,6 +4,7 @@
 
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { staffLogins, staffSql } from "../../scripts/lib/staff-sql";
 import { Night } from "./night";
 import { as, rowsAs, user, type Caller } from "./helpers";
 import { createTestDb } from "./pg";
@@ -79,7 +80,7 @@ const ORGANISER_ONLY = [
 type Call = readonly [string, (e: string) => readonly unknown[]];
 async function outcomes(caller: Caller, calls: readonly Call[]) {
   const out: Record<string, string> = {};
-  for (const [sql, args] of calls) out[sql] = await attempt(caller, sql, args(n.eventId));
+  for (const [sql, args] of calls) out[sql] = await attempt(caller, sql, [...args(n.eventId)]);
   return out;
 }
 const all = (calls: readonly Call[], v: string) => Object.fromEntries(calls.map(([sql]) => [sql, v]));
@@ -240,5 +241,78 @@ describe("migration 074 patched exactly the intended permission lines", () => {
     await expect(
       db.pool.query("select app.patch_one_function('public.pause_event(uuid)'::regprocedure, 'no such text anywhere', 'x')"),
     ).rejects.toThrow(/expected once/);
+  });
+});
+
+describe("pnpm staff-sql in the database", () => {
+  const SECRET = "staff-sql-test-secret-0123";
+  const DOMAIN = "staff.roles.test";
+  const counts = { full: 2, display: 1, registration: 1, judge: 1, crisis: 1 };
+  const signsIn = async (email: string, password: string) =>
+    (await db.pool.query("select encrypted_password = extensions.crypt($2, encrypted_password) as ok from auth.users where email = $1", [email, password]))
+      .rows[0]?.ok === true;
+  const accounts = async () =>
+    (
+      await db.pool.query<{ email: string; id: string; role: string; display_name: string }>(
+        `select u.email, u.id, a.role::text as role, a.display_name from auth.users u join accounts a on a.user_id = u.id
+          where u.email like '%@' || $1 order by u.email`,
+        [DOMAIN],
+      )
+    ).rows;
+  const identities = async () =>
+    (await db.pool.query("select count(*)::int as n from auth.identities i join auth.users u on u.id = i.user_id where u.email like '%@' || $1", [DOMAIN]))
+      .rows[0].n;
+
+  beforeAll(async () => {
+    // What the SQL needs from real Supabase that the test stub leaves out (as in demo-sql.test.ts).
+    await db.pool.query(`
+      alter table auth.users add column if not exists instance_id uuid, add column if not exists aud text,
+        add column if not exists role text, add column if not exists email_confirmed_at timestamptz,
+        add column if not exists raw_user_meta_data jsonb, add column if not exists updated_at timestamptz,
+        add column if not exists confirmation_token text, add column if not exists email_change text,
+        add column if not exists email_change_token_new text, add column if not exists recovery_token text;
+      create table if not exists auth.identities (id uuid primary key, user_id uuid references auth.users (id) on delete cascade,
+        provider_id text, identity_data jsonb, provider text, last_sign_in_at timestamptz, created_at timestamptz, updated_at timestamptz);`);
+  });
+
+  test("creates every login with its role and password; running it again changes nothing but what changed", async () => {
+    const logins = staffLogins({ domain: DOMAIN, secret: SECRET, counts });
+    await db.pool.query(staffSql(logins, "-- test"));
+    const first = await accounts();
+    expect(first.map((a) => [a.email, a.role])).toEqual([
+      [`crisis01@${DOMAIN}`, "CRISIS"], [`display01@${DOMAIN}`, "DISPLAY"], [`full01@${DOMAIN}`, "ORGANISER"],
+      [`full02@${DOMAIN}`, "ORGANISER"], [`judge01@${DOMAIN}`, "JUDGE"], [`registration01@${DOMAIN}`, "REGISTRATION"],
+    ]);
+    for (const l of logins) expect(await signsIn(l.email, l.password), l.email).toBe(true);
+    expect(await identities()).toBe(6);
+    // The new judging desk can call a judging function at once.
+    const judgeId = first.find((a) => a.role === "JUDGE")!.id;
+    expect(await n.call(user(judgeId), "set_judge_model", n.eventId, "PRIMARY")).toMatchObject({ ok: true });
+
+    // Run again: the same ids, no duplicates. A role changed by hand is set back; a higher count adds logins.
+    await db.pool.query("update accounts set role = 'DISPLAY' where user_id = $1", [judgeId]);
+    await db.pool.query(staffSql(staffLogins({ domain: DOMAIN, secret: SECRET, counts: { ...counts, judge: 2 } }), "-- again"));
+    const second = await accounts();
+    expect(second).toHaveLength(7);
+    for (const a of first) expect(second.find((b) => b.email === a.email)).toEqual(a);
+    expect(second.find((a) => a.email === `judge02@${DOMAIN}`)).toMatchObject({ role: "JUDGE", display_name: "Judging desk 02" });
+    expect(await identities()).toBe(7);
+
+    // Another secret: the same logins, new passwords (the file is the truth).
+    const other = staffLogins({ domain: DOMAIN, secret: `${SECRET}-new`, counts: { ...counts, judge: 2 } });
+    await db.pool.query(staffSql(other, "-- new secret"));
+    expect(await accounts()).toEqual(second);
+    for (const l of other) expect(await signsIn(l.email, l.password), l.email).toBe(true);
+    expect(await signsIn(logins[0]!.email, logins[0]!.password)).toBe(false);
+  });
+
+  test("a staff email that is a team's login stops the whole file", async () => {
+    const team = [...n.ev.teams.values()][0]!;
+    const email = (await n.one<{ email: string }>("select email from auth.users where id = $1", [team.userId])).email;
+    const [local, domain] = email.split("@") as [string, string];
+    const clash = staffLogins({ domain, secret: SECRET, counts: { full: 1, display: 0, registration: 0, judge: 0, crisis: 0 } });
+    clash[0]!.email = `${local}@${domain}`;
+    await expect(db.pool.query(staffSql(clash, "-- clash"))).rejects.toThrow(/is a team login/);
+    expect((await n.one("select role::text as role from accounts where user_id = $1", [team.userId])).role).toBe("TEAM");
   });
 });
