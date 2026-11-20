@@ -7,7 +7,8 @@ import { BOOK_PUBLIC_FROM, chartCandles, historyLines, SUBMISSION_TITLES, verdic
 import { CandleChart } from "@/components/ui/candle-chart";
 import { VerdictDetail } from "../verdict-detail";
 import { clock, money } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Table, Td } from "@/components/ui/ui";
+import { MarketCard, MarketStat } from "../card";
 import type { PublicSubmission } from "@/lib/team/market-data";
 import { Submission } from "../submission";
 import { CrisisCard } from "../crisis-card";
@@ -24,13 +25,13 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
   const { ticker } = await params;
   const { event, status, company: own } = await loadTeamContext();
   const back = (
-    <Link href="/team/market" className="text-sm font-medium text-paper underline underline-offset-2">
+    <Link href="/team/market" className="market-action inline-flex items-center text-sm font-medium text-paper">
       ← All companies
     </Link>
   );
   if (!phaseReached(status.phase, "READING")) {
     return (
-      <div className="space-y-4">
+      <div className="market-board market-type space-y-4">
         {back}
         <Notice>The market opens at Reading, when the pitch book goes public.</Notice>
       </div>
@@ -40,7 +41,7 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
   const view = /^[A-Z]{3,4}$/.test(code) ? await loadCompanyView(event.id, code, status.phase) : null;
   if (!view) {
     return (
-      <div className="space-y-4">
+      <div className="market-board market-type space-y-4">
         {back}
         <Notice tone="amber">No listed company has the ticker {code.slice(0, 8)}.</Notice>
       </div>
@@ -52,9 +53,9 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
   const waiting = (["PITCH", "PLAN", "FLASH"] as const).filter((t) => !types.includes(t));
 
   return (
-    <div className="space-y-6">
+    <div className="market-board market-type space-y-6">
       {back}
-      <Panel
+      <MarketCard
         title={
           <span className="flex flex-wrap items-baseline gap-2">
             <span className="font-mono">{c.ticker}</span>
@@ -63,19 +64,19 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
           </span>
         }
       >
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label="Market price" value={money(c.market_price)} />
-          <Stat label="IPO price" value={money(c.ipo_price)} />
-          <Stat label="AI price" value={money(c.ai_price)} hint="IPO × 0.85 × plan and flash tiers" />
+        <dl className="grid grid-cols-2 gap-4 border-y border-line py-4 sm:grid-cols-4">
+          <MarketStat label="Market price" value={money(c.market_price)} />
+          <MarketStat label="IPO price" value={money(c.ipo_price)} />
+          <MarketStat label="AI price" value={money(c.ai_price)} hint="IPO × 0.85 × plan and flash tiers" />
           {c.closing_price !== null ? (
-            <Stat label="Closing price" value={money(c.closing_price)} hint="(market + AI) ÷ 2" />
+            <MarketStat label="Closing price" value={money(c.closing_price)} hint="(market + AI) ÷ 2" />
           ) : (
-            <Stat label="Post-crisis price" value={money(c.post_crisis_price)} />
+            <MarketStat label="Post-crisis price" value={money(c.post_crisis_price)} />
           )}
-        </div>
+        </dl>
         <div className="mt-4">
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-sm font-semibold text-paper">Price action</h3>
+            <h3 className="text-base font-semibold text-paper">Price action</h3>
             {latest ? (
               <p className="text-xs text-muted">
                 {latest.label} <span className="font-mono text-paper">{money(latest.price)}</span>
@@ -83,12 +84,14 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
               </p>
             ) : null}
           </div>
-          <CandleChart candles={chartCandles(lines)} label={`${c.ticker} price by step`} secondName="AI price" testId="price-chart" live average={3} />
+          <div className="rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
+            <CandleChart candles={chartCandles(lines)} label={`${c.ticker} price by step`} secondName="AI price" testId="price-chart" live average={3} />
+          </div>
         </div>
-      </Panel>
+      </MarketCard>
 
       {scores.length ? (
-        <Panel title="Verdicts">
+        <MarketCard title="Verdicts">
           <ul className="space-y-3" aria-label="Verdicts">
             {scores.map((s) => {
               const v = verdict(s);
@@ -109,14 +112,14 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
               );
             })}
           </ul>
-        </Panel>
+        </MarketCard>
       ) : null}
 
       {types.includes("PITCH") ? <SubmissionPanel type="PITCH" s={submissions.PITCH} /> : null}
       {crisis ? (
-        <Panel title="Crisis card">
+        <MarketCard title="Crisis card">
           <CrisisCard card={crisis} />
-        </Panel>
+        </MarketCard>
       ) : null}
 
       {types.includes("PLAN") ? <SubmissionPanel type="PLAN" s={submissions.PLAN} /> : null}
@@ -127,7 +130,7 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
         </p>
       ) : null}
 
-      <Panel title="Price history">
+      <MarketCard title="Price history">
         <Table head={["Step", "Time", "Price", "Change", "AI price", "Detail"]} label="Price history" empty="No price yet: prices start at the IPO.">
           {lines.map((l) => (
             <tr key={l.key}>
@@ -146,15 +149,15 @@ export default async function CompanyPage({ params }: PageProps<"/team/market/[t
             </tr>
           ))}
         </Table>
-      </Panel>
+      </MarketCard>
     </div>
   );
 }
 
 function SubmissionPanel({ type, s }: { type: SubmissionType; s: PublicSubmission | undefined }) {
   return (
-    <Panel title={SUBMISSION_TITLES[type]}>
+    <MarketCard title={SUBMISSION_TITLES[type]}>
       {s ? <Submission type={type} s={s} /> : <p className="text-sm text-muted">Nothing was submitted on time.</p>}
-    </Panel>
+    </MarketCard>
   );
 }

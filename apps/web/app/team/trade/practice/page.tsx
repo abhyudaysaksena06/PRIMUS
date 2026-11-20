@@ -6,7 +6,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { clock, money } from "@/lib/format";
 import { featureOn } from "@/lib/event-status";
 import { RefreshAt } from "@/lib/live/refresh-at";
-import { Notice, Panel } from "@/components/ui/ui";
+import { Notice } from "@/components/ui/ui";
+import { DeskPanel } from "../desk-ui";
 import { tradeGate } from "../gate";
 import { PracticeTerminal } from "./terminal";
 
@@ -30,13 +31,13 @@ export default async function PracticePage() {
     const sb = await supabaseServer();
     const { data } = await sb.from("phases").select("starts_at").eq("event_id", event.id).eq("code", "BUILD").maybeSingle<{ starts_at: string }>();
     return (
-      <Panel title="Practice market">
+      <DeskPanel title="Practice market">
         <p className="text-sm text-paper" data-testid="practice-notice">
           The practice market opens with Round 1{data ? ` at ${clock(data.starts_at)}` : ""}. You get {start} of practice money to trade
           candlestick charts {simulated ? "of simulated companies, one per Finance team" : "named after the Product teams"}. The practice money stays here, but the {PRACTICE.winners} funds worth the most at
           the close each win {prize} in real cash before the IPO. You must make at least one trade to be ranked.
         </p>
-      </Panel>
+      </DeskPanel>
     );
   }
 
@@ -48,13 +49,13 @@ export default async function PracticePage() {
     const results = await practiceResults(event.id);
     const mine = results.find((r) => r.code === ctx.team.code);
     return (
-      <Panel title="Practice market: closed">
+      <DeskPanel title="Practice market: closed">
         {mine ? (
           <p className="text-sm text-paper" data-testid="practice-result">
             Your practice fund finished at <b>{money(mine.equity)}</b> ({mine.trades} trades).{" "}
             {mine.rank !== null ? (
               <>
-                You placed <b className="text-phosphor">#{mine.rank}</b>: {money(mine.edge)} was added to your real cash for the IPO.
+                You placed <b className="text-[color:var(--desk-accent)]">#{mine.rank}</b>: {money(mine.edge)} was added to your real cash for the IPO.
               </>
             ) : (
               <>Only the top {PRACTICE.winners} funds win a prize; the practice money stays in the practice market.</>
@@ -66,10 +67,10 @@ export default async function PracticePage() {
           </p>
         )}
         {results.length > 0 ? (
-          <table className="mt-3 w-full max-w-2xl text-sm" data-testid="practice-leaderboard">
+          <table className="mt-4 w-full max-w-2xl border-collapse text-sm" data-testid="practice-leaderboard">
             <thead>
-              <tr className="text-left text-xs text-slate-500">
-                <th className="py-1">#</th>
+              <tr className="border-b border-[#2d2a1d] text-left font-mono text-[10px] uppercase tracking-[0.08em] text-[#87948D]">
+                <th className="px-2 py-2">#</th>
                 <th>Fund</th>
                 <th className="text-right">Practice result</th>
                 <th className="text-right">Prize</th>
@@ -77,8 +78,8 @@ export default async function PracticePage() {
             </thead>
             <tbody>
               {results.slice(0, 15).map((r, i) => (
-                <tr key={r.code} className={r.code === ctx.team.code ? "text-phosphor" : "text-paper"}>
-                  <td className="py-0.5">{i + 1}</td>
+                <tr key={r.code} className={`border-b border-[#2d2a1d]/70 ${r.code === ctx.team.code ? "bg-[var(--desk-accent-soft)] text-[color:var(--desk-accent)]" : "text-[#F2F5F3]"}`}>
+                  <td className="px-2 py-2 font-mono">{i + 1}</td>
                   <td>
                     {r.code} {r.name}
                   </td>
@@ -89,19 +90,19 @@ export default async function PracticePage() {
             </tbody>
           </table>
         ) : null}
-      </Panel>
+      </DeskPanel>
     );
   }
 
   if (!market && simulated) {
     // Read again every 15 to 25 seconds (spread out, so the funds do not all reload at once) until it is prepared.
     return (
-      <Panel title="Practice market">
+      <DeskPanel title="Practice market">
         <p className="text-sm text-paper" data-testid="practice-notice">
           The practice market opens in a moment: the organisers are preparing it. This page opens it by itself.
         </p>
         <RefreshAt at={new Date(new Date(status.server_time).getTime() + 15_000).toISOString()} afterMs={0} spreadMs={10_000} />
-      </Panel>
+      </DeskPanel>
     );
   }
   if (!market) {
