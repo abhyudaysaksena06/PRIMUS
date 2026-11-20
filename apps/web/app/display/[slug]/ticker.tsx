@@ -2,9 +2,10 @@
 // by its length, so every item stays on screen long enough to read from the back of the hall.
 
 import { phaseReached, type DeadlineCode } from "@msim/engine";
-import type { EventStatus } from "@/lib/event-status";
+import { featureOn, type EventStatus } from "@/lib/event-status";
 import type { DisplayEvent } from "@/lib/display/frame";
-import { tickerItems, type TickerItem } from "@/lib/display/ticker";
+import { parseLeaderboard } from "@/lib/display/leaderboard";
+import { primusStep, tickerItems, type TickerItem } from "@/lib/display/ticker";
 import { clock } from "@/lib/format";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -34,9 +35,23 @@ export async function NewsTicker({ event, status }: { event: DisplayEvent; statu
     sb.from("deadlines").select("code, at").eq("event_id", event.id),
   ]);
   for (const r of [round, bulletins, deals, companies, deadlines]) if (r.error) throw new Error(`Could not read the ticker: ${r.error.message}`);
+  const nowMs = Date.parse(status.server_time);
+  const schedule = (deadlines.data ?? []) as { code: DeadlineCode; at: string }[];
+  const primus = event.format === "PRIMUS";
+  // PRIMUS extras: a failed read leaves its item out, never the ticker.
+  const step = primus ? primusStep(schedule, nowMs, (iso) => clock(iso)) : null;
+  const [hired, board] = await Promise.all([
+    step?.code.startsWith("HIRE_")
+      ? sb.from("engagements").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("k", step.k)
+      : null,
+    primus && featureOn(status, "leaderboard", true) ? sb.rpc("leaderboard", { p_event: event.id }) : null,
+  ]);
   const items = tickerItems({
+    format: event.format,
+    hiring: hired && !hired.error ? { hired: hired.count ?? 0, companies: companies.count ?? 0 } : null,
+    leaders: board && !board.error ? parseLeaderboard(board.data).slice(0, 3) : null,
     phase: status.phase,
-    nowMs: Date.parse(status.server_time),
+    nowMs,
     lastRound: round.data
       ? {
           number: round.data.number,
@@ -48,7 +63,7 @@ export async function NewsTicker({ event, status }: { event: DisplayEvent; statu
     bulletins: (bulletins.data ?? []) as { kind: string; title: string }[],
     dealsSigned: deals.count ?? 0,
     squads: companies.count ?? 0,
-    deadlines: (deadlines.data ?? []) as { code: DeadlineCode; at: string }[],
+    deadlines: schedule,
     clock: (iso) => clock(iso),
   });
   if (items.length === 0) return null;

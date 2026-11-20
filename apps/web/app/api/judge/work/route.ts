@@ -1,4 +1,5 @@
-// POST /api/judge/work {event: <id>} — one turn of judge work, for organisers (401 signed out, 403 for anyone else).
+// POST /api/judge/work {event: <id>} — one turn of judge work, for organisers and the judging desk (401 signed out,
+// 403 for anyone else).
 // While an organiser keeps "Run the judge here" on, the control panel calls this again and again: each call claims
 // runs from the queue for JUDGE_WORK_BUDGET_MS (50 s) with up to JUDGE_CONCURRENCY calls in parallel, waits for them,
 // and answers with what it did and what is left. Several open consoles share the queue (claims skip locked rows).
@@ -10,6 +11,7 @@
 
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth/viewer";
+import { can } from "@/lib/auth/routes";
 import {
   checkJudgeModel,
   createJudge,
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
   const abortSignal = AbortSignal.timeout(ABORT_AFTER_MS);
   const viewer = await getViewer(await supabaseServer());
   if (!viewer) return reply(401, { error: "Sign in to run the judge." });
-  if (viewer.role !== "ORGANISER") return reply(403, { error: "Only organisers can run the judge." });
+  if (!can(viewer.role, "judge")) return reply(403, { error: "Only organisers and the judging desk can run the judge." });
 
   let body: unknown;
   try {

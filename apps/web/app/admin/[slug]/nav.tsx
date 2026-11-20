@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { canOpenSection, landingFor, type Role } from "@/lib/auth/routes";
 
+// The control panel's tabs. Organisers and the fairness officer see them all; a desk role (registration, judging,
+// crisis) sees only the sections lib/auth/routes.ts (DESK_SECTIONS) gives it, so a line added here is for
+// organisers and the fairness officer unless routes.ts says otherwise.
 export const SECTIONS = [
   { path: "/run", label: "Run event", hint: "Start and end each round, crisis and step; timers; event log" },
   { path: "", label: "Overview", hint: "Phase, gates, draft and auto-advance" },
@@ -15,6 +19,7 @@ export const SECTIONS = [
   { path: "/lottery", label: "Squad draw", hint: "The lottery that forms the squads" },
   { path: "/rounds", label: "Trading", hint: "Trading windows, orders and prices" },
   { path: "/judge", label: "Judging", hint: "AI scores, review and release" },
+  { path: "/leaderboard", label: "Leaderboard", hint: "PRIMUS Rating: every company's rank and change" },
   { path: "/bulletins", label: "News", hint: "Market news for the teams and the big screen" },
   { path: "/content", label: "Cases & cards", hint: "Problem cards, crises and Round 3 statements" },
   { path: "/ledger", label: "Money", hint: "Every payment, with corrections" },
@@ -25,9 +30,26 @@ export const SECTIONS = [
   { path: "/health", label: "System health", hint: "Connections, errors and the clock" },
 ] as const;
 
+const RoleContext = createContext<Role | null>(null);
+
+/** The signed-in staff role, set once for the whole control panel by app/admin/layout.tsx. */
+export function StaffRoleProvider({ role, children }: { role: Role; children: ReactNode }) {
+  return <RoleContext.Provider value={role}>{children}</RoleContext.Provider>;
+}
+
 export function AdminNav({ slug, fairness }: { slug: string; fairness: boolean }) {
+  const role: Role = useContext(RoleContext) ?? (fairness ? "FAIRNESS" : "ORGANISER");
   const pathname = usePathname();
+  const router = useRouter();
   const base = `/admin/${slug}`;
+  const tabs = SECTIONS.filter((s) => canOpenSection(role, s.path));
+  // A desk role that reaches a section that is not its own (an old link) goes back to its desk. Each section also
+  // checks this on the server, and the database refuses the calls.
+  const here = pathname === base || pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : null;
+  const elsewhere = here !== null && !canOpenSection(role, here);
+  useEffect(() => {
+    if (elsewhere) router.replace(landingFor(role, slug));
+  }, [elsewhere, role, slug, router]);
   const nav = useRef<HTMLElement>(null);
   // On a phone the tabs scroll sideways: keep the current one in view. Only the tab row scrolls (scrollIntoView would
   // also scroll the page, losing the reader's place on a reload or a #link).
@@ -41,7 +63,7 @@ export function AdminNav({ slug, fairness }: { slug: string; fairness: boolean }
   }, [pathname]);
   return (
     <nav ref={nav} className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4" aria-label="Sections">
-      {SECTIONS.map((s) => {
+      {tabs.map((s) => {
         const href = `${base}${s.path}`;
         const active = s.path === "" ? pathname === base : pathname.startsWith(href);
         return (

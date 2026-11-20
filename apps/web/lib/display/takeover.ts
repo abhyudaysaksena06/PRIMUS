@@ -3,14 +3,34 @@
 // browser: a projector that is reloaded, or reconnects, in the middle of a takeover shows the rest of it, and one
 // that comes back after it ended shows the ticker board. Pure, so the timing is unit-tested.
 
-export type TakeoverKind = "DRAW" | "CRISIS" | "VERDICTS" | "FLASH" | "CLOSING_BELL" | "AWARDS";
-export type VerdictType = "PITCH" | "PLAN" | "FLASH";
+export type TakeoverKind = "DRAW" | "CRISIS" | "REVEAL" | "VERDICTS" | "FLASH" | "CLOSING_BELL" | "AWARDS";
+
+/**
+ * The score releases that take the screen: those that set or move prices. PRIMUS plans (CRISIS_1–4) and solutions
+ * (SOLUTION) move prices through SUB_TIER rows; Round 1 memos (MEMO) and advice (ADVICE_k) move no price, so their
+ * release does not take the screen.
+ */
+export const VERDICT_TYPES = ["PITCH", "PLAN", "FLASH", "CRISIS_1", "CRISIS_2", "CRISIS_3", "CRISIS_4", "SOLUTION"] as const;
+export type VerdictType = (typeof VERDICT_TYPES)[number];
+
+export function isVerdictType(type: string): type is VerdictType {
+  return (VERDICT_TYPES as readonly string[]).includes(type);
+}
+
+/** The PRIMUS sub-round a release belongs to (CRISIS_k → k, SOLUTION → 5); null for the classic types and PITCH. */
+export function verdictSubround(type: VerdictType): number | null {
+  if (type === "SOLUTION") return 5;
+  const m = /^CRISIS_([1-4])$/.exec(type);
+  return m ? Number(m[1]) : null;
+}
 
 export interface TakeoverMoments {
   /** events.drawn_at: the 21:00 squad draw. */
   drawnAt: string | null;
   /** events.crisis_applied_at: the 00:30 crisis draw (and the seed reveal). */
   crisisAt: string | null;
+  /** PRIMUS: subrounds.revealed_at of each crisis sub-round (k 1–4): every price −5%, trading halted 5 minutes. */
+  reveals?: { k: number; at: string }[];
   /** When each kind of score was released (the earliest released_at of that type: the release itself). */
   verdicts: { type: VerdictType; at: string }[];
   /** published_at of the FLASH bulletin (04:00). */
@@ -29,6 +49,7 @@ export interface TakeoverMoments {
 export const TAKEOVER_SECONDS: Record<Exclude<TakeoverKind, "AWARDS">, number> = {
   DRAW: 180,
   CRISIS: 120,
+  REVEAL: 60,
   VERDICTS: 120,
   FLASH: 90,
   CLOSING_BELL: 90,
@@ -50,12 +71,15 @@ export interface ActiveTakeover {
   until: string | null;
   /** For VERDICTS: which scores were released. */
   type?: VerdictType;
+  /** For REVEAL: which crisis (1–4). */
+  k?: number;
 }
 
 function candidates(m: TakeoverMoments): Omit<ActiveTakeover, "until">[] {
   const out: Omit<ActiveTakeover, "until">[] = [];
   if (m.drawnAt) out.push({ kind: "DRAW", at: m.drawnAt });
   if (m.crisisAt) out.push({ kind: "CRISIS", at: m.crisisAt });
+  for (const r of m.reveals ?? []) out.push({ kind: "REVEAL", at: r.at, k: r.k });
   for (const v of m.verdicts) out.push({ kind: "VERDICTS", at: v.at, type: v.type });
   if (m.flashAt) out.push({ kind: "FLASH", at: m.flashAt });
   if (m.closedAt) out.push({ kind: "CLOSING_BELL", at: m.closedAt });
@@ -90,6 +114,7 @@ export function activeTakeover(m: TakeoverMoments, nowMs: number, clockSpeed = 1
 export const TAKEOVER_TITLES: Record<TakeoverKind, string> = {
   DRAW: "Squad draw",
   CRISIS: "Crisis",
+  REVEAL: "Crisis",
   VERDICTS: "Verdicts",
   FLASH: "Flash news",
   CLOSING_BELL: "Closing bell",
@@ -100,4 +125,9 @@ export const VERDICT_TITLES: Record<VerdictType, string> = {
   PITCH: "Pitch scores: IPO prices are set",
   PLAN: "Rescue plan verdicts",
   FLASH: "Flash verdicts",
+  CRISIS_1: "Crisis 1 verdicts: plans move prices",
+  CRISIS_2: "Crisis 2 verdicts: plans move prices",
+  CRISIS_3: "Crisis 3 verdicts: plans move prices",
+  CRISIS_4: "Crisis 4 verdicts: plans move prices",
+  SOLUTION: "Final verdicts: solutions move prices",
 };

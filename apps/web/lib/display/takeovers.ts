@@ -287,3 +287,20 @@ export function pageAt(nowMs: number, pages: number, everyMs = 20_000): number {
   if (pages <= 1 || !Number.isFinite(nowMs)) return 0;
   return Math.floor(nowMs / everyMs) % pages;
 }
+
+// ───────────── PRIMUS crisis reveal ─────────────
+
+/**
+ * The crisis cards' categories with how many companies drew each, most first (ties by name), from subround_crises
+ * rows with their card embedded. A card the screen may not read (sealed) comes back null and is not counted.
+ */
+export function revealCategories(
+  rows: readonly { crisis_cards: { category: string } | { category: string }[] | null }[],
+): { category: string; count: number }[] {
+  const n = new Map<string, number>();
+  for (const r of rows) {
+    const card = Array.isArray(r.crisis_cards) ? r.crisis_cards[0] : r.crisis_cards;
+    if (card?.category) n.set(card.category, (n.get(card.category) ?? 0) + 1);
+  }
+  return [...n].map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count || a.category.localeCompare(b.category));
+}
