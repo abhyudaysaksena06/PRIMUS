@@ -360,7 +360,7 @@ export default async function TeamHome() {
             {tiles.map(([label, value]) => (
               <div className="guide-metric" key={label}>
                 <small>{label}</small>
-                <b className="text-lg [overflow-wrap:anywhere]">{value}</b>
+                <b className="guide-tile-value">{value}</b>
               </div>
             ))}
           </div>

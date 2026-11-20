@@ -155,7 +155,8 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
         <div className="guide-app terminal-theme-scope term" data-track={team.track} data-menu="closed">
           <div className="guide-atmosphere" />
           <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
-          <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />
+          {/* As the demo: the rain behind the Product and Consulting desks only. */}
+          {finance ? null : <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />}
           <TeamNav team={{ code: team.code, name: team.name, track: team.track }} round={navRound} />
           <div className="guide-main guide-participant-main">
             <header className="guide-top">
@@ -254,6 +255,14 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
               </div>
             </header>
             <ActionBar task={next && next.href ? { title: next.title, href: next.href, linkLabel: next.linkLabel, due: next.due } : null} />
+            {/* The demo's thin note under the task strip: what this screen is. */}
+            <div className="guide-preview-note flex flex-wrap items-center justify-between gap-2">
+              <span>
+                ● LIVE 3-TRACK EVENT · {team.track} TEAM {team.code}
+                {event.is_rehearsal ? ` · REHEARSAL ×${event.clock_speed}` : ""}
+              </span>
+              <span>PRIMUS ’26 · ALL TIMES IST</span>
+            </div>
             <Alerts tasks={plan ? alertTasks(plan) : []} track={team.track} teamId={team.id} />
             {status.paused ? (
               <p className="guide-alert guide-warning guide-shell-notice">The event is paused. Deadlines move later by the length of the pause.</p>

@@ -352,3 +352,9 @@ li:last-child > .guide-news-story {
   background: rgba(128, 22, 34, 0.22) !important;
   color: #ffc7cd !important;
 }
+
+/* Home: the three tiles under the workspace buttons carry full money figures; a size that fits a third of the panel. */
+.guide-metric b.guide-tile-value {
+  font-size: clamp(13px, 1.05vw, 17px);
+  overflow-wrap: anywhere;
+}
