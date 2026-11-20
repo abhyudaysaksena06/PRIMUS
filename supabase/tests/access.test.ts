@@ -28,7 +28,7 @@ const ALL_TABLES = [
   "qa_answers", "bulletins", "ledger_entries", "public_ledger", "corrections", "flags", "results", "awards",
   "audit_log", "rate_limits", "error_log", "client_pings", "judge_injection_checks", "appeals", "calibration_samples",
   "calibration_runs", "subrounds", "subround_crises", "firm_profiles", "offers", "engagements", "problem_statements",
-  "draft_picks", "hire_messages",
+  "draft_picks", "hire_messages", "judge_auto",
 ];
 
 describe("grants", () => {
@@ -87,6 +87,7 @@ describe("grants", () => {
       "firm_values",
       "fund_raise",
       "import_roster",
+      "leaderboard",
       "lottery_record_rows",
       "make_call",
       "make_offer",
