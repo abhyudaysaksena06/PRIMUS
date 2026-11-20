@@ -55,6 +55,18 @@ export async function resetRehearsal(eventId: string, slug: string): Promise<Act
   return r.ok ? { ...r, message: "The demo is back at Setup. Teams sign in with the same codes and passwords." } : r;
 }
 
+/**
+ * Reset to new (migration 085): wipe everything played on this event and build it again from its creation, keeping the
+ * registration desk's work (names, members, check-ins, team list) and the switches. The slug must be typed to confirm.
+ */
+export async function resetEvent(eventId: string, slug: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const r = await rpc("reset_event", { p_event: eventId, p_confirm: String(form.get("confirm") ?? "").trim() });
+  if (r.ok) revalidatePath("/admin", "layout");
+  return r.ok
+    ? { ...r, message: "Reset to new: the event is back at Setup. Registered teams stay checked in and sign in with the same cards." }
+    : r;
+}
+
 /** Turn one of tonight's switches on or off (migration 070). */
 export async function setFeature(eventId: string, key: string, on: boolean): Promise<ActionResult> {
   const r = await rpc("set_feature", { p_event: eventId, p_key: key, p_on: on });
