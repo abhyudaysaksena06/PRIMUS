@@ -188,13 +188,13 @@ export function Desk({
                 </select>
               </label>
               <label className="text-sm">
-                <span className="guide-label">Card code (optional)</span>
+                <span className="guide-label">Card to hand over (type its code, e.g. P37)</span>
                 <input
                   value={draft.pick}
                   onChange={(e) => setDraft({ ...draft, pick: e.target.value.toUpperCase() })}
-                  placeholder="next free card"
+                  placeholder="e.g. P37"
                   maxLength={6}
-                  className={`${inputClass} w-40 font-mono`}
+                  className={`${inputClass} w-48 font-mono`}
                   data-testid="desk-card"
                 />
               </label>
