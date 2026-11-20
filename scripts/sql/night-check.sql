@@ -33,8 +33,9 @@ checks as (
   select 10, 'Teams per track',
          coalesce((select string_agg(track::text || ' ' || c, ', ' order by track) from
                     (select track, count(*) c from public.teams where event_id = (select id from ev) group by track) t), 'none'),
-         '50 each (150)',
-         (select count(*) = 150 and count(distinct track) = 3 from public.teams where event_id = (select id from ev))
+         '3 to 200 in each of the three tracks',
+         (select count(*) = 3 and bool_and(c between 3 and 200) from
+            (select track, count(*) c from public.teams where event_id = (select id from ev) group by track) t)
   union all
   select 11, 'Teams checked in at the desk',
          (select count(*)::text from public.teams where event_id = (select id from ev) and checked_in_at is not null),
@@ -56,6 +57,14 @@ checks as (
   select 16, 'Other events on the database',
          coalesce((select string_agg(slug, ', ') from public.events where slug <> 'primus-2026'), 'none'),
          'none, or only rehearsals', not exists (select 1 from public.events where slug <> 'primus-2026' and not is_rehearsal)
+  union all
+  select 17, 'Backup job (pg_cron msim-snapshot) on, ran in the last minute',
+         coalesce((select case when j.active then 'on' else 'off' end || ', last ran ' ||
+                          coalesce((select to_char(max(d.start_time), 'HH24:MI:SS') from cron.job_run_details d where d.jobid = j.jobid), 'never')
+                     from cron.job j where j.jobname = 'msim-snapshot'), 'missing'),
+         'on, a time in the last minute',
+         exists (select 1 from cron.job j join cron.job_run_details d on d.jobid = j.jobid
+                  where j.jobname = 'msim-snapshot' and j.active and d.start_time > now() - interval '1 minute')
 )
 select n, item, found, want, case when ok then 'OK' when ok is null then 'CHECK (no event)' else 'FIX' end as result
   from checks order by n;

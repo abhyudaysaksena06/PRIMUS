@@ -47,7 +47,7 @@ export default async function RoundsPage({ params }: PageProps<"/admin/[slug]/ro
 
   return (
     <div className="space-y-6">
-      <AutoRefresh everyMs={5000} active={!!open || !!ipo} />
+      <AutoRefresh everyMs={15_000} active={!!open || !!ipo} />
       {/* When the round's time comes, re-read: it opens or clears, or the page explains why it waits. */}
       <RefreshAt at={focus ? (focus.kind === "OPEN" ? focus.round.closes_at : focus.round.opens_at) : null} />
 

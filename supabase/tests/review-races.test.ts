@@ -389,11 +389,13 @@ describe("CONC-3: clearing cannot be frozen by a correction, and one failing eve
 
       // Pre-fix heartbeat ("select public.tick(e.id) from public.events e where …") failed as a whole: the good
       // event's round 1 stayed OPEN.
+      // Since migration 081 the failing clearing is undone alone inside the bad event's tick (logged as its step,
+      // 'tick:clear_round_1'), so both ticks complete.
       const ticked = (await hb.pool.query("select app.tick_all() as n")).rows[0].n;
-      expect(ticked).toBe(1);
+      expect(ticked).toBe(2);
       expect(await roundStatus(good.n, 1)).toBe("CLEARED");
       expect(await roundStatus(bad.n, 1)).toBe("OPEN");
-      const logged = (await hb.pool.query("select event_id, message, context from error_log where source = 'tick'")).rows;
+      const logged = (await hb.pool.query("select event_id, message, context from error_log where source in ('tick', 'tick:clear_round_1')")).rows;
       expect(logged).toHaveLength(1);
       expect(logged[0].event_id).toBe(bad.n.eventId);
       expect(logged[0].message).toMatch(/refusing to clear round 1/);

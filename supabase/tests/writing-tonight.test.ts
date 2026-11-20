@@ -161,20 +161,25 @@ describe("paste_flag: a draft that grows too fast to have been typed", () => {
   const flags = (n: Night) =>
     n.q("select team_id, company_id, type, version, words_before, words_after, seconds from writing_flags where event_id = $1 order by created_at, version", [n.eventId]);
 
-  test("noted for the fairness officer (never blocking the save); only over 120 words within 10 s; off: nothing", async () => {
+  test("noted for the fairness officer (never blocking the save); over 120 words within 60 s, or in a first save; off: nothing", async () => {
     const n = await Night.create(db.pool, 3, "PRIMUS");
     const [a, b] = await toCrisis1(n, 3, "paste-flag");
     const p = n.team(a!.p_code);
     expect((await n.one("select app.feature_on($1, 'paste_flag') as on", [n.eventId])).on).toBe(true);
 
-    // A first save has no save before it: never noted, however long.
+    // A first save of 120 words is not noted; a first save of more is (migration 081), with 0 words before.
+    await n.ok(p, "save_draft", "CRISIS_1", { impact: words(120) }, 0);
+    expect(await flags(n)).toEqual([]);
+    await n.q("update submission_drafts set version = 0, content = '{}' where company_id = $1 and type = 'CRISIS_1'", [a!.company_id]);
     await n.ok(p, "save_draft", "CRISIS_1", { impact: words(300) }, 0);
-    // 120 more words within 10 s: not more than 120, not noted.
+    expect(await flags(n)).toEqual([expect.objectContaining({ version: 1, words_before: 0, words_after: 300 })]);
+    await n.q("delete from writing_flags where event_id = $1", [n.eventId]);
+    // 120 more words within 60 s: not more than 120, not noted.
     const base = words(300);
     await n.ok(p, "save_draft", "CRISIS_1", { impact: base }, 1);
     await n.ok(p, "save_draft", "CRISIS_1", { impact: base, response: words(120) }, 2);
     expect(await flags(n)).toEqual([]);
-    // 130 more words within 10 s: the save goes ahead, and it is noted.
+    // 130 more words within 60 s: the save goes ahead, and it is noted.
     const r = await n.ok(p, "save_draft", "CRISIS_1", { impact: base, response: words(250) }, 3);
     expect(r.draft.version).toBe(4);
     const noted = await flags(n);
@@ -182,9 +187,14 @@ describe("paste_flag: a draft that grows too fast to have been typed", () => {
     expect(noted[0]).toMatchObject({ team_id: n.teamId(a!.p_code), company_id: a!.company_id, type: "CRISIS_1", version: 4, words_before: 420, words_after: 550 });
     expect(Number(noted[0].seconds)).toBeLessThan(10);
 
-    // The same jump more than 10 s after the previous save: not noted.
-    await n.q("update submission_drafts set updated_at = now() - interval '11 seconds' where company_id = $1 and type = 'CRISIS_1'", [a!.company_id]);
+    // The same jump 50 s after the previous save: noted too (migration 081: within 60 s).
+    await n.q("update submission_drafts set updated_at = now() - interval '50 seconds' where company_id = $1 and type = 'CRISIS_1'", [a!.company_id]);
     await n.ok(p, "save_draft", "CRISIS_1", { impact: base, response: words(250), money: words(200) }, 4);
+    expect(await flags(n)).toHaveLength(2);
+    await n.q("delete from writing_flags where version = 5 and event_id = $1", [n.eventId]);
+    // More than 60 s after the previous save: not noted.
+    await n.q("update submission_drafts set updated_at = now() - interval '61 seconds' where company_id = $1 and type = 'CRISIS_1'", [a!.company_id]);
+    await n.ok(p, "save_draft", "CRISIS_1", { impact: base, response: words(250), money: words(400) }, 5);
     expect(await flags(n)).toHaveLength(1);
 
     // A hired firm writing its client's memo is noted under its own name.
@@ -196,9 +206,9 @@ describe("paste_flag: a draft that grows too fast to have been typed", () => {
     expect(all[1]).toMatchObject({ team_id: n.teamId(a!.c_code), company_id: a!.company_id, type: "ADVICE_1", version: 2, words_before: 5, words_after: 205 });
 
     // Only the fairness officer reads the notes: not the organisers, not the teams.
-    expect((await rowsAs(db.pool, n.fairness, "select count(*)::int as c from writing_flags")).at(0)).toEqual({ c: 2 });
-    expect((await rowsAs(db.pool, n.lead, "select count(*)::int as c from writing_flags")).at(0)).toEqual({ c: 0 });
-    expect((await rowsAs(db.pool, n.team(a!.p_code), "select count(*)::int as c from writing_flags")).at(0)).toEqual({ c: 0 });
+    expect((await rowsAs(db.pool, n.fairness, "select count(*)::int as c from writing_flags where event_id = $1", [n.eventId])).at(0)).toEqual({ c: 2 });
+    expect((await rowsAs(db.pool, n.lead, "select count(*)::int as c from writing_flags where event_id = $1", [n.eventId])).at(0)).toEqual({ c: 0 });
+    expect((await rowsAs(db.pool, n.team(a!.p_code), "select count(*)::int as c from writing_flags where event_id = $1", [n.eventId])).at(0)).toEqual({ c: 0 });
     // Teams cannot write one.
     await expect(
       as(db.pool, n.team(b!.p_code), (cl) =>

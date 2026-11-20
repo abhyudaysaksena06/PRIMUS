@@ -321,7 +321,9 @@ describe("the hiring draw", () => {
       const bp = rates.get(e.firm_team_id)!;
       expect(e.escrow).toBe("HELD");
       if (e.company_id === D!.company_id) {
-        const fee = BigInt(bp * 10 * (await price(n, D!.company_id)));
+        // The shares' value in cash, never more than the base fee or the company's cash (migration 081).
+        const value = BigInt(bp * 10 * (await price(n, D!.company_id)));
+        const fee = [value, 2_250_000n, cashD].reduce((m, x) => (x < m ? x : m));
         expect([Number(e.cash_cents), e.shares]).toEqual([Number(fee), 0]);
         expect(await cashOf(n, product(D!))).toBe(cashD - fee);
         const rows = await n.q("select kind, team_id, cash_delta_cents::bigint as cash, ref_table from ledger_entries where ref_id = $1 order by cash_delta_cents", [e.id]);
@@ -410,8 +412,8 @@ describe("the hiring draw", () => {
     expect(await totals(n)).toEqual(before);
     await n.checkInvariants();
 
-    // Round 3 (k = 5), called as the tick would: off, 10% of the company's cash; on, the firm's base rate in shares;
-    // and when the floor blocks the shares, their value in cash, never more than the company has. (Rolled back.)
+    // Round 3 (k = 5), called as the tick would: 10% of the company's cash, switch off or on (migration 081: Round 3
+    // keeps its old fee, never the base rate). (Rolled back.)
     const client = await db.pool.connect();
     try {
       await client.query("begin");
@@ -426,16 +428,15 @@ describe("the hiring draw", () => {
       // C has spent nearly everything and sits at its floor: its fee is all it has left.
       await q("update teams set cash_cents = 1234 where id = $1", [n.teamId(C!.p_code)]);
       await q("update holdings set qty = 40000 where team_id = $1 and company_id = $2 and lot = 'RETAINED'", [n.teamId(C!.p_code), C!.company_id]);
+      const cash5 = new Map((await q("select c.id, t.cash_cents::bigint as cash from companies c join teams t on t.id = c.product_team_id where c.event_id = $1", [n.eventId])).map((r) => [r.id, BigInt(r.cash)]));
       await q("select app.assign_default_firms($1, 5)", [n.eventId]);
       const on5 = await q(
         "select e.company_id, e.firm_team_id, e.cash_cents::bigint as cash, e.shares, app.firm_base_rate(e.firm_team_id) as bp from engagements e where e.event_id = $1 and e.k = 5",
         [n.eventId],
       );
       expect(on5).toHaveLength(3);
-      for (const e of on5) {
-        if (e.company_id === C!.company_id) expect([BigInt(e.cash), e.shares]).toEqual([1234n, 0]);
-        else expect([BigInt(e.cash), e.shares]).toEqual([0n, e.bp * 10]);
-      }
+      for (const e of on5) expect([BigInt(e.cash), e.shares]).toEqual([cash5.get(e.company_id)! / 10n, 0]);
+      expect(on5.find((e) => e.company_id === C!.company_id)!.cash).toBe("123");
       const label = await q("select label from public_ledger where company_id = $1 and (details ->> 'k')::int = 5 and details ? 'draw'", [A!.company_id]);
       expect(label.map((r) => r.label)).toEqual([expect.stringMatching(/by the draw \(Round 3\)$/)]);
     } finally {

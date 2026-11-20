@@ -134,10 +134,17 @@ describe("night-check SQL", () => {
       await db.pool.query(`create schema if not exists cron;
         create table cron.job (jobid bigint primary key, jobname text, schedule text, active boolean);
         create table cron.job_run_details (jobid bigint, start_time timestamptz);
-        insert into cron.job values (1, 'msim-tick', '2 seconds', true);
-        insert into cron.job_run_details values (1, now());`);
-      const rows = (await db.pool.query(readFileSync(new URL("../../scripts/sql/night-check.sql", import.meta.url), "utf8"))).rows;
-      expect(rows).toHaveLength(16);
+        insert into cron.job values (1, 'msim-tick', '2 seconds', true), (2, 'msim-snapshot', '10 seconds', true);
+        insert into cron.job_run_details values (1, now()), (2, now());`);
+      const check = () => db.pool.query(readFileSync(new URL("../../scripts/sql/night-check.sql", import.meta.url), "utf8")).then((r) => r.rows);
+      const rows = await check();
+      expect(rows).toHaveLength(17);
+      expect(rows[16]).toMatchObject({ n: 17, result: "OK" });
+      // The backup job switched off, or not run in the last minute: FIX.
+      await db.pool.query("update cron.job set active = false where jobname = 'msim-snapshot'");
+      expect((await check())[16]).toMatchObject({ result: "FIX", found: expect.stringMatching(/^off, last ran /) });
+      await db.pool.query("update cron.job set active = true where jobname = 'msim-snapshot'; update cron.job_run_details set start_time = now() - interval '2 minutes' where jobid = 2");
+      expect((await check())[16]).toMatchObject({ result: "FIX" });
       expect(rows[0]).toMatchObject({ item: "Schema version", found: LAST, result: "OK" });
       expect(rows[1]).toMatchObject({ result: "OK" });
       expect(rows.find((r) => r.item === "Event exists")).toMatchObject({ result: "FIX" }); // no primus-2026 here

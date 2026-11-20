@@ -55,8 +55,12 @@ describe("realtime budget", () => {
     await n.q("select app.broadcast($1, 'bulletin', '{}'::jsonb)", [n.eventId]);
     expect((await sent(n)).map((m) => m.event)).toEqual(["bulletin"]);
 
-    // The heartbeat sends the gathered ones as one message, even while paused.
+    // The heartbeat sends the gathered ones as one message, even while paused, once the oldest is 5 seconds old
+    // (migration 081: at most one refresh every 5 seconds).
     await n.q("update events set paused = true, paused_at = now() where id = $1", [n.eventId]);
+    await n.ok(n.lead, "tick", n.eventId);
+    expect((await sent(n)).map((m) => m.event)).toEqual(["bulletin"]);
+    await n.q("update app.broadcast_pending set at = at - interval '5 seconds' where event_id = $1", [n.eventId]);
     await n.ok(n.lead, "tick", n.eventId);
     const msgs = await sent(n);
     expect(msgs.map((m) => m.event)).toEqual(["bulletin", "refresh"]);

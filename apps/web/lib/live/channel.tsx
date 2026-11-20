@@ -114,13 +114,21 @@ export function EventChannel({
     const before = previous.current;
     previous.current = joined;
     if (joined !== "SUBSCRIBED" || before === "SUBSCRIBED") return;
-    startCatchUp(() => {
-      router.refresh();
-      setCaughtUp(true);
-    });
-    const fallback = setTimeout(() => setCaughtUp(true), 5000);
-    return () => clearTimeout(fallback);
-  }, [joined, router]);
+    // Spread over `spreadMs`, like the broadcasts' refreshes: after a Realtime restart every screen rejoins at once.
+    const wait = setTimeout(
+      () =>
+        startCatchUp(() => {
+          router.refresh();
+          setCaughtUp(true);
+        }),
+      Math.random() * spreadMs,
+    );
+    const fallback = setTimeout(() => setCaughtUp(true), 5000 + spreadMs);
+    return () => {
+      clearTimeout(wait);
+      clearTimeout(fallback);
+    };
+  }, [joined, router, spreadMs]);
   const status: ChannelStatus = joined === "SUBSCRIBED" && !caughtUp ? "CONNECTING" : joined;
 
   return <ChannelContext.Provider value={{ status, last }}>{children}</ChannelContext.Provider>;

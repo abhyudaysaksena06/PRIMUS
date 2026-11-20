@@ -57,7 +57,6 @@ const JUDGING = [
   ["select public.seal_missing_scores($1, 'PITCH')", (e: string) => [e]],
   ["select public.set_judge_model($1, 'BACKUP')", (e: string) => [e]],
   ["select public.start_calibration($1, $2::jsonb)", (e: string) => [e, SAMPLE]],
-  ["select public.rerun_judging($1, 'PITCH', 'a technical re-run')", () => [randomUUID()]],
 ] as const;
 const CONTENT = [
   ["select public.upload_problem_deck($1, '[]'::jsonb)", (e: string) => [e]],
@@ -75,6 +74,8 @@ const ORGANISER_ONLY = [
   ["select public.apply_appeal($1)", () => [randomUUID()]],
   ["select public.prepare_flash_bulletin($1, 'Flash', 'Body text')", (e: string) => [e]],
   ["select public.run_lottery($1, 'seed', '4')", (e: string) => [e]],
+  // Organiser-only again (migration 081): a re-run discards the runs and scores.
+  ["select public.rerun_judging($1, 'PITCH', 'a technical re-run')", () => [randomUUID()]],
 ] as const;
 
 type Call = readonly [string, (e: string) => readonly unknown[]];
@@ -229,7 +230,7 @@ describe("migration 074 patched exactly the intended permission lines", () => {
       "public.set_registration_open", "public.update_roster",
     ]);
     expect(await using("perform app.require_judge_ops();")).toEqual([
-      "public.rerun_judging", "public.retry_failed_runs", "public.seal_missing_scores", "public.set_judge_model",
+      "public.retry_failed_runs", "public.seal_missing_scores", "public.set_judge_model",
       "public.start_calibration", "public.start_judging",
     ]);
     expect(await using("perform app.require_crisis();")).toEqual([
@@ -243,7 +244,7 @@ describe("migration 074 patched exactly the intended permission lines", () => {
     }
     for (const f of [
       "desk_check_in", "desk_check_out", "import_roster", "update_roster", "set_desk_check_in", "set_registration_open",
-      "start_judging", "retry_failed_runs", "seal_missing_scores", "start_calibration", "set_judge_model", "rerun_judging",
+      "start_judging", "retry_failed_runs", "seal_missing_scores", "start_calibration", "set_judge_model",
       "upload_problem_deck", "upload_crisis_deck", "set_problem_statements",
     ]) {
       expect(organiserOnly, f).not.toContain(`public.${f}`);

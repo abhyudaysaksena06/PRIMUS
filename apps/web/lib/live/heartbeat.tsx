@@ -1,8 +1,8 @@
 "use client";
 
 // Every open screen pings the server every 20 s, and at once when its realtime channel connects or drops (the health
-// view's "connected" list, with its realtime status), and refines the server-clock offset. An organiser's console also runs the game clock once a second as a backup to
-// pg_cron: tick() is idempotent and a second tick at the same moment does nothing.
+// view's "connected" list, with its realtime status), and refines the server-clock offset. An organiser's console also runs the game clock every 5 seconds as a backup to
+// pg_cron (which ticks every 2 s): tick() is idempotent and a second tick at the same moment does nothing.
 
 import { useEffect, useRef } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
@@ -10,7 +10,7 @@ import { useClock } from "./clock";
 import { useEventChannel } from "./channel";
 
 const PING_MS = 20_000;
-const TICK_MS = 1_000;
+const TICK_MS = 5_000;
 
 function clientId(): string {
   try {

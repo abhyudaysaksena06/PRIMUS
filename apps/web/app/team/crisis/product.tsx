@@ -61,7 +61,8 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   const r3StartShares =
     band && mine?.market_price ? Math.min(Math.ceil(band.min / mine.market_price / 10) * 10, Math.floor(band.max / mine.market_price)) : 0;
   // Tonight's hiring rules (migration 071): a firm's minimum bid, and the draw for a company with no firm.
-  const minBidOn = featureOn(ctx.status, "hire_min_bid");
+  // Round 3 keeps its 5–20%-of-cash band: no minimum bid there (migration 081).
+  const minBidOn = featureOn(ctx.status, "hire_min_bid") && k !== 5;
   const drawOn = featureOn(ctx.status, "hire_base_rate");
   // Locked = gone: a full firm is not listed (the hire_locked message makes this page re-read as soon as one fills).
   const listed = openFirms(data.firms, data.engagements, k);
@@ -76,7 +77,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   const firmCode = engaged ? (firmById.get(engaged.firm_team_id)?.code ?? "a firm") : null;
   // A company that had not hired when hiring closed was given a firm: say so, and by what rule.
   const assignedNote =
-    engaged && firmCode ? assignedToCompany(engaged, firmCode, money(engaged.cash_cents), firmById.get(engaged.firm_team_id)?.base_rate_bp ?? null, drawOn) : null;
+    engaged && firmCode ? assignedToCompany(engaged, firmCode, money(engaged.cash_cents), firmById.get(engaged.firm_team_id)?.base_rate_bp ?? null, drawOn && !r3) : null;
   const myTurn = myOffers.filter((o) => o.status === "OPEN" && o.turn === "COMPANY").length;
   const waiting = myOffers.filter((o) => o.status === "OPEN" && o.turn === "FIRM").length;
 
@@ -254,7 +255,8 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
               {minBidOn ? (
                 <p>Each firm has a minimum bid: its base rate, 1% to 4% of your company, set by its Round 1 memo score. An offer worth less is refused.</p>
               ) : null}
-              {drawOn ? (
+              {drawOn && r3 ? <p>No firm by {hireAt}? The draw gives you a random firm with room, for 10% of your cash.</p> : null}
+              {drawOn && !r3 ? (
                 <p>
                   No firm by {hireAt}? The draw gives you a random firm with room, at that firm&apos;s base rate in shares (in cash if your company is at its
                   40,000-share floor).
@@ -292,7 +294,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                     {p?.headline ? <p className="mt-1 text-sm font-semibold text-paper">{p.headline}</p> : null}
                     {p?.specialities.length ? <p className="mt-1 text-xs text-[var(--term-cyan)]">{p.specialities.join(" · ")}</p> : null}
                     {p?.rate_card ? <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{p.rate_card}</p> : null}
-                    {f.base_rate_bp !== null && (minBidOn || drawOn) ? (
+                    {f.base_rate_bp !== null && (minBidOn || (drawOn && !r3)) ? (
                       <p className="mt-1 text-xs text-[var(--term-amber)]" data-testid={`firm-rate-${f.code}`}>
                         {minBidOn
                           ? `Minimum bid: ${minBidText(f.base_rate_bp, mine.market_price)}.`
