@@ -46,7 +46,7 @@ export async function admitTeam(
   return {
     ...r,
     message: r.data?.new
-      ? `Admitted on card ${card}: hand them that card, their login works now. ${String(r.data?.checked_in ?? "")} teams admitted.`
+      ? `Checked in as ${card} — hand over card ${card}: their login works now. ${String(r.data?.checked_in ?? "")} teams checked in.`
       : `Saved ${card}.`,
   };
 }
