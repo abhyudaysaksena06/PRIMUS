@@ -72,7 +72,7 @@ and no round is still open or waiting.
 | Failure | What happens | What staff do |
 | --- | --- | --- |
 | A tick raises an error | Its whole transaction rolls back: nothing is half done. The error is logged; the next tick (2 s, or 1 s from a console) tries again | Health page: tick errors in the last hour, with the message. A step that keeps failing names itself there |
-| pg_cron stops | Every open organiser console keeps ticking once a second | Keep one organiser console open all night; `scripts/sql/night-check.sql` checks 2–3: the job exists and ran in the last minute |
+| pg_cron stops | Every open organiser console keeps ticking every 5 seconds | Keep one organiser console open all night; `scripts/sql/night-check.sql` checks 2–3: the job exists and ran in the last minute |
 | The database restarts or blips | All state is in tables (rounds, orders, deadlines, sub-rounds, scores, holdings, the ledger); the app holds none in memory. The next tick resumes: a round whose closing time passed is cleared at once with the orders that were in; a team action either committed or did not (one transaction each) | Check Health; screens reconnect and re-read by themselves |
 | A round opens late (after an outage, a pause or a wait for scores) | If it opens more than 5 seconds late, every later time moves by the delay (`app.shift_schedule`), so the round keeps its full length and no window is cut short | Nothing |
 | The website is down | The database heartbeat keeps clearing rounds and running crisis steps; teams cannot act until the site is back | Pause if teams cannot play fairly, then fix |
