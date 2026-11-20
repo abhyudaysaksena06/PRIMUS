@@ -107,6 +107,37 @@ as $$
 $$;
 revoke all on function app.raise_k(uuid) from public, anon, authenticated;
 
+-- ── 6 · The clearing at 200 companies × 200 funds
+-- (a) The live round range (app.track_round_range, on every order written) sums the company's pending orders in the
+--     round: an index for exactly that.
+create index if not exists orders_round_company_pending_idx on public.orders (round_id, company_id) where status = 'PENDING';
+
+-- (b) A clearing rewrites every order, position and fund of the round (with a full book: 40,000 orders and as many
+--     positions), and the per-row audit about doubled its time. Each of those changes is already recorded where it
+--     can be checked: one TRADE ledger row per filled order and one per company for the exchange (cash = Σ ledger and
+--     holdings = Σ ledger are tested invariants), the round's price rows and every order's fill price; the round's own
+--     row is still audited. So while app.clear_round runs (app.price_writer = 'CLEARING', which it resets when it is
+--     done, so nothing later in the same tick goes unaudited), the per-row audit skips orders, holdings, teams and
+--     companies. A restore (app.allow_purge = 'on') still skips everything, as before.
+select app.patch_functions(
+$o$  if current_setting('app.allow_purge', true) = 'on' then
+    return null;
+  end if;$o$,
+$n$  if current_setting('app.allow_purge', true) = 'on' then
+    return null;
+  end if;
+  if current_setting('app.price_writer', true) = 'CLEARING' and tg_table_name in ('orders', 'holdings', 'teams', 'companies') then
+    return null;
+  end if;$n$);
+
+select app.patch_functions(
+$o$  update public.rounds set status = 'CLEARED', closed_at = coalesce(closed_at, now()), cleared_at = now()
+   where id = v_round.id;$o$,
+$n$  -- The clearing's writes are done: later writes in this transaction are audited and tracked again.
+  perform set_config('app.price_writer', '', true);
+  update public.rounds set status = 'CLEARED', closed_at = coalesce(closed_at, now()), cleared_at = now()
+   where id = v_round.id;$n$);
+
 -- Every patch landed where it was meant to, and only there.
 do $$
 declare
@@ -123,6 +154,18 @@ begin
    where n.nspname in ('app', 'public') and strpos(p.prosrc, 'p_type in (''BUY'', ''SHORT'') and v_cash < (v_shorts * 3) / 2') > 0;
   if v_where is distinct from 'public.practice_trade' then
     raise exception 'practice patch landed in %', v_where;
+  end if;
+  select string_agg(n.nspname || '.' || p.proname, ', ' order by 1) into v_where
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname in ('app', 'public') and strpos(p.prosrc, 'app.price_writer'', true) = ''CLEARING'' and tg_table_name in') > 0;
+  if v_where is distinct from 'app.audit_row' then
+    raise exception 'audit patch landed in %', v_where;
+  end if;
+  select string_agg(n.nspname || '.' || p.proname, ', ' order by 1) into v_where
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname in ('app', 'public') and strpos(p.prosrc, 'later writes in this transaction are audited and tracked again') > 0;
+  if v_where is distinct from 'app.clear_round' then
+    raise exception 'clearing patch landed in %', v_where;
   end if;
 end
 $$;

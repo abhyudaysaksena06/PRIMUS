@@ -458,3 +458,28 @@ describe("the reserve covers the worst fill (migration 079)", () => {
     await n.checkInvariants();
   }, 240_000);
 });
+
+describe("the clearing's audit (migration 079)", () => {
+  test("the clearing's row writes skip the per-row audit; the round is audited; later writes in the same transaction are audited again", async () => {
+    const { n, squads: s } = await toPressure(db.pool, 3, "edges-audit");
+    await n.openRound(1);
+    const o = (await n.ok(n.team(s[1]!.f_code), "place_order", s[0]!.company_id, "BUY", 100)).order;
+    const round = await n.one("select id from rounds where event_id = $1 and number = 1", [n.eventId]);
+    const mark = (await n.one("select coalesce(max(id), 0) as id from audit_log", [])).id;
+    const c = await db.pool.connect();
+    try {
+      await c.query("begin");
+      await c.query("select app.clear_round($1, true)", [round.id]);
+      await c.query("update teams set name = name || ' (renamed)' where id = $1", [n.teamId(s[1]!.f_code)]);
+      await c.query("commit");
+    } finally {
+      c.release();
+    }
+    const rows = await n.q("select entity, entity_id, action from audit_log where id > $1 order by id", [mark]);
+    expect(rows.filter((r) => r.entity === "orders")).toEqual([]);
+    expect(rows.some((r) => r.entity === "rounds" && r.entity_id === round.id)).toBe(true);
+    expect(rows.filter((r) => r.entity === "teams").map((r) => r.entity_id)).toEqual([n.teamId(s[1]!.f_code)]);
+    expect((await n.one("select status from orders where id = $1", [o.id])).status).toBe("FILLED");
+    await n.checkInvariants();
+  }, 240_000);
+});
