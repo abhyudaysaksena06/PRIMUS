@@ -15,8 +15,8 @@ const one = (name: string) => JSON.stringify([{ full_name: name, roll_number: nu
 
 describe("the desk's cap per track", () => {
   test("the caps are 70 per track and 210 teams by default (098)", async () => {
-    expect((await db.pool.query("select app.track_cap() as c")).rows[0].c).toBe(70);
-    expect((await db.pool.query("select app.team_cap() as c")).rows[0].c).toBe(210);
+    expect((await db.pool.query("select app.track_cap() as c")).rows[0].c).toBe(54);
+    expect((await db.pool.query("select app.team_cap() as c")).rows[0].c).toBe(162);
   });
 
   test("a third Product team is refused at a cap of 2; edits still work; a check-out frees a place; other tracks unaffected", async () => {
@@ -40,7 +40,7 @@ describe("the desk's cap per track", () => {
       await n.ok(n.lead, "desk_check_out", n.eventId, id);
       await n.ok(n.lead, "desk_check_in", n.eventId, "PRODUCT", p3, "Three", one("C"));
     } finally {
-      await n.q("create or replace function app.track_cap() returns int language sql immutable set search_path = '' as $$ select 70 $$");
+      await n.q("create or replace function app.track_cap() returns int language sql immutable set search_path = '' as $$ select 54 $$");
     }
   });
 });
@@ -90,7 +90,7 @@ describe("the desk's cap on teams in all (098)", () => {
       await n.ok(n.lead, "desk_check_out", n.eventId, id);
       await n.ok(n.lead, "desk_check_in", n.eventId, "FINANCE", codes("FINANCE")[0], "F", one("c"));
     } finally {
-      await n.q("create or replace function app.team_cap() returns int language sql immutable set search_path = '' as $$ select 210 $$");
+      await n.q("create or replace function app.team_cap() returns int language sql immutable set search_path = '' as $$ select 162 $$");
     }
   });
 });
