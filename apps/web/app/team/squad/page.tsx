@@ -63,7 +63,7 @@ export default async function SquadOverview() {
                   SQUAD {squadNo} · {chosen.sector}
                 </Chip>{" "}
                 {pick.oneCase ? <Chip tone="green">Every squad</Chip> : pick.byDefault ? <Chip tone="amber">Chosen by default</Chip> : <Chip tone="green">Picked</Chip>}
-                <p className="mt-3 text-xl font-semibold text-paper">{chosen.title}</p>
+                <h3 className="mt-3 text-xl font-semibold text-paper">{chosen.title}</h3>
               </>
             ) : (
               <p className="text-xl font-semibold text-paper">Not picked yet.</p>
@@ -80,7 +80,7 @@ export default async function SquadOverview() {
         <GuidePanel title={`Squad ${squadNo}`} tag={`TEAM ${ctx.team.code} · ${TRACK_LABELS[ctx.team.track].toUpperCase()} TRACK`}>
           <label className="guide-label !mt-0">COMPANY / PRODUCT NAME</label>
           {ctx.company?.ticker ? (
-            <p className="text-2xl font-bold tracking-tight text-paper" data-testid="squad-company">
+            <p className="guide-mono text-2xl font-bold tracking-tight text-paper" data-testid="squad-company">
               {ctx.company.name ?? "—"} <span className="font-mono text-[#39ff88]">({ctx.company.ticker})</span>
             </p>
           ) : (

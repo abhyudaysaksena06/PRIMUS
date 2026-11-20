@@ -14,6 +14,7 @@
 .pd-root .guide-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border-bottom:1px solid rgba(91,139,100,.18)}
 .pd-root .guide-panel-head h2{font-size:12px;font-weight:700}
 .pd-root .guide-panel-head span{color:#7f9b86;font:700 8px ui-monospace,monospace;letter-spacing:.1em}
+.pd-root .guide-panel-body{padding:15px}
 .pd-root .guide-metric{padding:15px;border:1px solid rgba(91,139,100,.22);background:rgba(10,20,13,.85)}
 .pd-root .guide-metric small{color:#819c87;font:700 8px ui-monospace,monospace;letter-spacing:.13em}
 .pd-root .guide-metric b{display:block;margin:9px 0 5px;font:700 23px ui-monospace,monospace;color:#f0fff3}
@@ -54,6 +55,7 @@
 .pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]){font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 .pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-panel{border-radius:14px;overflow:hidden;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:border-color .22s ease,box-shadow .22s ease}
 .pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-panel-head{padding:14px 18px}
+.pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-panel-body{padding:18px}
 .pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-metric{border-radius:12px;position:relative;overflow:hidden;backdrop-filter:blur(12px);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
 .pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-metric:hover{transform:translateY(-1px)}
 .pd-root:is([data-track="CONSULTING"],[data-track="PRODUCT"]) :is(.guide-btn,.mx-key){border-radius:9px;padding:10px 15px;transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease}
@@ -250,7 +252,10 @@
 .pd-root[data-track="PRODUCT"] .guide-scroll-box::-webkit-scrollbar-thumb:hover{background:rgba(255,155,69,.72)}
 
 /* Additions for the real game, built from the same parts. */
-.pd-root .guide-page-head .guide-title{display:block;color:inherit}
+.pd-root .guide-page-head .guide-title{display:block}
+/* The demo's headings are set in the mono face (its page title, panel titles and card titles); body text stays sans. */
+.pd-root :is(h1,h2,h3,h4),.pd-root .guide-page-head .guide-title,.pd-root .guide-mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+.pd-root .guide-page-head small{text-transform:uppercase}
 .pd-root .guide-panel-head .guide-panel-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .pd-root .guide-panel-head .guide-panel-actions a{font:700 9px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px}
 .pd-root .guide-panel-head h2{min-width:0;overflow-wrap:anywhere}
