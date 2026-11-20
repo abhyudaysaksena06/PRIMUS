@@ -315,6 +315,14 @@ function restoreBackup(s: EditorState, b: Backup | null): EditorState {
 }
 
 /**
+ * Whether a save re-reads the page (router.refresh). A click, a refusal or a conflict does; an automatic save that
+ * worked does not: its answer already carries the saved draft (it becomes the base), and with 180 writers autosaving
+ * every few seconds a full page render after each one was most of Round 1's load. The next refresh catches up.
+ */
+export const refreshAfterSave = (auto: boolean, r: { ok?: boolean; draft?: DraftSnapshot }): boolean =>
+  !(auto && r.ok === true && r.draft !== undefined);
+
+/**
  * What a save or submit result does to the editor. A refusal for a newer version brings that version (merged with
  * what was typed here, or shown if nothing was). Any other result that carries a draft carries one this screen
  * saved (Submit saves first; submit_submission may still refuse, e.g. TICKER_TAKEN), so it becomes the base: a
