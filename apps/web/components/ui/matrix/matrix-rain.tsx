@@ -120,8 +120,11 @@ export function MatrixRain({
       frame = requestAnimationFrame(draw);
       if (now - last < FRAME_MS) return;
       last = now;
+      // Reduced motion (e.g. Windows with "Animation effects" off) still falls, at a third of the speed: the organisers
+      // want the rain moving on every laptop, and a slow drift is gentle enough for that setting.
+      const pace = reducedMotion.matches ? 0.35 : 1;
       for (const stream of streams) {
-        stream.y += stream.speed * size;
+        stream.y += stream.speed * size * pace;
         if (stream.y - stream.length * size > height + size * 3) {
           const next = makeStream();
           stream.x = next.x;
@@ -142,10 +145,6 @@ export function MatrixRain({
     const start = () => {
       stop();
       if (document.hidden) return;
-      if (reducedMotion.matches) {
-        paint();
-        return;
-      }
       frame = requestAnimationFrame(draw);
     };
 
