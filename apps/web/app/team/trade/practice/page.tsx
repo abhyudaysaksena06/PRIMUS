@@ -7,7 +7,7 @@ import { clock, money } from "@/lib/format";
 import { featureOn } from "@/lib/event-status";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { Notice } from "@/components/ui/ui";
-import { DeskPanel } from "../desk-ui";
+import { DeskKpi, DeskPanel, DeskStatus, DeskTable, DeskTd, deskTr } from "../desk-ui";
 import { tradeGate } from "../gate";
 import { PracticeTerminal } from "./terminal";
 
@@ -49,48 +49,63 @@ export default async function PracticePage() {
     const results = await practiceResults(event.id);
     const mine = results.find((r) => r.code === ctx.team.code);
     return (
-      <DeskPanel title="Practice market: closed">
+      <div className="space-y-4">
+        <DeskStatus>
+          Practice market closed <span aria-hidden>·</span> {results.length} {results.length === 1 ? "fund" : "funds"} ranked <span aria-hidden>·</span> top{" "}
+          {PRACTICE.winners} win {prize}
+        </DeskStatus>
         {mine ? (
-          <p className="text-sm text-paper" data-testid="practice-result">
-            Your practice fund finished at <b>{money(mine.equity)}</b> ({mine.trades} trades).{" "}
-            {mine.rank !== null ? (
-              <>
-                You placed <b className="text-[color:var(--desk-accent)]">#{mine.rank}</b>: {money(mine.edge)} was added to your real cash for the IPO.
-              </>
-            ) : (
-              <>Only the top {PRACTICE.winners} funds win a prize; the practice money stays in the practice market.</>
-            )}
-          </p>
-        ) : (
-          <p className="text-sm text-paper" data-testid="practice-result">
-            {market ? "Your fund did not trade in the practice market." : "There was no practice market in this event."}
-          </p>
-        )}
-        {results.length > 0 ? (
-          <table className="mt-4 w-full max-w-2xl border-collapse text-sm" data-testid="practice-leaderboard">
-            <thead>
-              <tr className="border-b border-[#2d2a1d] text-left font-mono text-[10px] uppercase tracking-[0.08em] text-[#87948D]">
-                <th className="px-2 py-2">#</th>
-                <th>Fund</th>
-                <th className="text-right">Practice result</th>
-                <th className="text-right">Prize</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.slice(0, 15).map((r, i) => (
-                <tr key={r.code} className={`border-b border-[#2d2a1d]/70 ${r.code === ctx.team.code ? "bg-[var(--desk-accent-soft)] text-[color:var(--desk-accent)]" : "text-[#F2F5F3]"}`}>
-                  <td className="px-2 py-2 font-mono">{i + 1}</td>
-                  <td>
-                    {r.code} {r.name}
-                  </td>
-                  <td className="text-right font-mono">{money(r.equity)}</td>
-                  <td className="text-right font-mono">{r.edge > 0 ? `+${money(r.edge)}` : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <DeskKpi label="Practice fund" tag="CLOSED" value={money(mine.equity)} foot={`${mine.trades} trades · started at ${start}`} />
+            <DeskKpi
+              label="Rank"
+              tag={mine.rank !== null ? <span className="text-[#00D68F]">PRIZE</span> : "UNRANKED"}
+              tone={mine.rank !== null ? "accent" : "plain"}
+              value={mine.rank !== null ? `#${mine.rank}` : "—"}
+              foot={`Top ${PRACTICE.winners} win a prize`}
+            />
+            <DeskKpi label="Real cash added" tag="FOR THE IPO" tone={mine.rank !== null ? "up" : "plain"} value={mine.rank !== null ? money(mine.edge) : "—"} foot="The practice money stays here" />
+          </div>
         ) : null}
-      </DeskPanel>
+        <DeskPanel title="Practice market: closed" sub="Final standings" bodyClassName="p-0">
+          {mine ? (
+            <p className="px-4 py-3 text-sm text-[#BACBB9]" data-testid="practice-result">
+              Your practice fund finished at <b className="font-mono text-[#F2F5F3]">{money(mine.equity)}</b> ({mine.trades} trades).{" "}
+              {mine.rank !== null ? (
+                <>
+                  You placed <b className="text-[color:var(--desk-accent)]">#{mine.rank}</b>: {money(mine.edge)} was added to your real cash for the IPO.
+                </>
+              ) : (
+                <>Only the top {PRACTICE.winners} funds win a prize; the practice money stays in the practice market.</>
+              )}
+            </p>
+          ) : (
+            <p className="px-4 py-3 text-sm text-[#BACBB9]" data-testid="practice-result">
+              {market ? "Your fund did not trade in the practice market." : "There was no practice market in this event."}
+            </p>
+          )}
+          {results.length > 0 ? (
+            <div className="border-t border-[#2d2a1d]" data-testid="practice-leaderboard">
+              <DeskTable head={["#", "Fund", "Practice result", "Prize"]} label="Practice leaderboard" right={[2, 3]}>
+                {results.slice(0, 15).map((r, i) => (
+                  <tr key={r.code} className={r.code === ctx.team.code ? "border-b border-[#2d2a1d]/70 bg-[#201e14]" : deskTr}>
+                    <DeskTd edge className={r.code === ctx.team.code ? "text-[color:var(--desk-accent)]" : "text-[#87948D]"}>
+                      {i + 1}
+                    </DeskTd>
+                    <DeskTd className={r.code === ctx.team.code ? "font-semibold text-[color:var(--desk-accent)]" : "font-semibold"}>
+                      {r.code} <span className="font-sans text-xs font-normal text-[#87948D]">{r.name}</span>
+                    </DeskTd>
+                    <DeskTd right>{money(r.equity)}</DeskTd>
+                    <DeskTd edge right className={r.edge > 0 ? "text-[#00D68F]" : "text-[#87948D]"}>
+                      {r.edge > 0 ? `+${money(r.edge)}` : "—"}
+                    </DeskTd>
+                  </tr>
+                ))}
+              </DeskTable>
+            </div>
+          ) : null}
+        </DeskPanel>
+      </div>
     );
   }
 

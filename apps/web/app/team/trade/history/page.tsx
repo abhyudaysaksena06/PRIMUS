@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { loadTeamContext } from "@/lib/team/context";
 import { loadTradeData } from "@/lib/team/trade-data";
 import { STATUS_LABELS, orderHistory, type OrderLine } from "@/lib/team/trade";
 import { clock, count, money, signedMoney } from "@/lib/format";
-import { Badge, Table, Td } from "@/components/ui/ui";
-import { DeskPanel } from "../desk-ui";
+import { DeskPanel, DeskStatus, DeskTable, DeskTd, deskTr } from "../desk-ui";
 import { tradeGate } from "../gate";
 
 export const metadata: Metadata = { title: "Order history" };
@@ -20,27 +20,41 @@ export default async function HistoryPage() {
   const data = await loadTradeData(ctx, { orders: "all" });
   const rounds = orderHistory(data.orders, data.rounds, data.companies);
 
+  const total = rounds.reduce((n, r) => n + r.lines.length, 0);
+  const status = (
+    <DeskStatus>
+      Order history <span aria-hidden>·</span> {rounds.length} {rounds.length === 1 ? "round" : "rounds"} <span aria-hidden>·</span> {total}{" "}
+      {total === 1 ? "order" : "orders"} <span aria-hidden>·</span> newest round first
+    </DeskStatus>
+  );
+
   if (rounds.length === 0) {
     return (
-      <DeskPanel title="Order history">
-        <p className="text-sm text-muted">
-          No orders yet. Orders are placed under{" "}
-          <Link href="/team/trade" className="underline">
-            Orders
-          </Link>{" "}
-          while a round is open.
-        </p>
-      </DeskPanel>
+      <div className="space-y-4">
+        {status}
+        <DeskPanel title="Order history">
+          <div className="p-4 text-center">
+            <p className="font-mono text-xs text-[#87948D]">
+              No orders yet. Orders are placed under{" "}
+              <Link href="/team/trade" className="text-[color:var(--desk-accent)] underline">
+                Orders
+              </Link>{" "}
+              while a round is open.
+            </p>
+          </div>
+        </DeskPanel>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {status}
       {rounds.map((r) => (
         <DeskPanel
           key={r.number}
           title={`Round ${r.number}`}
-          sub={`${r.lines.length} ${r.lines.length === 1 ? "order" : "orders"}`}
+          sub={`Order blotter · ${r.lines.length} ${r.lines.length === 1 ? "order" : "orders"}`}
           bodyClassName="p-0"
           actions={
             r.status === "CLEARED" ? (
@@ -48,48 +62,54 @@ export default async function HistoryPage() {
                 Cash from fills <span className={`font-semibold tabular-nums ${r.cash < 0 ? "text-[#FF5364]" : "text-[#00D68F]"}`}>{signedMoney(r.cash)}</span>
               </span>
             ) : r.status === "OPEN" ? (
-              <Badge tone="blue">Open: pending orders are under Orders</Badge>
+              <Chip tone="open">Open: pending orders are under Orders</Chip>
             ) : (
-              <Badge tone="amber">Clearing</Badge>
+              <Chip tone="open">Clearing</Chip>
             )
           }
         >
-          <Table head={["Order", "Shares", "Fill price", "Cash", "Status", "Price when placed", "Placed"]} label={`Orders of round ${r.number}`}>
+          <DeskTable head={["Order", "Shares", "Fill price", "Cash", "Status", "Price when placed", "Placed"]} label={`Orders of round ${r.number}`} right={[1, 2, 3, 5]}>
             {r.lines.map((l) => (
               <HistoryRow key={l.id} l={l} clearing={r.status !== "CLEARED" && r.status !== "OPEN"} />
             ))}
-          </Table>
+          </DeskTable>
         </DeskPanel>
       ))}
     </div>
   );
 }
 
+/** The demo blotter's status chip: filled green, open in the accent, the rest grey. */
+function Chip({ tone, children }: { tone: "filled" | "open" | "off"; children: ReactNode }) {
+  const cls = {
+    filled: "bg-[#00D68F]/10 border-[color:var(--desk-accent-line)] text-[#00D68F]",
+    open: "bg-[var(--desk-accent-soft)] border-[color:var(--desk-accent-line)] text-[color:var(--desk-accent)]",
+    off: "bg-[#201e14] border-[#2d2a1d] text-[#87948D]",
+  }[tone];
+  return <span className={`font-mono text-[10px] font-semibold uppercase tracking-[0.06em] px-2 py-0.5 rounded-sm border ${cls}`}>{children}</span>;
+}
+
 function HistoryRow({ l, clearing }: { l: OrderLine; clearing: boolean }) {
-  const tone = l.status === "FILLED" ? "green" : l.status === "CANCELLED" ? "slate" : "amber";
+  const tone = l.status === "FILLED" ? "filled" : l.status === "CANCELLED" ? "off" : "open";
   return (
-    <tr data-testid="history-order">
-      <Td mono className={`font-semibold ${l.type === "BUY" || l.type === "COVER" ? "text-[#00D68F]" : "text-[#FF5364]"}`}>
+    <tr className={deskTr} data-testid="history-order">
+      <DeskTd edge className={`font-semibold ${l.type === "BUY" || l.type === "COVER" ? "text-[#00D68F]" : "text-[#FF5364]"}`}>
         {l.type} <span className="text-[#F2F5F3]">{l.ticker}</span>
-      </Td>
-      <Td mono className="text-right">
-        {count(l.qty)}
-      </Td>
-      <Td mono className="text-right">
-        {l.fillPrice === null ? "—" : money(l.fillPrice)}
-      </Td>
-      <Td mono className={`text-right ${l.cash !== null && l.cash < 0 ? "text-danger-soft" : ""}`}>
+      </DeskTd>
+      <DeskTd right>{count(l.qty)}</DeskTd>
+      <DeskTd right>{l.fillPrice === null ? "—" : money(l.fillPrice)}</DeskTd>
+      <DeskTd right className={l.cash !== null && l.cash < 0 ? "text-[#FF5364]" : ""}>
         {l.cash === null ? "—" : signedMoney(l.cash)}
-      </Td>
-      <Td>
-        <Badge tone={tone}>{l.status === "PENDING" && clearing ? "Clearing" : STATUS_LABELS[l.status]}</Badge>
-      </Td>
-      <Td mono className="text-right">
+      </DeskTd>
+      <DeskTd>
+        <Chip tone={tone}>{l.status === "PENDING" && clearing ? "Clearing" : STATUS_LABELS[l.status]}</Chip>
+      </DeskTd>
+      <DeskTd right className="text-[#BACBB9]">
         {money(l.entryPrice)}
-      </Td>
-      <Td mono className="text-paper">
+      </DeskTd>
+      <DeskTd edge className="text-[#87948D] text-[11px]">
         {clock(l.createdAt, true)}
-      </Td>
+      </DeskTd>
     </tr>
   );
 }

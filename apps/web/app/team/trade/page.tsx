@@ -5,10 +5,11 @@ import { loadTeamContext } from "@/lib/team/context";
 import { fundContext, loadTradeData } from "@/lib/team/trade-data";
 import { fundSummary, openOrders, openOrdersState, tradingNotice, type TradingNotice } from "@/lib/team/trade";
 import { clock, money } from "@/lib/format";
+import { meterPct } from "@/lib/team/portfolio";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { Notice } from "@/components/ui/ui";
-import { DeskPanel, DeskStatus, deskLabel } from "./desk-ui";
+import { DeskPanel, DeskRow, DeskStatus, deskPill } from "./desk-ui";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Countdown } from "@/components/ui/countdown";
 import { tradeGate } from "./gate";
@@ -86,6 +87,102 @@ export default async function TradePage() {
   const chart = await loadTradeCandles(ctx.event.id);
   const openRoundId = status.open_round ? (data.rounds.find((r) => r.number === status.open_round!.number)?.id ?? null) : null;
 
+  // The execution row's first column, where the demo has its order book: the fund's cash and limits as depth rows.
+  const fundBook = (
+    <section aria-labelledby="cash-and-limits" className="bg-[#171610] border border-white/[0.07] rounded-lg p-4 flex flex-col justify-between grow">
+      <div>
+        <div className="flex items-center justify-between pb-3 border-b border-[#2d2a1d]">
+          <div>
+            <h2 id="cash-and-limits" className="text-sm font-semibold text-[#F2F5F3]">
+              Cash and limits · {ctx.team.code}
+            </h2>
+            <span className="font-mono text-[11px] text-[#87948D]">Cash − collateral − reserves</span>
+          </div>
+          <span className="font-mono text-xs text-[color:var(--desk-accent)] tabular-nums">{money(summary.available)}</span>
+        </div>
+        <dl className="mt-3 space-y-1 font-mono text-xs tabular-nums">
+          <div className="grid grid-cols-2 text-[10px] uppercase tracking-[0.08em] text-[#87948D] pb-1">
+            <span>Figure</span>
+            <span className="text-right">Amount</span>
+          </div>
+          <DeskRow label="Available to spend" value={money(summary.available)} testId="available" tone="accent" />
+          <DeskRow label="Cash" value={money(summary.cash)} />
+          <DeskRow label="Reserved by open orders" value={money(summary.reserved)} testId="reserved" bar={meterPct(summary.reserved, summary.cash)} barTone="accent" />
+          <DeskRow label="Collateral locked" value={money(summary.collateral)} bar={meterPct(summary.collateral, summary.cash)} barTone="down" />
+          <div className="my-2 py-1.5 border-y border-[#2d2a1d] flex items-center justify-between text-xs">
+            <span className="text-[#87948D]">Collateral</span>
+            <span className="text-[#F2F5F3]">150% of your shorts&apos; value</span>
+          </div>
+          <DeskRow
+            label="Short exposure"
+            value={money(summary.shortExposureWithPending)}
+            testId="exposure"
+            bar={meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}
+            barTone="down"
+          />
+          <DeskRow label="Short exposure limit" value={money(RULES.SHORT_EXPOSURE_LIMIT)} />
+        </dl>
+        <p className="mt-2 text-[11px] text-[#87948D]">Short exposure counts pending shorts.</p>
+      </div>
+      <div className="mt-3 pt-3 border-t border-[#2d2a1d] flex items-center justify-between gap-3 text-xs font-mono">
+        <span className="text-[#87948D]">Holdings, P&amp;L, limits per company</span>
+        <Link href="/team/trade/positions" className="text-[color:var(--desk-accent)] hover:underline whitespace-nowrap">
+          Positions →
+        </Link>
+      </div>
+    </section>
+  );
+
+  // The execution row's last column: the demo's order blotter, holding the open round's orders.
+  const blotter =
+    shownRound && (accepting || open.length > 0) ? (
+      <section className="bg-[#171610] border border-white/[0.07] rounded-lg overflow-hidden flex flex-col grow">
+        <div className="px-4 py-3 border-b border-[#2d2a1d] flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-[#F2F5F3]">Order blotter · round {shownRound.number}</h2>
+          <div className="flex items-center bg-[#11110d] border border-[#2d2a1d] p-0.5 rounded">
+            <span className={deskPill(true)}>Open ({open.length})</span>
+            <Link href="/team/trade/history" className={deskPill(false)}>
+              History
+            </Link>
+          </div>
+        </div>
+        <div className="px-4 py-2 border-b border-[#2d2a1d] font-mono text-[11px] text-[#87948D]">
+          {ordersState === "EDITABLE" ? (
+            <span className="text-[#BACBB9]">
+              editable for <Countdown to={shownRound.closes_at} passed="—" className="font-semibold text-[color:var(--desk-accent)]" />
+            </span>
+          ) : ordersState === "PAUSED" ? (
+            <span className="text-warn" data-testid="open-orders-state">
+              paused: no changes until the event resumes
+            </span>
+          ) : (
+            <span className="text-warn" data-testid="open-orders-state">
+              closed at {clock(shownRound.closes_at, true)}: clearing
+            </span>
+          )}
+        </div>
+        <div className="px-4 overflow-y-auto max-h-[520px]">
+          {open.length === 0 ? (
+            <p className="p-6 text-center font-mono text-xs text-[#87948D]">No open orders in round {shownRound.number}.</p>
+          ) : (
+            <OpenOrders
+              ctx={fctx}
+              closesAt={shownRound.closes_at}
+              accepting={accepting}
+              items={open.map((line) => ({ line, edit: editOrder.bind(null, line.id), cancel: cancelOrder.bind(null, line.id) }))}
+            />
+          )}
+        </div>
+        <p className="mt-auto px-4 py-3 border-t border-[#2d2a1d] text-xs text-[#87948D]">
+          Every valid order fills at its company&apos;s new price when the round clears. Past rounds and their fill prices are under{" "}
+          <Link href="/team/trade/history" className="underline">
+            History
+          </Link>
+          .
+        </p>
+      </section>
+    ) : null;
+
   return (
     <div className="space-y-4">
       <RefreshAt at={accepting ? status.open_round!.closes_at : (notice?.next?.opensAt ?? null)} />
@@ -116,32 +213,6 @@ export default async function TradePage() {
         </Notice>
       ) : null}
 
-      <section aria-labelledby="cash-and-limits" className="space-y-2">
-        <h2 id="cash-and-limits" className="sr-only">
-          Cash and limits
-        </h2>
-        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-5">
-          {/* What a fund can spend now comes first. */}
-          <Fact label="Available to spend" value={money(summary.available)} hint="Cash − collateral − reserves" testId="available" accent />
-          <Fact label="Cash" value={money(summary.cash)} />
-          <Fact label="Reserved by open orders" value={money(summary.reserved)} testId="reserved" />
-          <Fact label="Collateral locked" value={money(summary.collateral)} hint="150% of your shorts' value" />
-          <Fact
-            label="Short exposure"
-            value={money(summary.shortExposureWithPending)}
-            hint={`of ${money(RULES.SHORT_EXPOSURE_LIMIT)}, pending shorts included`}
-            testId="exposure"
-          />
-        </dl>
-        <p className="text-xs text-[#87948D]">
-          Holdings, profit and loss and the limits per company are under{" "}
-          <Link href="/team/trade/positions" className="underline">
-            Positions
-          </Link>
-          .
-        </p>
-      </section>
-
       {tradable.length > 0 ? (
         <TradeDesk
           companies={tradable}
@@ -153,54 +224,20 @@ export default async function TradePage() {
               ? { ctx: fctx, round: { number: status.open_round!.number, closesAt: status.open_round!.closes_at }, action: placeOrder, ownTicker }
               : null
           }
+          side={fundBook}
+          blotter={blotter}
         />
-      ) : accepting ? (
-        <Notice tone="slate">No company is trading.</Notice>
-      ) : null}
+      ) : (
+        <>
+          {accepting ? <Notice tone="slate">No company is trading.</Notice> : null}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+            <div className="min-w-0 xl:col-span-4 flex flex-col">{fundBook}</div>
+            {blotter ? <div className="min-w-0 xl:col-span-8 flex flex-col">{blotter}</div> : null}
+          </div>
+        </>
+      )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {shownRound && (accepting || open.length > 0) ? (
-          <DeskPanel
-            title={`Open orders · round ${shownRound.number}`}
-            sub={`Order blotter · ${open.length} open`}
-            actions={
-              ordersState === "EDITABLE" ? (
-                <span className="font-mono text-[#BACBB9]">
-                  editable for <Countdown to={shownRound.closes_at} passed="—" className="font-semibold text-[color:var(--desk-accent)]" />
-                </span>
-              ) : ordersState === "PAUSED" ? (
-                <span className="font-mono text-warn" data-testid="open-orders-state">
-                  paused: no changes until the event resumes
-                </span>
-              ) : (
-                <span className="font-mono text-warn" data-testid="open-orders-state">
-                  closed at {clock(shownRound.closes_at, true)}: clearing
-                </span>
-              )
-            }
-            bodyClassName="px-4 pb-4"
-          >
-            {open.length === 0 ? (
-              <p className="py-6 text-center font-mono text-xs text-[#87948D]">No open orders in round {shownRound.number}.</p>
-            ) : (
-              <OpenOrders
-                ctx={fctx}
-                closesAt={shownRound.closes_at}
-                accepting={accepting}
-                items={open.map((line) => ({ line, edit: editOrder.bind(null, line.id), cancel: cancelOrder.bind(null, line.id) }))}
-              />
-            )}
-            <p className="mt-3 text-xs text-[#87948D]">
-              Every valid order fills at its company&apos;s new price when the round clears. Past rounds and their fill prices are under{" "}
-              <Link href="/team/trade/history" className="underline">
-                History
-              </Link>
-              .
-            </p>
-          </DeskPanel>
-        ) : null}
-        <WireFeed items={wire} />
-      </div>
+      <WireFeed items={wire} />
     </div>
   );
 }
@@ -228,17 +265,5 @@ function ClosedNotice({ notice, nowMs, ipo }: { notice: TradingNotice; nowMs: nu
         </>
       ) : null}
     </Notice>
-  );
-}
-
-function Fact({ label, value, hint, testId, accent = false }: { label: string; value: string; hint?: string; testId?: string; accent?: boolean }) {
-  return (
-    <div className="flex min-w-0 flex-col justify-between gap-1.5 rounded-lg border border-white/[0.07] bg-[#171610] p-3 sm:p-4">
-      <dt className={deskLabel}>{label}</dt>
-      <dd className={`break-words font-mono text-lg font-semibold tabular-nums sm:text-xl ${accent ? "text-[color:var(--desk-accent)]" : "text-[#F2F5F3]"}`} data-testid={testId}>
-        {value}
-      </dd>
-      {hint ? <dd className="text-[11px] text-[#87948D]">{hint}</dd> : null}
-    </div>
   );
 }

@@ -6,8 +6,8 @@ import { fundContext, loadTradeData } from "@/lib/team/trade-data";
 import { companyPosition, fundSummary } from "@/lib/team/trade";
 import { FUND_LOT_HINTS, FUND_LOT_LABELS, collateralView, meterPct, portfolioTotals, positionLines } from "@/lib/team/portfolio";
 import { bp, clock, count, money, signedMoney } from "@/lib/format";
-import { Notice, Table, Td } from "@/components/ui/ui";
-import { DeskFact, DeskKpi, DeskPanel } from "../desk-ui";
+import { Notice } from "@/components/ui/ui";
+import { DeskKpi, DeskPanel, DeskRow, DeskStatus, DeskTable, DeskTd, Sparkline, deskPill, deskTr } from "../desk-ui";
 import { LineChart } from "@/components/ui/line-chart";
 import { loadPortfolioSeries } from "@/lib/team/portfolio-history-data";
 import { tradeGate } from "../gate";
@@ -34,9 +34,15 @@ export default async function PositionsPage() {
     return p.exchangeQty + p.shortQty + p.pending.BUY + p.pending.SHORT > 0;
   });
   const priceWord = closed ? "closing" : "market";
+  const spark = series.map((p) => p.value);
 
   return (
     <div className="space-y-4">
+      <DeskStatus live={!closed}>
+        {closed ? "Market closed" : "Portfolio live"} <span aria-hidden>·</span> {lines.length} {lines.length === 1 ? "position" : "positions"}{" "}
+        <span aria-hidden>·</span> valued at {priceWord} prices <span aria-hidden>·</span> start {money(totals.start)}
+      </DeskStatus>
+
       {closed ? (
         <Notice>
           The market closed at {clock(data.marketClosedAt)}: every short was covered at the closing price, and positions are valued at closing prices.
@@ -47,12 +53,14 @@ export default async function PositionsPage() {
         <h2 id="portfolio-title" className="sr-only">
           Portfolio
         </h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {/* The demo's 4-column KPI strip. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <DeskKpi
             label="Portfolio value"
             tag={closed ? "CLOSED" : <span className="text-[#00D68F]">LIVE</span>}
             value={<span data-testid="portfolio-value">{money(totals.value)}</span>}
-            foot={`Cash + long − short, at ${priceWord} prices`}
+            foot={`Cash + long − short`}
+            aside={<Sparkline values={spark} positive={totals.gain >= 0} />}
           />
           <DeskKpi
             label={`Return on ${money(totals.start)}`}
@@ -62,151 +70,210 @@ export default async function PositionsPage() {
             foot={<span data-testid="portfolio-gain">{signedMoney(totals.gain)}</span>}
           />
           <DeskKpi
-            label={closed ? "Profit and loss at closing prices" : "Unrealised profit and loss"}
+            label={closed ? "P&L at closing prices" : "Unrealised P&L"}
+            tag={`${lines.length} ${lines.length === 1 ? "LINE" : "LINES"}`}
             tone={totals.unrealised > 0 ? "up" : totals.unrealised < 0 ? "down" : "plain"}
             value={<span data-testid="portfolio-pnl">{signedMoney(totals.unrealised)}</span>}
+            foot={
+              <>
+                Long shares {money(totals.longValue)} · Short shares {money(totals.shortValue)}
+              </>
+            }
           />
-          <DeskKpi label="Cash" value={money(totals.cash)} />
-          <DeskKpi label="Long shares" value={money(totals.longValue)} foot="Exchange and squad lots" />
-          <DeskKpi label="Short shares" value={money(totals.shortValue)} foot={closed ? "Covered at the close" : "What covering would cost"} />
+          <DeskKpi
+            label="Cash"
+            tag={<span className="text-[#00D68F]">AVAILABLE {money(summary.available)}</span>}
+            value={money(totals.cash)}
+            foot={`Short exposure ${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}% of cap`}
+            aside={
+              <div className="w-24 h-1.5 bg-[#070909] rounded-sm overflow-hidden">
+                <div className="h-full bg-[var(--desk-accent)] transition-all" style={{ width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%` }} />
+              </div>
+            }
+          />
         </div>
         {totals.unpriced > 0 ? (
           <p className="text-xs text-[#87948D]">
             {count(totals.unpriced)} {totals.unpriced === 1 ? "line has" : "lines have"} no price until the IPO prices are released and {totals.unpriced === 1 ? "is" : "are"} not counted.
           </p>
         ) : null}
-        {series.length >= 2 ? (
-          <DeskPanel title="Your fund's value after each step" sub="Equity curve · cash + long − short">
-            <div className="rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
-              <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
-            </div>
-          </DeskPanel>
-        ) : null}
       </section>
 
-      <DeskPanel title="Positions" sub={`${lines.length} ${lines.length === 1 ? "line" : "lines"} · valued at ${priceWord} prices`}>
+      {/* The demo's main stage: the equity chart (8 columns) beside the risk panel (4 columns). */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
+        <div className={`min-w-0 flex flex-col ${series.length >= 2 ? "xl:col-span-8" : "xl:col-span-12"}`}>
+          {series.length >= 2 ? (
+            <DeskPanel
+              title="Your fund's value after each step"
+              sub="Equity curve · cash + long − short"
+              actions={<span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">{series.length} steps</span>}
+              className="grow"
+            >
+              <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="font-mono text-xl font-semibold text-[#F2F5F3] tabular-nums">{money(totals.value)}</span>
+                <span className={`font-mono text-xs tabular-nums ${totals.gain > 0 ? "text-[#00D68F]" : totals.gain < 0 ? "text-[#FF5364]" : "text-[#87948D]"}`}>
+                  {bp(totals.returnBp)} vs start ({money(totals.start)})
+                </span>
+              </div>
+              <div className="rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
+                <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
+              </div>
+            </DeskPanel>
+          ) : (
+            positionsPanel()
+          )}
+        </div>
+        {series.length >= 2 ? (
+          <div className="min-w-0 xl:col-span-4 flex flex-col">
+            {riskPanel()}
+          </div>
+        ) : null}
+      </div>
+
+      {series.length >= 2 ? positionsPanel() : riskPanel()}
+    </div>
+  );
+
+  function positionsPanel() {
+    return (
+      <section className="min-w-0 bg-[#171610] border border-white/[0.07] rounded-lg overflow-hidden flex flex-col grow">
+        <div className="px-4 py-3 border-b border-[#2d2a1d] flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1 bg-[#11110d] border border-[#2d2a1d] p-0.5 rounded">
+            <h2 className={deskPill(true)}>Positions ({lines.length})</h2>
+            <Link href="/team/trade/history" className={deskPill(false)}>
+              Order history
+            </Link>
+          </div>
+          <span className="font-mono text-[11px] text-[#87948D]">Valued at {priceWord} prices</span>
+        </div>
         {lines.length === 0 ? (
-          <p className="py-6 text-center font-mono text-xs text-[#87948D]">No shares yet.</p>
+          <div className="p-8 text-center">
+            <p className="font-mono text-xs text-[#87948D]">No shares yet.</p>
+          </div>
         ) : (
-          <Table head={["Company", "Shares", "Value", "Profit and loss", `Price (${priceWord})`, "Avg cost"]} label="Positions">
+          <DeskTable head={["Company", "Shares", "Value", "Profit and loss", `Price (${priceWord})`, "Avg cost"]} label="Positions" right={[1, 2, 3, 4, 5]}>
             {lines.map((l) => (
-              <tr key={l.key} data-testid={`position-${l.ticker}-${l.lot}`}>
-                <Td>
-                  <Link href={`/team/market/${l.ticker}`} className="font-mono font-semibold underline-offset-2 hover:underline">
+              <tr key={l.key} className={deskTr} data-testid={`position-${l.ticker}-${l.lot}`}>
+                <DeskTd edge className="font-semibold">
+                  <Link href={`/team/market/${l.ticker}`} className="underline-offset-2 hover:underline">
                     {l.ticker}
-                  </Link>{" "}
-                  <span className="text-xs text-muted" title={FUND_LOT_HINTS[l.lot]}>
+                  </Link>
+                  <span className={`ml-2 text-[10px] font-normal ${l.lot === "SHORT" ? "text-[#FF5364]" : "text-[#87948D]"}`} title={FUND_LOT_HINTS[l.lot]}>
                     {FUND_LOT_LABELS[l.lot]}
                   </span>
-                </Td>
-                <Td mono className="text-right">
-                  {count(l.qty)}
-                </Td>
-                <Td mono className={`text-right ${l.value !== null && l.value < 0 ? "text-danger-soft" : ""}`}>
+                </DeskTd>
+                <DeskTd right>{count(l.qty)}</DeskTd>
+                <DeskTd right className={l.value !== null && l.value < 0 ? "text-[#FF5364]" : ""}>
                   {l.value === null ? "—" : money(l.value)}
-                </Td>
-                <Td mono className={`text-right ${l.pnl === null ? "" : l.pnl < 0 ? "text-danger-soft" : l.pnl > 0 ? "text-phosphor" : ""}`}>
+                </DeskTd>
+                <DeskTd right className={l.pnl === null ? "" : l.pnl < 0 ? "text-[#FF5364]" : l.pnl > 0 ? "text-[#00D68F]" : ""}>
                   {l.pnl === null ? "—" : signedMoney(l.pnl)}
-                </Td>
-                <Td mono className="text-right">
-                  {money(l.price)}
-                </Td>
-                <Td mono className="text-right">
+                </DeskTd>
+                <DeskTd right>{money(l.price)}</DeskTd>
+                <DeskTd edge right className="text-[#BACBB9]">
                   {money(l.avgCost)}
-                </Td>
+                </DeskTd>
               </tr>
             ))}
-          </Table>
+          </DeskTable>
         )}
-        <dl className="mt-3 space-y-1 text-xs text-muted">
+        <dl className="px-4 py-3 border-t border-[#2d2a1d] space-y-1 text-xs text-[#87948D]">
           {(["EXCHANGE", "SQUAD", "SHORT"] as const).map((lot) => (
             <div key={lot}>
-              <dt className="inline font-semibold text-paper">{FUND_LOT_LABELS[lot]}:</dt> <dd className="inline">{FUND_LOT_HINTS[lot]}</dd>
+              <dt className="inline font-semibold text-[#F2F5F3]">{FUND_LOT_LABELS[lot]}:</dt> <dd className="inline">{FUND_LOT_HINTS[lot]}</dd>
             </div>
           ))}
           <div>
-            <dt className="inline font-semibold text-paper">Profit and loss:</dt>{" "}
+            <dt className="inline font-semibold text-[#F2F5F3]">Profit and loss:</dt>{" "}
             <dd className="inline">long lots: value − what they cost; shorts: what the sale brought in − what covering costs now.</dd>
           </div>
         </dl>
-      </DeskPanel>
+      </section>
+    );
+  }
 
-      <DeskPanel title="Collateral and limits" sub="Margin, short exposure and per-company limits">
-        <div className="space-y-4 text-sm">
-          {closed ? (
-            <Notice>
-              <span data-testid="collateral-status">The market has closed: every short was covered at the closing price and no more orders are taken.</span>
-            </Notice>
-          ) : coll.blocked ? (
-            <Notice tone="red">
-              <span data-testid="collateral-status">
-                Blocked: your cash ({money(coll.cash)}) is below your locked collateral ({money(coll.locked)}), short by {money(coll.deficit)}. New buys and shorts are
-                refused until cash covers it; sells and covers are always allowed. Nothing is sold for you before the close.
-              </span>
-            </Notice>
-          ) : (
-            <Notice tone="green">
-              <span data-testid="collateral-status">Your cash covers your collateral: new buys and shorts are allowed.</span>
-            </Notice>
-          )}
-          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <Fact label="Collateral locked" value={money(coll.locked)} testId="collateral-locked" />
-            <Fact label="Required at current prices" value={money(coll.required)} testId="collateral-required" />
-            <Fact label="Reserved by open orders" value={money(summary.reserved)} />
-            <Fact label="Available cash" value={money(summary.available)} />
-          </dl>
-          <p className="text-xs text-muted">
-            Collateral is 150% of each short&apos;s value (shares short × current price), locked out of your cash and recalculated at every price change.
-          </p>
+  function riskPanel() {
+    const pct = meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT);
+    return (
+      <section className="min-w-0 bg-[#171610] border border-white/[0.07] rounded-lg p-4 flex flex-col gap-4 grow text-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-[#2d2a1d]">
           <div>
-            <div className="flex flex-wrap justify-between gap-x-3 text-sm">
-              <span className="font-medium text-paper">Short exposure</span>
-              <span className="font-mono tabular-nums" data-testid="exposure-of-cap">
-                {money(summary.shortExposureWithPending)} of {money(RULES.SHORT_EXPOSURE_LIMIT)}
-              </span>
-            </div>
-            <div
-              className="mt-1 h-1.5 overflow-hidden rounded-sm bg-[#070909]"
-              role="meter"
-              aria-label="Short exposure of the $250,000 limit"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}
-            >
-              <div className="h-full bg-[var(--desk-accent)]" style={{ width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%` }} />
-            </div>
-            <p className="mt-1 text-xs text-muted">
-              Open shorts {money(summary.shortExposure)}
-              {summary.shortExposureWithPending > summary.shortExposure ? ` + pending shorts ${money(summary.shortExposureWithPending - summary.shortExposure)}` : ""}, at
-              current prices.
-            </p>
+            <h2 className="text-sm font-semibold text-[#F2F5F3]">Collateral and limits</h2>
+            <span className="font-mono text-[11px] text-[#87948D]">Margin, short exposure and per-company limits</span>
           </div>
-          {limitCompanies.length > 0 ? (
-            <Table head={["Company", "Long, with pending buys", "Short, with pending shorts"]} label="Limits per company">
+          <span className={`font-mono text-xs tabular-nums ${coll.blocked ? "text-[#FF5364]" : "text-[#00D68F]"}`}>{closed ? "CLOSED" : coll.blocked ? "BLOCKED" : "OK"}</span>
+        </div>
+        {closed ? (
+          <Notice>
+            <span data-testid="collateral-status">The market has closed: every short was covered at the closing price and no more orders are taken.</span>
+          </Notice>
+        ) : coll.blocked ? (
+          <Notice tone="red">
+            <span data-testid="collateral-status">
+              Blocked: your cash ({money(coll.cash)}) is below your locked collateral ({money(coll.locked)}), short by {money(coll.deficit)}. New buys and shorts are
+              refused until cash covers it; sells and covers are always allowed. Nothing is sold for you before the close.
+            </span>
+          </Notice>
+        ) : (
+          <Notice tone="green">
+            <span data-testid="collateral-status">Your cash covers your collateral: new buys and shorts are allowed.</span>
+          </Notice>
+        )}
+        <dl className="space-y-1 font-mono text-xs tabular-nums">
+          <DeskRow label="Collateral locked" value={money(coll.locked)} testId="collateral-locked" />
+          <DeskRow label="Required at current prices" value={money(coll.required)} testId="collateral-required" />
+          <DeskRow label="Reserved by open orders" value={money(summary.reserved)} />
+          <DeskRow label="Available cash" value={money(summary.available)} tone="accent" />
+        </dl>
+        <p className="text-xs text-[#87948D]">
+          Collateral is 150% of each short&apos;s value (shares short × current price), locked out of your cash and recalculated at every price change.
+        </p>
+        <div>
+          <div className="flex flex-wrap justify-between gap-x-3 text-sm">
+            <span className="font-medium text-[#F2F5F3]">Short exposure</span>
+            <span className="font-mono tabular-nums" data-testid="exposure-of-cap">
+              {money(summary.shortExposureWithPending)} of {money(RULES.SHORT_EXPOSURE_LIMIT)}
+            </span>
+          </div>
+          <div
+            className="mt-1 h-1.5 overflow-hidden rounded-sm bg-[#070909]"
+            role="meter"
+            aria-label="Short exposure of the $250,000 limit"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+          >
+            <div className="h-full bg-[var(--desk-accent)]" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-1 text-xs text-[#87948D]">
+            Open shorts {money(summary.shortExposure)}
+            {summary.shortExposureWithPending > summary.shortExposure ? ` + pending shorts ${money(summary.shortExposureWithPending - summary.shortExposure)}` : ""}, at
+            current prices.
+          </p>
+        </div>
+        {limitCompanies.length > 0 ? (
+          <div className="-mx-4 border-t border-[#2d2a1d]">
+            <DeskTable head={["Company", "Long, with pending buys", "Short, with pending shorts"]} label="Limits per company" right={[1, 2]}>
               {limitCompanies.map((c) => {
                 const p = companyPosition(fctx, c.id);
                 return (
-                  <tr key={c.id}>
-                    <Td mono className="font-semibold">
+                  <tr key={c.id} className={deskTr}>
+                    <DeskTd edge className="font-semibold">
                       {c.ticker}
-                    </Td>
-                    <Td mono className="text-right">
+                    </DeskTd>
+                    <DeskTd right>
                       {count(p.exchangeQty + p.pending.BUY)} of {count(RULES.LONG_LIMIT)}
-                    </Td>
-                    <Td mono className="text-right">
+                    </DeskTd>
+                    <DeskTd edge right>
                       {count(p.shortQty + p.pending.SHORT)} of {count(RULES.SHORT_LIMIT)}
-                    </Td>
+                    </DeskTd>
                   </tr>
                 );
               })}
-            </Table>
-          ) : null}
-        </div>
-      </DeskPanel>
-    </div>
-  );
-}
-
-function Fact({ label, value, testId }: { label: string; value: string; testId?: string }) {
-  return <DeskFact label={label} value={value} testId={testId} />;
+            </DeskTable>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
 }
