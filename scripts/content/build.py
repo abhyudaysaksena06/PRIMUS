@@ -64,13 +64,15 @@ for p in problems:
 aviation_rows = [x for x in statements if x["sector"] == "Aviation"]
 assert len(aviation_rows) == len(final.AVIATION_STATEMENTS) == 10
 for x, (title, who, nums, catch, win, guide) in zip(aviation_rows, final.AVIATION_STATEMENTS):
-    x.update(title=title, cap="3", body=f"Aviation · Round 3. {title}.\n\nWho it is for: {who}\nThe numbers: {nums}\nThe catch: {catch}\nYou win if: {win}")
+    x.update(title=title, cap="7", body=f"Aviation · Round 3. {title}.\n\nWho it is for: {who}\nThe numbers: {nums}\nThe catch: {catch}\nYou win if: {win}")
     GUIDE[("Aviation", title)] = guide
 
 IN_GAME = [p["sector"] for p in problems]
 N = len(IN_GAME)
-# The lottery splits 50 squads as equally as it can, the first sectors taking the extra squads.
-SQUADS = {name: 50 // N + (1 if i < 50 % N else 0) for i, name in enumerate(IN_GAME)}
+# The lottery splits the squads (up to 200: one per Product team) as equally as it can, the first sectors taking the
+# extra squads.
+SQUAD_COUNT = 200
+SQUADS = {name: SQUAD_COUNT // N + (1 if i < SQUAD_COUNT % N else 0) for i, name in enumerate(IN_GAME)}
 assert len(crises) == 4 * N and len(statements) == 10 * N, "deck sizes changed"
 
 sectors_out = [{"name": p["sector"], "in_game": True, "problem": p,
@@ -265,7 +267,7 @@ out.append("""
   <p>PRIMUS has three tracks. <b>Product</b> teams build a startup inside their sector and run it as a listed company.
   <b>Consulting</b> teams are firms that companies hire for advice. <b>Finance</b> teams are funds that invest in the companies
   and trade their shares. At the squad draw the lottery gives every squad one of the """ + str(N) + """ sectors, in equal shares
-  (""" + e(SPLIT) + """ for 50 squads), and the squad keeps that sector all night.</p>
+  (""" + e(SPLIT) + """ for """ + str(SQUAD_COUNT) + """ squads), and the squad keeps that sector all night.</p>
   <table>
     <tr><th style="width:13%">Time</th><th style="width:17%">Round</th><th>What happens</th><th style="width:27%">What it moves</th></tr>
     <tr><td>21:00</td><td>Squad draw</td><td>Each squad's sector is drawn and its problem card is set.</td><td>Who competes with whom all night</td></tr>
@@ -295,8 +297,8 @@ out.append("""
   </table>
   <h3>Round 3 in short</h3>
   <table class="kpi">
-    <tr><td>The statements</td><td>Ten per sector, each open to at most 3 companies (room for 30 in every sector).</td></tr>
-    <tr><td>The draft</td><td>The lowest score so far (the PRD and the Round 2 plans, averaged) picks first, 20 seconds each, and only from its own sector's statements. A company that does not pick gets the least-crowded open statement.</td></tr>
+    <tr><td>The statements</td><td>Ten per sector, each open to at most 7 companies (room for 70 in every sector: 67 companies at 200 squads).</td></tr>
+    <tr><td>The draft</td><td>Each sector drafts in its own queue, all at the same time: the lowest score so far (the PRD and the Round 2 plans, averaged) picks first, 20 seconds each, and only from its own sector's statements (about 22 minutes for 67 companies). A company that does not pick in time gets a random statement of its sector with room, drawn from the lottery's seed.</td></tr>
     <tr><td>Hiring</td><td>Firms post an asking fee; offers must be 5–20% of the company's cash; at most 3 counters; 2 clients per firm.</td></tr>
     <tr><td>Saturation</td><td>The market is levelled: a solution's price rise is scaled by the company's standing going into Round 3, ×1.25 for the weakest down to ×0.25 for the strongest. Price falls apply in full. Sharing a statement does not cut anyone's rise.</td></tr>
   </table>
@@ -372,7 +374,7 @@ for n, sec in enumerate(sectors_out, start=3):
     out.append(f'<section class="page" style="--c:{c};--bg:{bg}">')
     if in_game:
         out.append(f'<div class="band"><div class="kick">Section {n} · Sector</div><div class="name">{e(sector)}</div>'
-                   f'<div class="meta">{e(prob["title"])} · problem card {e(prob["number"])} of {N} · about {SQUADS[sector]} squads of 50</div></div>')
+                   f'<div class="meta">{e(prob["title"])} · problem card {e(prob["number"])} of {N} · about {SQUADS[sector]} squads of {SQUAD_COUNT}</div></div>')
     else:
         out.append(f'<div class="band"><div class="kick">Section {n} · Extra sector</div><div class="name">{e(sector)}</div>'
                    f'<div class="meta">{e(prob["title"])} · ready to play: seed/sectors/all, or pnpm sectors for any mix</div></div>')
@@ -381,7 +383,7 @@ for n, sec in enumerate(sectors_out, start=3):
     out.append(f'<div class="glance"><h4>{e(sector)} at a glance</h4><table>'
                f'<tr><td>Round 1 problem</td><td>{e(prob["title"])}</td></tr>'
                + "".join(f'<tr><td>Crisis {e(x["number"])} · {e(x["category"])}</td><td>{e(x["title"])}</td></tr>' for x in sector_crises)
-               + f'<tr><td>Round 3</td><td>{len(sector_statements)} client briefs, at most 3 companies each</td></tr>'
+               + f'<tr><td>Round 3</td><td>{len(sector_statements)} client briefs, at most 7 companies each</td></tr>'
                + (f'<tr><td>Sample companies</td><td>{e(", ".join(f"{x["name"]} ({x["ticker"]})" for x in pf["samples"]))}</td></tr>' if pf else "")
                + '</table></div>')
     out.append(f'<h3>Round 1 · The problem statement</h3>')
@@ -457,7 +459,7 @@ for n, sec in enumerate(sectors_out, start=3):
                'rehearsal, or as a mid-round surprise announced in a bulletin.</p>' + ul(ctx["spare"], "spare"))
 
     out.append(f'<div class="keep"><h3>Round 3 · The ten problem statements</h3>'
-               f'<p>Each statement takes at most 3 companies. {article} {e(sector)} company drafts only from this list, and writes its '
+               f'<p>Each statement takes at most 7 companies. {article} {e(sector)} company drafts only from this list, and writes its '
                f'solution (600 words, 6 sections: our solution, why it fits the statement, how we stand apart, how we will '
                f'build it, business impact, risks) with the firm it hires. {"The game shows" if in_game else "Once uploaded, the game shows"} each statement as its title and a client brief: '
                f'who it is for, the numbers, the catch and what winning looks like.{"" if in_game else " The numbers are those of seed/sectors/all; a mix made with pnpm sectors numbers them again."}</p></div>')
@@ -530,7 +532,7 @@ out.append("""
   <tr><td>Problem deck</td><td>Upload <b>problem-cards.csv</b> on the Content page (""" + str(N) + """ cards, one per sector). The lottery splits the squads equally between the sectors.</td></tr>
   <tr><td>Crisis deck</td><td>Upload <b>crisis-cards.csv</b> (4 cards per sector, numbered 1–4: Operations, Market, Trust, Money). Both decks lock at the draw.</td></tr>
   <tr><td>Check the numbers</td><td>Every number on the crisis cards is invented for the game. Read each card once more before the night.</td></tr>
-  <tr><td>Round 3 statements</td><td>Upload <b>statements.csv</b> (10 per sector, cap 3 each) before Round 3 starts at 04:45; the draft starts once they are in. They can be replaced until the first pick.</td></tr>
+  <tr><td>Round 3 statements</td><td>Upload <b>statements.csv</b> (10 per sector, cap 7 each: room for 70 per sector) before Round 3 starts at 04:45; the draft starts once they are in. They can be replaced until the first pick.</td></tr>
 </table>
 <h3>During the night</h3>
 <ul>
@@ -570,7 +572,7 @@ out.append("""
   <tr><td>Twist</td><td>The second blow at the end of each crisis card, with the decision the plan must make.</td></tr>
   <tr><td>Escrow</td><td>The hiring fee, held by the exchange until the firm's advice memo is in; refunded to the client if it is not.</td></tr>
   <tr><td>Stars</td><td>The client's 1–5 rating of its firm after each crisis (a missing rating counts as 3).</td></tr>
-  <tr><td>Draft</td><td>Round 3: companies pick a problem statement in turn, lowest score first, 20 seconds each.</td></tr>
+  <tr><td>Draft</td><td>Round 3: in each sector companies pick a problem statement in turn, lowest score first, 20 seconds each; the sectors pick at the same time.</td></tr>
   <tr><td>Saturation</td><td>Round 3's levelling: a solution's price rise is scaled ×1.25 for the weakest company down to ×0.25 for the strongest, so the race stays open to the close.</td></tr>
   <tr><td>Median of three</td><td>Every answer is judged three times by the AI judge; the middle score counts (five times if the three differ by more than 10 points).</td></tr>
   <tr><td>Sealed / released</td><td>Scores are sealed (hidden) until the organisers release them; the release moves the prices.</td></tr>
