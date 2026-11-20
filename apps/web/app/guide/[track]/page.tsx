@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { parseMarkdown } from "@/lib/team/markdown";
 import { GUIDE_TRACKS, type GuideTrack } from "@/lib/team/qr";
 import { Markdown } from "@/app/team/judging/markdown";
-import "@/app/demo/demo.css";
+import "@/styles/primus/demo.css";
 
 // The public track guide (/guide/product, /guide/consulting, /guide/finance): docs/event/primus/<TRACK>.md as a page,
 // opened from the QR code on a team's Home without signing in. Built once at `next build` (static), when the repository

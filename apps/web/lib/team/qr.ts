@@ -1,16 +1,8 @@
-// The two QR codes on a team's Home: its track's demo walkthrough (the public /demo pages, opened as that track) and
-// its track guide (the public /guide/<track> page). Links use the host the page was asked for, so a code scanned on
+// The QR code on a team's Home: its track guide (the public /guide/<track> page). Links use the host the page was asked for, so a code scanned on
 // the night opens the same deployment.
 
 import QRCode from "qrcode";
 import type { Track } from "@msim/engine";
-
-/** The closest demo page per track (the demo picks its track from ?asTrack=). */
-export const DEMO_PATHS: Record<Track, string> = {
-  FINANCE: "/demo/finance?asTrack=FINANCE",
-  PRODUCT: "/demo/dashboard?asTrack=PRODUCT",
-  CONSULTING: "/demo/dashboard?asTrack=CONSULTING",
-};
 
 export const GUIDE_TRACKS = ["product", "consulting", "finance"] as const;
 export type GuideTrack = (typeof GUIDE_TRACKS)[number];
@@ -25,8 +17,8 @@ export function originOf(headers: { get(name: string): string | null }): string 
   return `${proto}://${host}`;
 }
 
-export function teamQrLinks(track: Track, origin: string): { demo: string; guide: string } {
-  return { demo: `${origin}${DEMO_PATHS[track]}`, guide: `${origin}${guidePath(track)}` };
+export function teamQrLink(track: Track, origin: string): string {
+  return `${origin}${guidePath(track)}`;
 }
 
 /** A QR code as an SVG string (paths only, no text). */

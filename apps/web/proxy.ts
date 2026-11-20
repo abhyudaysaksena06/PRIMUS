@@ -6,7 +6,7 @@ export async function proxy(request: NextRequest) {
   const path=request.nextUrl.pathname;
   // The bare domain goes to the real sign-in; the demo walkthrough (/demo) and the track guides (/guide) are public.
   if(path==="/" ){const url=request.nextUrl.clone();url.pathname="/login";return NextResponse.redirect(url);}
-  if(path==="/demo"||path.startsWith("/demo/")||path==="/guide"||path.startsWith("/guide/")) return NextResponse.next();
+  if(path==="/guide"||path.startsWith("/guide/")) return NextResponse.next();
   let response=NextResponse.next({request});
   const supabase=createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)!,{cookies:{getAll:()=>request.cookies.getAll(),setAll:(list,headers)=>{for(const {name,value} of list)request.cookies.set(name,value);response=NextResponse.next({request});for(const {name,value,options} of list)response.cookies.set(name,value,options);for(const [key,value] of Object.entries(headers??{}))response.headers.set(key,value);}}});
   const {data}=await supabase.auth.getClaims();

@@ -1,7 +1,7 @@
 import { loadTeamContext } from "@/lib/team/context";
 import { TradeTabs } from "./tabs";
 import { tradeGate } from "./gate";
-import "../../demo/finance/finance.css";
+import "@/styles/primus/finance.css";
 import "./finance-desk.css";
 
 // The fund's trading area: orders (the ticket and the open round's orders), positions, history and the IPO. A

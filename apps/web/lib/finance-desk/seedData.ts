@@ -8,8 +8,8 @@ import type {
   OrderBookLevel,
   PitchTeam,
   Position,
-} from '../types/command';
-import { seedBars } from '../utils/candles';
+} from './command';
+import { seedBars } from './candles';
 
 const tickerSeeds: Omit<MarketTicker, 'candles'>[] = [
   {

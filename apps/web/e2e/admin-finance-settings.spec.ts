@@ -34,9 +34,8 @@ test("finance data settings are only available to organisers", async ({ browser,
     await loginAsTeam(participant, event, "DF01");
     await participant.goto(settings);
     await expect(participant).toHaveURL(/\/team(?:\/|$)/);
-    await participant.goto("/demo/finance/markets");
+    await participant.goto("/team/trade");
     await expect(participant.getByRole("link", { name: "Data settings" })).toHaveCount(0);
-    expect((await participant.goto("/demo/finance/api-config"))?.status()).toBe(404);
   } finally {
     await team.close();
   }

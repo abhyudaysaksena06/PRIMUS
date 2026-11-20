@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { CheckCircle2, RefreshCw } from 'lucide-react';
-import type { DeskState } from '@/app/demo/finance/_desk/types/command';
+import type { DeskState } from "@/lib/finance-desk/command";
 
 const defaultConfig = {
   mode: 'DEMO_SEED' as 'DEMO_SEED' | 'LIVE_BACKEND',

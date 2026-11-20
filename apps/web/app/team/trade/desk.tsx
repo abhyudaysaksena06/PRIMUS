@@ -19,7 +19,7 @@ import { fundSummary } from "@/lib/team/trade";
 import { OrderTicket } from "./ticket";
 import { DeskFact, Sparkline } from "./desk-ui";
 import "@/components/ui/market-board.css";
-import "../../demo/finance/finance.css";
+import "@/styles/primus/finance.css";
 
 /** How often an open round's price ranges are re-read (each desk adds ±1 s of its own). */
 const RANGE_POLL_MS = 5000;

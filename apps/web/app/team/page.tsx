@@ -1,3 +1,4 @@
+import { QrCard } from "./qr-card";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { phaseReached, type Track } from "@msim/engine";
@@ -415,6 +416,8 @@ export default async function TeamHome() {
           </Link>
         </GuidePanel>
       </div>
+
+      <QrCard track={team.track} />
 
       <Celebrations
         teamId={team.id}

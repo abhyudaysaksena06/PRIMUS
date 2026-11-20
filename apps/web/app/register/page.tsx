@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { supabaseService } from "@/lib/supabase/service";
 import { RegisterForm } from "./register-form";
-import "@/app/demo/demo.css";
+import "@/styles/primus/demo.css";
 
 export const metadata: Metadata = { title: "Register your team · PRIMUS" };
 export const dynamic = "force-dynamic";

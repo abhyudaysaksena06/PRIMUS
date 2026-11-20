@@ -5,7 +5,7 @@
 
 import { usePathname } from "next/navigation";
 import { RetryScreen } from "@/components/retry-screen";
-import "@/app/demo/demo.css";
+import "@/styles/primus/demo.css";
 
 export default function AppError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const path = usePathname();

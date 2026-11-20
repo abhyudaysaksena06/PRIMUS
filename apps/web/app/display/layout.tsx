@@ -1,6 +1,6 @@
 import { requireRole } from "@/lib/auth/viewer";
-import "../demo/demo.css";
-import "../demo/event-news-ticker.css";
+import "@/styles/primus/demo.css";
+import "@/styles/primus/event-news-ticker.css";
 import "./display.css";
 
 export default async function DisplayLayout({ children }: LayoutProps<"/display">) {

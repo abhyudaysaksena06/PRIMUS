@@ -1,6 +1,6 @@
 import { requireStaff } from "@/lib/auth/staff";
 import { StaffRoleProvider } from "./[slug]/nav";
-import "../demo/demo.css";
+import "@/styles/primus/demo.css";
 import "./admin.css";
 
 // The control panel: organisers, the fairness officer and the desk roles (registration, judging, crisis). Each

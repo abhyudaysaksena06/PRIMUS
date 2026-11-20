@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Panel } from "@/app/admin/guide-ui";
 import { requireRole } from "@/lib/auth/viewer";
-import { INITIAL_DESK_STATE } from "@/app/demo/finance/_desk/data/seedData";
+import { INITIAL_DESK_STATE } from "@/lib/finance-desk/seedData";
 import { ApiBridgeScreen } from "./api-bridge-screen";
 
 export const metadata: Metadata = { title: "Finance data settings" };

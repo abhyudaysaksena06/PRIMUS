@@ -6,7 +6,7 @@
 // The control panel's app/admin/guide-ui.tsx re-exports these.
 
 import type { ReactNode } from "react";
-import "@/app/demo/demo.css";
+import "@/styles/primus/demo.css";
 
 export type Tone = "slate" | "green" | "amber" | "red" | "blue" | "violet";
 

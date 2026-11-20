@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { Pause, Play } from "lucide-react";
 import { useState } from "react";
-import "@/app/demo/event-news-ticker.css";
+import "@/styles/primus/event-news-ticker.css";
 
 export interface TickerStory {
   id: string;

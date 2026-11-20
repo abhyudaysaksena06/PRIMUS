@@ -1,5 +1,5 @@
 import type { Candle } from '@/lib/chart';
-import type { MarketTicker } from '../types/command';
+import type { MarketTicker } from './command';
 
 // Keep integer prices for the chart, including the desk's sub-dollar quotes.
 export const CANDLE_PRICE_SCALE = 1000;

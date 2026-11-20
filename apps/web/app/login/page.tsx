@@ -8,7 +8,7 @@ import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { CipherText } from "@/components/ui/matrix/cipher-text";
 import { PORTAL_TITLES, teamPortal } from "@/lib/portal/portal";
 import { TEAM_CODE_RE, TRACK_LABELS, normalizeTeamCode } from "@msim/engine";
-import "@/app/demo/demo.css";
+import "@/styles/primus/demo.css";
 import "./login.css";
 import { LoginBoot } from "./login-boot";
 

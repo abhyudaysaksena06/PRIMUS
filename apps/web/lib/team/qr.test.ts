@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { originOf, qrSvg, teamQrLinks } from "./qr";
+import { originOf, qrSvg, teamQrLink } from "./qr";
 
 const h = (m: Record<string, string>) => ({ get: (n: string) => m[n] ?? null });
 
@@ -13,9 +13,9 @@ describe("team QR codes", () => {
   });
 
   test("each track's demo page and guide", () => {
-    expect(teamQrLinks("FINANCE", "https://p.io")).toEqual({ demo: "https://p.io/demo/finance?asTrack=FINANCE", guide: "https://p.io/guide/finance" });
-    expect(teamQrLinks("PRODUCT", "https://p.io").guide).toBe("https://p.io/guide/product");
-    expect(teamQrLinks("CONSULTING", "https://p.io").demo).toBe("https://p.io/demo/dashboard?asTrack=CONSULTING");
+    expect(teamQrLink("FINANCE", "https://p.io")).toBe("https://p.io/guide/finance");
+    expect(teamQrLink("PRODUCT", "https://p.io")).toBe("https://p.io/guide/product");
+    expect(teamQrLink("CONSULTING", "https://p.io")).toBe("https://p.io/guide/consulting");
   });
 
   test("the code is an SVG", async () => {

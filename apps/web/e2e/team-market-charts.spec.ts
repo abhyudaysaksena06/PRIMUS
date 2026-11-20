@@ -37,32 +37,3 @@ test("Finance orders move the read-only Market chart for Product and Consulting"
     await Promise.all(contexts.map((context) => context.close()));
   }
 });
-
-test("a Finance paper fill updates both preview charts in the same browser", async ({ context }) => {
-  const product = await context.newPage();
-  const consulting = await context.newPage();
-  const finance = await context.newPage();
-  const spectators = [product, consulting];
-
-  await Promise.all(spectators.map(async (page, index) => {
-    await page.addInitScript((track) => sessionStorage.setItem("primus-track-v2", track), index === 0 ? "PRODUCT" : "CONSULTING");
-    await page.goto("/demo/trade/event");
-    await expect(page.getByText("Paper trading is available in the Finance track.")).toBeVisible();
-    await page.getByRole("link", { name: "View market charts" }).click();
-    await page.getByLabel("Chart instrument").selectOption("NVDA-P");
-    await expect(page.getByTestId("market-candles").getByRole("img")).toHaveAttribute("aria-label", /^NVDA-P/);
-    await expect(page.getByRole("button", { name: /buy|sell|new order/i })).toHaveCount(0);
-  }));
-
-  await finance.addInitScript(() => sessionStorage.setItem("primus-track-v2", "FINANCE"));
-  await finance.goto("/demo/trade/event");
-  await finance.getByRole("button", { name: "Pause prices" }).click();
-  await finance.getByLabel("Quantity", { exact: true }).fill("1");
-  const chart = (page: typeof product) => page.getByTestId("market-candles").getByRole("img");
-  const before = await chart(product).getAttribute("aria-label");
-  await finance.getByRole("button", { name: "Submit BUY NVDA-P" }).click();
-  await expect(finance.getByText("BUY 1 NVDA-P filled.")).toBeVisible();
-  await expect(chart(product)).not.toHaveAttribute("aria-label", before!);
-  const after = await chart(product).getAttribute("aria-label");
-  await expect(chart(consulting)).toHaveAttribute("aria-label", after!);
-});
