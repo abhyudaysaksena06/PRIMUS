@@ -25,14 +25,22 @@ const COMPANY_COLUMNS = "id, name, ticker, ipo_price, market_price, ai_price, po
 
 /** Which score types are released (any company's released score means the type's release has happened). */
 export async function loadReleased(sb: SupabaseClient, eventId: string): Promise<Released> {
-  const rows = must(await sb.from("scores").select("type").eq("event_id", eventId), "the scores") as { type: SubmissionType }[];
+  // One row per type at most (a read of every score would stop at PostgREST's 1,000 rows and could miss a type).
   const out: Released = { PITCH: false, PLAN: false, FLASH: false, MEMO: false };
-  for (const r of rows) out[r.type] = true;
+  const types = Object.keys(out) as (keyof Released)[];
+  const found = await Promise.all(
+    types.map(async (type) => must(await sb.from("scores").select("type").eq("event_id", eventId).eq("type", type).limit(1), "the scores").length > 0),
+  );
+  types.forEach((type, i) => (out[type] = found[i]!));
   return out;
 }
 
 export async function loadCompanies(sb: SupabaseClient, eventId: string): Promise<MarketCompany[]> {
-  const rows = must(await sb.from("companies").select(COMPANY_COLUMNS).eq("event_id", eventId).not("ticker", "is", null).order("ticker"), "the companies");
+  // Only the drawn squads' companies (an undrawn team keeps a company row that never lists).
+  const rows = must(
+    await sb.from("companies").select(COMPANY_COLUMNS).eq("event_id", eventId).not("ticker", "is", null).not("squad_id", "is", null).order("ticker"),
+    "the companies",
+  );
   return rows as MarketCompany[];
 }
 

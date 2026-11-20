@@ -7,6 +7,7 @@ import { DEADLINE_CODES, type DeadlineCode, type SubmissionType } from "@msim/en
 import type { TeamContext } from "@/lib/team/context";
 import type { CrisisCardRow } from "@/lib/team/market-data";
 import { supabaseServer } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/fetch-all";
 import type { DraftPickRow, EngagementRow, OfferRow, SubroundRow } from "./crisis";
 import type { DraftRow, SubmissionRow } from "./squad";
 
@@ -119,7 +120,15 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
     sb.rpc("firm_values", { p_event: eventId }),
     sb.from("firm_profiles").select("team_id, headline, specialities, rate_card, about, asking_cents").eq("event_id", eventId),
     sb.from("offers").select("id, k, company_id, firm_team_id, cash_cents, shares, note, status, turn, opened_by, company_counters, firm_counters, updated_at").eq("event_id", eventId).order("updated_at", { ascending: false }),
-    sb.from("engagements").select("id, k, company_id, firm_team_id, cash_cents, shares, escrow, rating, rating_default, bonus_cents, assigned").eq("event_id", eventId).order("k"),
+    fetchAll<EngagementRow & { assigned?: boolean }>((from, to) =>
+      sb
+        .from("engagements")
+        .select("id, k, company_id, firm_team_id, cash_cents, shares, escrow, rating, rating_default, bonus_cents, assigned")
+        .eq("event_id", eventId)
+        .order("k")
+        .order("id")
+        .range(from, to),
+    ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     sb.from("problem_statements").select("id, number, title, body, cap, sector").eq("event_id", eventId).order("number"),
     sb.from("draft_picks").select("company_id, pick_no, score_avg, opens_at, closes_at, statement_id, picked_at, by_default, sector").eq("event_id", eventId).order("pick_no"),
     sb.from("ledger_entries").select("cash_delta_cents").eq("team_id", ctx.team.id).eq("kind", "INJECTION"),

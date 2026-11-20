@@ -32,7 +32,6 @@ import { Countdown } from "@/components/ui/countdown";
 import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
 import { Badge, Notice, inputClass } from "@/components/ui/ui";
 import { SubmissionEditor } from "../squad/submission";
-import { featureOn } from "@/lib/event-status";
 import { makeOffer, pickStatement, rateFirm } from "./actions";
 import { DraftWatch } from "./draft-watch";
 import { ProductRaisePanel } from "./raises";

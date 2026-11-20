@@ -5,6 +5,7 @@ import { currentViewer } from "@/lib/auth/viewer";
 import { loadAdminEvent } from "@/lib/admin/event";
 import { MAX_LIST_BYTES } from "@/lib/admin/team-list";
 import { supabaseServer } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/fetch-all";
 import { Notice, Panel, Stat, inputClass } from "@/components/ui/ui";
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Desk, type ListTeam } from "./desk";
@@ -44,8 +45,17 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
   const host = (await headers()).get("host") ?? "primus.mrdev4u.com";
   const registerUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}/register`;
   const [teams, roster, rule, reg] = await Promise.all([
-    sb.from("teams").select("id, code, track, checked_in_at").eq("event_id", event.id).order("code").limit(1000),
-    sb.from("roster").select("id, number, team_name, track, college, email, phone, members, extra, source, team_id").eq("event_id", event.id).order("number").limit(3000),
+    // Paged: PostgREST returns at most 1,000 rows a read (600 cards at 200 a track; the list can be longer).
+    fetchAll<TeamRow>((from, to) => sb.from("teams").select("id, code, track, checked_in_at").eq("event_id", event.id).order("code").order("id").range(from, to)).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
+    fetchAll<RosterRow>((from, to) =>
+      sb
+        .from("roster")
+        .select("id, number, team_name, track, college, email, phone, members, extra, source, team_id")
+        .eq("event_id", event.id)
+        .order("number")
+        .order("id")
+        .range(from, to),
+    ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     sb.from("events").select("desk_check_in").eq("id", event.id).maybeSingle<{ desk_check_in: boolean }>(),
     sb.from("events").select("registration_open").eq("id", event.id).maybeSingle<{ registration_open: boolean }>(),
   ]);

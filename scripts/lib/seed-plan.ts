@@ -91,6 +91,9 @@ export interface SeedPlan {
   starting_cash_cents: Record<Track, number>;
 }
 
+/** The most teams per track an event can have (public.seed_event and the squads table agree: migration 076). */
+export const MAX_TEAMS_PER_TRACK = 200;
+
 const DEFAULT_NAME: Record<Track, (code: string) => string> = {
   PRODUCT: (c) => `Product Team ${c}`,
   CONSULTING: (c) => `Consulting Team ${c}`,
@@ -99,8 +102,9 @@ const DEFAULT_NAME: Record<Track, (code: string) => string> = {
 
 export function buildSeedPlan(o: SeedOptions): SeedPlan {
   if (!/^[a-z0-9][a-z0-9-]{1,39}$/.test(o.slug)) throw new Error(`bad event slug: ${o.slug}`);
-  if (!o.rehearsal && o.teamsPerTrack !== 50) throw new Error("the live event has exactly 50 teams per track");
-  if (o.teamsPerTrack < 3 || o.teamsPerTrack > 50) throw new Error("between 3 and 50 teams per track");
+  if (!Number.isInteger(o.teamsPerTrack) || o.teamsPerTrack < 3 || o.teamsPerTrack > MAX_TEAMS_PER_TRACK) {
+    throw new Error(`between 3 and ${MAX_TEAMS_PER_TRACK} teams per track (got ${o.teamsPerTrack})`);
+  }
   if (o.seedCommitment && !/^[0-9a-f]{64}$/.test(o.seedCommitment)) {
     throw new Error("seed commitment must be a lower-case SHA-256 hex digest");
   }

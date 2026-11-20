@@ -51,7 +51,7 @@ describe("seed_event: the live event", () => {
     for (const r of bal.rows) expect(Number(r.zero)).toBe(0);
   });
 
-  test("the live event needs exactly 50 teams per track", async () => {
+  test("the live event may have fewer than 50 teams per track (3 to 200: migration 076)", async () => {
     const plan = buildSeedPlan({
       slug: "short-live",
       name: "x",
@@ -70,9 +70,8 @@ describe("seed_event: the live event", () => {
     }
     const payload = toSeedPayload(plan, ids);
     payload.event.is_rehearsal = false;
-    await expect(
-      as(db.pool, service, (c) => c.query("select public.seed_event($1)", [payload])),
-    ).rejects.toThrow(/exactly 50 teams per track/);
+    const id = await as(db.pool, service, async (c) => (await c.query("select public.seed_event($1) as id", [payload])).rows[0].id, { commit: true });
+    expect((await db.pool.query("select count(*)::int as n from teams where event_id = $1", [id])).rows[0].n).toBe(9);
   });
 
   test("teams cannot call seed_event or purge_event", async () => {

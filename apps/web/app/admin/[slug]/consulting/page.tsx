@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { loadAdminEvent } from "@/lib/admin/event";
 import { loadSquads, loadSubmissions, mark } from "@/lib/admin/tracks-data";
 import { supabaseServer } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/fetch-all";
 import { clock, money } from "@/lib/format";
 import { Panel, Stat, Table, Td } from "@/components/ui/ui";
 
@@ -25,7 +26,10 @@ export default async function ConsultingTrack({ params }: PageProps<"/admin/[slu
   const [{ teams, squads }, subs] = await Promise.all([loadSquads(event.id), loadSubmissions(event.id)]);
   const sb = await supabaseServer();
   const [engagementsQ, subroundsQ] = await Promise.all([
-    sb.from("engagements").select("k, company_id, firm_team_id, escrow, rating, bonus_cents, assigned").eq("event_id", event.id),
+    // Paged: every crisis's engagements of every company can pass PostgREST's 1,000 rows.
+    fetchAll<Engagement>((from, to) =>
+      sb.from("engagements").select("k, company_id, firm_team_id, escrow, rating, bonus_cents, assigned").eq("event_id", event.id).order("id").range(from, to),
+    ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     sb.from("subrounds").select("k, revealed_at, hiring_closed_at, due_closed_at, rated_at").eq("event_id", event.id).order("k"),
   ]);
   const engagements = (engagementsQ.data ?? []) as Engagement[];
