@@ -32,12 +32,13 @@ const TAGS: Record<SubmissionKind, readonly string[]> = {
 /**
  * Word caps, to keep the prompts plain. PLAN may run to 950: it describes three context blocks, and the deal summary
  * carries numbers the judge needs explained (the price against the post-crisis price, and the stake). PITCH (the PRD)
- * may run to 1,050: it has six rubric lines, each with its anchors. MEMO may run to 1,150: it carries the case itself.
+ * may run to 2,150: it has six rubric lines with anchors and five score bands. MEMO may run to 2,200: it carries the case
+ * itself, its anchors and five score bands.
  */
 // PITCH, MEMO, CRISIS, SOLUTION and ADVICE carry the case book's ground truth (the Aviation fact sheet, the ZestUp worked
 // numbers, what a strong answer does for each card and statement), so the judge checks answers against the same facts
 // the teams were given; the caps keep them from growing further.
-const WORD_CAP: Record<SubmissionKind, number> = { PITCH: 1550, PLAN: 950, FLASH: 900, MEMO: 1750, CRISIS: 1850, SOLUTION: 1950, ADVICE: 1600, THESIS: 1100 };
+const WORD_CAP: Record<SubmissionKind, number> = { PITCH: 2150, PLAN: 950, FLASH: 900, MEMO: 2200, CRISIS: 1850, SOLUTION: 1950, ADVICE: 1600, THESIS: 1100 };
 
 /** Rubric table rows: | `key` | what earns points | max | */
 function rubricRows(markdown: string): { key: string; max: number }[] {
