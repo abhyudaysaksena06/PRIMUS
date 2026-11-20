@@ -137,7 +137,7 @@ begin
       update public.judge_auto set sealed_at = now(), sealed_missing = v_sealed where event_id = p_event and type = v_type;
       perform app.log_event(p_event, 'CONTROL', format('Missing scores sealed for %s: %s.', v_title,
         case when v_sealed = 0 then 'none missing'
-             else format('%s compan%s with no submission get 0', v_sealed, case when v_sealed = 1 then 'y' else 'ies' end) end));
+             else format('0 for %s with no submission', case when v_sealed = 1 then '1 company' else v_sealed || ' companies' end) end));
       perform app.broadcast_staff(p_event, 'judge');
       v_actions := v_actions || format('missing sealed %s: %s', v_type, v_sealed);
     exception when others then

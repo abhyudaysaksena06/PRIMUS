@@ -5,7 +5,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { RUBRICS, applyTier, avgHalfUp, planBonus, sha256Hex, tierBp, type SubmissionType } from "@msim/engine";
 import { Night } from "./night";
-import { anon, as, rowsAs, service, user } from "./helpers";
+import { anon, rowsAs, service, user } from "./helpers";
 import { createTestDb } from "./pg";
 
 let db: Awaited<ReturnType<typeof createTestDb>>;
@@ -216,7 +216,7 @@ describe("judging runs itself (judge_auto)", () => {
     await n.org("release_scores", n.eventId, "CRISIS_1");
     const released = await n.prices();
     expect(released[a.company_id]).toBe(applyTier(pricesBefore[a.company_id]!, 2000));
-    expect(released[c.company_id]).toBe(applyTier(pricesBefore[c.company_id]!, 500));
+    expect(released[c.company_id]).toBe(applyTier(pricesBefore[c.company_id]!, tierBp("CRISIS_1", 55))); // 55: tier 0
     const firmCash = async () => BigInt((await n.one("select cash_cents::bigint as c from teams where id = $1", [firmA.id])).c);
     const cash0 = await firmCash();
     await n.org("release_scores", n.eventId, "ADVICE_1");
@@ -357,6 +357,9 @@ describe("judging runs itself (judge_auto)", () => {
 
   test("switch off: nothing is queued or sealed by itself (auto-submit still runs); turned on later, it catches up", async () => {
     const n = await Night.create(db.pool, 3, "PRIMUS");
+    // The hook was patched into app.primus_tick only.
+    expect(await n.q("select n.nspname || '.' || p.proname as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace where p.prosrc like '%app.auto_judge_tick(p_event)%'"))
+      .toEqual([{ f: "app.primus_tick" }]);
     expect((await n.one("select app.feature_on($1, 'judge_auto') as on", [n.eventId])).on).toBe(false);
     const seed = sha256Hex("judging-off");
     await n.org("set_seed_commitment", n.eventId, sha256Hex(seed));
@@ -380,8 +383,8 @@ describe("judging runs itself (judge_auto)", () => {
     await n.ok(n.lead, "tick", n.eventId);
     expect(await runCount(n, "PITCH")).toBe(6);
     expect(await n.q("select type::text, submissions, runs, sealed_missing from judge_auto where event_id = $1 order by type", [n.eventId])).toEqual([
-      { type: "PITCH", submissions: 2, runs: 6, sealed_missing: null },
       { type: "MEMO", submissions: 0, runs: 0, sealed_missing: 3 },
+      { type: "PITCH", submissions: 2, runs: 6, sealed_missing: null },
     ]);
     // Turned off again while runs are in flight: nothing more happens by itself.
     await n.org("set_feature", n.eventId, "judge_auto", false);
@@ -444,7 +447,7 @@ describe("leaderboard (PRIMUS Rating)", () => {
     await n.org("set_seed_commitment", n.eventId, sha256Hex(seed));
     await n.advanceTo("SQUAD_DRAW");
     await n.org("run_lottery", n.eventId, seed, "4");
-    const squads = [];
+    const squads: Awaited<ReturnType<Night["squad"]>>[] = [];
     for (let i = 1; i <= 8; i++) squads.push(await n.squad(i));
     // Squads 1–6 work in Health (one card spelt " HEALTH "), 7 and 8 in Farm. Tickers LBA…LBH in squad order.
     const sectors = ["Health", " HEALTH ", "Health", "Health", "Health", "Health", "Farm", "Farm"];
@@ -455,7 +458,7 @@ describe("leaderboard (PRIMUS Rating)", () => {
     }
     const put = async (i: number, type: string, score: number, status: string, minutesAgo: number) =>
       n.q(`insert into scores (event_id, company_id, type, status, final_score, tier_bp, released_at)
-           values ($1, $2, $3, $4, $5, 0, case when $4 = 'RELEASED' then now() - make_interval(mins => $6) end)`,
+           values ($1, $2, $3, $4::score_status, $5, 0, case when $4::text = 'RELEASED' then now() - make_interval(mins => $6::int) end)`,
         [n.eventId, squads[i]!.company_id, type, status, score, minutesAgo]);
     const pitch = [100, 0, 0, 0, 0, 0, 70, 70];
     const crisis = [70, 60, 50, 40, 30, 20, 30, 30];
@@ -509,29 +512,37 @@ describe("leaderboard (PRIMUS Rating)", () => {
     expect((await board(n.lead)).map((r) => [r.rating, r.rank, r.change, r.rounds])).toEqual(Array(7).fill([1000, 1, 0, 0]));
   });
 
-  test("200 companies: one query, fast", async () => {
+  test("200 companies in 5 sectors with six released types: one query, fast", async () => {
     const n = await Night.create(db.pool, 3, "PRIMUS");
-    const seed = sha256Hex("leaderboard-200");
-    await n.org("set_seed_commitment", n.eventId, sha256Hex(seed));
-    await n.advanceTo("SQUAD_DRAW");
-    await n.org("run_lottery", n.eventId, seed, "4");
-    // 200 companies in 5 sectors with six released types each, written straight into the tables.
+    // 200 drawn squads written straight into the tables (squad numbers above 50 are allowed from W1 on: relaxed here).
+    await n.q("alter table squads drop constraint squads_number_check");
     await n.q(`
-      with s as (select id from squads where event_id = $1 limit 1)
-      select 1`, [n.eventId]);
-    await n.q(`
-      with ins_teams as (
-        insert into teams (event_id, code, track, name)
-        select $1, 'Z' || lpad(g::text, 3, '0'), 'PRODUCT', 'Bulk ' || g from generate_series(1, 200) g returning id, code
-      )
-      insert into companies (event_id, product_team_id, ticker, name)
-      select $1, t.id, 'Z' || chr(65 + (substr(t.code, 2)::int / 26) % 26) || chr(65 + substr(t.code, 2)::int % 26), t.code from ins_teams t`, [n.eventId]);
-    // Each bulk company needs a squad for the board: borrow the drawn squads' teams for the other two tracks is not
-    // possible (one squad each), so the board's join is checked through the real squads plus a direct count below.
-    const bulk = await n.q("select id from companies where event_id = $1 and squad_id is null and ticker like 'Z%'", [n.eventId]);
-    expect(bulk).toHaveLength(200);
+      with g as (select g from generate_series(1, 200) g),
+      p as (insert into teams (event_id, code, track, name) select $1, 'P' || lpad(g::text, 3, '0'), 'PRODUCT', 'P' || g from g returning id, code),
+      c as (insert into teams (event_id, code, track, name) select $1, 'C' || lpad(g::text, 3, '0'), 'CONSULTING', 'C' || g from g returning id, code),
+      f as (insert into teams (event_id, code, track, name) select $1, 'F' || lpad(g::text, 3, '0'), 'FINANCE', 'F' || g from g returning id, code),
+      cards as (insert into problem_cards (event_id, number, sector, title, body)
+                select $1, 100 + g, 'Sector ' || (g % 5), 'Card ' || g, 'A problem.' from g returning id, number),
+      sq as (insert into squads (event_id, number, product_team_id, consulting_team_id, finance_team_id, chosen_card_id)
+             select $1, 100 + substr(p.code, 2)::int, p.id, c.id, f.id, k.id
+               from p join c on substr(c.code, 2) = substr(p.code, 2) join f on substr(f.code, 2) = substr(p.code, 2)
+               join cards k on k.number = 100 + substr(p.code, 2)::int
+             returning id, product_team_id, number)
+      insert into companies (event_id, product_team_id, squad_id, ticker, name)
+      select $1, sq.product_team_id, sq.id, 'Q' || chr(65 + (sq.number / 26) % 26) || chr(65 + sq.number % 26) || chr(65 + (sq.number / 676) % 26), 'Bulk ' || sq.number from sq`,
+      [n.eventId]);
+    await n.q(`insert into scores (event_id, company_id, type, status, final_score, tier_bp, released_at)
+               select $1, c.id, t.type, 'RELEASED', (hashtext(c.id::text || t.type::text) & 100), 0, now() - make_interval(mins => t.o::int)
+                 from companies c cross join unnest(array['PITCH', 'CRISIS_1', 'CRISIS_2', 'CRISIS_3', 'CRISIS_4', 'SOLUTION']::submission_type[]) with ordinality t(type, o)
+                where c.event_id = $1 and c.squad_id is not null`, [n.eventId]);
+    const rows = await rowsAs(db.pool, n.lead, "select * from public.leaderboard($1)", [n.eventId]);
+    expect(rows).toHaveLength(200);
+    expect(rows.every((r: any) => r.rounds === 6)).toBe(true);
+    // Every type's deltas sum to about 0 within each sector, so the ratings average about 1,000.
+    const mean = rows.reduce((a: number, r: any) => a + r.rating, 0) / rows.length;
+    expect(Math.abs(mean - 1000)).toBeLessThan(3);
     const started = performance.now();
     for (let i = 0; i < 5; i++) await rowsAs(db.pool, n.lead, "select * from public.leaderboard($1)", [n.eventId]);
-    expect((performance.now() - started) / 5).toBeLessThan(500);
+    expect((performance.now() - started) / 5).toBeLessThan(250);
   });
 });

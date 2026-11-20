@@ -45,6 +45,7 @@ import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { CompanyRow } from "./company-row";
 import { JudgeRunner } from "./runner";
+import { AutoJudgePanel } from "./auto-judge";
 import {
   applyAppeal,
   dismissAppeal,
@@ -116,6 +117,8 @@ export default async function JudgePage({
       <RefreshAt at={closed ? null : closesAt} />
 
       <JudgeControls eventId={event.id} slug={slug} organiser={organiser} settings={settings} slot={data.modelSlot} rehearsal={event.is_rehearsal} />
+
+      {event.format === "PRIMUS" ? <AutoJudgePanel eventId={event.id} slug={slug} status={status} summaries={summaries} /> : null}
 
       {waiting > 0 ? (
         <Notice tone="amber">
