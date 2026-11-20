@@ -63,7 +63,7 @@ export function Table({
   const rows = Array.isArray(children) ? children.filter(Boolean) : children;
   const isEmpty = Array.isArray(rows) && rows.length === 0;
   return (
-    <div role="region" aria-label={label ?? "Table"} tabIndex={0} className={`overflow-x-auto ${className}`}>
+    <div role="region" aria-label={label ?? "Table"} tabIndex={0} className={`guide-scroll-box table-8 overflow-x-auto ${className}`}>
       <table className="guide-table">
         <thead>
           <tr>
@@ -112,4 +112,4 @@ export const buttonClass = {
   danger: "guide-btn secondary guide-btn-danger",
 } as const;
 
-export const inputClass = "guide-input w-full";
+export const inputClass = "guide-input";

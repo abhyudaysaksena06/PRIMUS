@@ -217,7 +217,12 @@
 }
 .guide-admin .guide-input {
   display: block;
+}
+/* A field given its own width (w-28, w-64, w-auto…) keeps it; others fill their label, as in the demo. */
+.guide-admin .guide-input[class*=" w-"] {
   width: revert-layer;
+}
+.guide-admin .guide-input {
   border-radius: 0;
   background: #0b0e14;
   border-color: #2c313b;

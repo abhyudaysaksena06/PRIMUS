@@ -112,7 +112,7 @@ export default async function LedgerPage({
             <Table
               head={["Time", "Transaction", "Kind", "Team", "Ticker", "Lot", "Cash change", "Share change", "Price", "Round", "Memo"]}
               empty={q.team || q.kind || q.ticker ? "No ledger rows match this filter." : "No ledger rows yet."}
-              className="guide-scroll-box table-8 mt-2"
+              className="mt-2"
             >
               {lines.map((l) => (
                 <tr key={l.id}>
