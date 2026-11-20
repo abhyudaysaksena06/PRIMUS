@@ -1,16 +1,17 @@
 // The news ticker along the bottom of the price board (public data only; see lib/display/ticker.ts). Its speed is set
 // by its length, so every item stays on screen long enough to read from the back of the hall.
 
-import { phaseReached, type DeadlineCode } from "@msim/engine";
+import type { DeadlineCode } from "@msim/engine";
 import { featureOn, type EventStatus } from "@/lib/event-status";
 import type { DisplayEvent } from "@/lib/display/frame";
 import { parseLeaderboard } from "@/lib/display/leaderboard";
-import { primusStep, tickerItems } from "@/lib/display/ticker";
+import { primusStep, tickerItems, type TickerItem } from "@/lib/display/ticker";
 import { clock } from "@/lib/format";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export async function NewsTicker({ event, status }: { event: DisplayEvent; status: EventStatus }) {
-  if (!phaseReached(status.phase, "READING") || phaseReached(status.phase, "AWARDS")) return null;
+  // The belt runs in every phase (the organisers want it moving on every screen); before there is news it carries the
+  // event's own line.
   const sb = await supabaseServer();
   const [round, bulletins, deals, companies, deadlines] = await Promise.all([
     sb
@@ -39,7 +40,7 @@ export async function NewsTicker({ event, status }: { event: DisplayEvent; statu
       : null,
     primus && featureOn(status, "leaderboard", true) ? sb.rpc("leaderboard", { p_event: event.id }) : null,
   ]);
-  const items = tickerItems({
+  const found = tickerItems({
     format: event.format,
     hiring: hired && !hired.error ? { hired: hired.count ?? 0, companies: companies.count ?? 0 } : null,
     leaders: board && !board.error ? parseLeaderboard(board.data).slice(0, 3) : null,
@@ -59,7 +60,10 @@ export async function NewsTicker({ event, status }: { event: DisplayEvent; statu
     deadlines: schedule,
     clock: (iso) => clock(iso),
   });
-  if (items.length === 0) return null;
+  // Nothing to report yet (before the night starts): the belt still runs, with the event's own line.
+  const items: TickerItem[] = found.length
+    ? found
+    : [{ key: "welcome", tag: "PRIMUS ’26", text: `${event.name} · where every decision connects · news appears here as it is published`, tone: "info" }];
   const seconds = Math.max(30, Math.round(items.reduce((n, it) => n + it.tag.length + it.text.length, 0) / 6));
   // The demo's event-news belt (app/demo/event-news-ticker.tsx): a label, then two copies of the headlines looping.
   return (

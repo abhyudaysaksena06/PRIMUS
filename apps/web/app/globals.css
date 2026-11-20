@@ -594,10 +594,9 @@
   animation: msim-ticker var(--ticker-seconds, 60s) linear infinite;
 }
 
-/* Less motion: no rain, no scramble, no scan, no boot, no blinking. Static versions only. */
+/* Less motion: no scramble, no scan, no boot, no blinking. The rain and the scrolling tickers keep moving (the
+   organisers want them on every laptop, including Windows with "Animation effects" off). */
 @media (prefers-reduced-motion: reduce) {
-  .msim-ticker-track { animation: none; }
-  .mx-rain,
   .mx-boot { display: none; }
   .mx-cursor::after { animation: none; }
   .blinking-cursor::after { animation: none; }
