@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { TRACK_LABELS } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, money } from "@/lib/format";
@@ -12,21 +10,22 @@ import { Heartbeat } from "@/lib/live/heartbeat";
 import { FallbackRefresh } from "@/app/display/[slug]/fallback-refresh";
 import { FeedbackBar, FeedbackProvider } from "@/lib/live/feedback";
 import { SignOutButton } from "@/components/sign-out-button";
-import { Badge } from "@/components/ui/ui";
 import { Countdown, ServerClock } from "@/components/ui/countdown";
 import { PORTAL_TITLES, portalAdmits, portalUrl, teamPortal, wrongPortalMessage } from "@/lib/portal/portal";
 import { MarketStrip } from "./market-strip";
 import { RealtimeDot } from "@/components/ui/realtime-dot";
-import { TeamNav } from "./nav";
+import { HeaderLinks, MenuButton, MobileNav, TeamNav } from "./nav";
+import { NewsTicker, type TickerStory } from "@/components/guide/news-ticker";
+import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { ActionBar } from "./action-bar";
 import { Alerts, SoundToggle } from "./alerts";
 import { loadPlanFacts } from "@/lib/team/home-data";
 import { homePlan, nextDeadline } from "@/lib/team/home";
-import { crisisSteps } from "@/lib/team/crisis-steps";
+import { crisisHeadline, crisisSteps } from "@/lib/team/crisis-steps";
 import { alertTasks, nextAction } from "@/lib/team/alerts";
 import { RoundBanner } from "./round-banner";
 import { FocusGate } from "./focus-gate";
-import { focusSections, withLeaderboard } from "@/lib/team/focus";
+import { focusSections, stageInfo, stageOf, withLeaderboard } from "@/lib/team/focus";
 import { featureOn } from "@/lib/event-status";
 import { TeamFeatures } from "@/lib/team/features";
 import { loadCrisisPopups } from "@/lib/team/crisis-popup-data";
@@ -34,6 +33,8 @@ import { withAssigned } from "@/lib/team/assigned-data";
 import { badgeText, leaderboardOpen, loadLeaderboard } from "@/lib/team/leaderboard";
 import { BootSequence } from "@/components/ui/matrix/boot-sequence";
 import { Glyph } from "@/components/ui/matrix/glyph";
+import "@/app/demo/demo.css";
+import "@/app/demo/header-links.css";
 import "./team.css";
 import { sectorStyle } from "@/lib/team/sectors";
 import { CrisisSplash, type CrisisPopups, type SplashCard } from "./crisis-splash";
@@ -87,14 +88,16 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
         }
       : null;
   const sb = await supabaseServer();
-  const { data: latest } = await sb
+  // The newest bulletins, for the bottom news ticker (the demo's EventNewsTicker); the first is the latest.
+  const { data: recent } = await sb
     .from("bulletins")
     .select("id, kind, title, published_at")
     .eq("event_id", event.id)
     .not("published_at", "is", null)
     .order("published_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<{ id: string; kind: string; title: string; published_at: string }>();
+    .limit(8)
+    .returns<{ id: string; kind: string; title: string; published_at: string }[]>();
+  const latest = recent?.[0] ?? null;
   const finance = team.track === "FINANCE";
   // PRIMUS Round 2: the crisis pop-ups (switch crisis_popup: the reveal for everyone, then the card once hiring has
   // closed), or, with the switch off, the latest crisis card dealt to the squad's company, for the reveal moment.
@@ -131,6 +134,21 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
       : null;
   // Product and Consulting teams do not trade, but the halt after a crisis reveal concerns them too.
   const halted = event.format === "PRIMUS" && team.track !== "FINANCE" && (status.phase === "PRESSURE" || status.phase === "SATURATION") && status.trading !== "OPEN";
+  // The demo's top bar: the round chip ("ROUND 2 · CRISIS 1 OF 4") and the time left in it.
+  const stageNow = stageInfo(stageOf(status.phase), event.format);
+  const stepName =
+    event.format === "PRIMUS" && (status.phase === "PRESSURE" || status.phase === "SATURATION") ? crisisHeadline(status.phase, k, null).name : stageNow.title;
+  const phaseChip = (stageNow.round ? `Round ${stageNow.round} · ${stepName}` : stageNow.title).toUpperCase();
+  const deskLabel = team.track === "FINANCE" ? "FINANCE DESK" : team.track === "CONSULTING" ? "CONSULTING DESK" : "PRODUCT DESK";
+  const rainTone = team.track === "CONSULTING" ? "blue" : team.track === "PRODUCT" ? "amber" : "green";
+  // The bottom ticker: the crisis notices first, then the newest bulletins.
+  const stories: TickerStory[] = [
+    ...(popups?.reveal
+      ? [{ id: `reveal-${popups.reveal.k}`, time: clock(popups.reveal.revealedAt), type: "CRISIS", title: `Crisis ${popups.reveal.k} is here${popups.reveal.category ? ` · ${popups.reveal.category}` : ""}` }]
+      : []),
+    ...(splash ? [{ id: `card-${splash.k}`, time: clock(splash.revealedAt), type: "CRISIS", title: splash.title }] : []),
+    ...(recent ?? []).map((b) => ({ id: b.id, time: clock(b.published_at), type: b.kind.toUpperCase(), title: b.title })),
+  ];
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <TeamFeatures features={status.features}>
@@ -144,146 +162,150 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
         <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
         {/* "Your pick!" on every page during a by-sector Round 3 draft (it stops by itself when the draft ends). */}
         <DraftWatch eventId={event.id} companyId={ctx.company?.id ?? null} active={event.format === "PRIMUS" && team.track === "PRODUCT" && status.phase === "SATURATION" && featureOn(status, "draft_by_sector", true)} />
-        <div className="terminal-theme-scope term mx-shell min-h-screen" data-track={team.track}>
-          <div className="mx-shell-atmos" aria-hidden />
-          <div className="mx-shell-main">
-          <header className="mx-shell-top">
-            <div className="mx-shell-top-row">
-              <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                {/* The PRIMUS mark (the sidebar carries it from 900 px). */}
-                <Image src="/primus-logo-light.svg" alt="PRIMUS" width={58} height={22} className="mx-shell-logo min-[900px]:hidden" />
-                <h1 className="mx-shell-code">{team.code}</h1>
-                <Badge tone="green">{portal ? PORTAL_TITLES[portal] : TRACK_LABELS[team.track]}</Badge>
+        {/* The demo's shell (app/demo/layout.tsx): the sidebar, the top bar, the DO THIS NOW strip, the page, the
+            footer and the news ticker, over the track's rain. */}
+        <div className="guide-app terminal-theme-scope term" data-track={team.track} data-menu="closed">
+          <div className="guide-atmosphere" />
+          <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />
+          <TeamNav sections={sections} team={{ code: team.code, name: team.name, track: team.track }} />
+          <div className="guide-main guide-participant-main">
+            <header className="guide-top">
+              <div className="guide-top-left">
+                <MenuButton />
+                <h1 className="guide-team-code">{team.code}</h1>
+                <span className="guide-top-name">{team.name}</span>
+                <b className="guide-phase">{phaseChip}</b>
+                {status.phase_ends_at && new Date(status.phase_ends_at).getTime() > new Date(status.server_time).getTime() ? (
+                  <span className="guide-countdown">
+                    <Countdown to={status.phase_ends_at} passed="now" /> LEFT
+                  </span>
+                ) : null}
                 {ctx.sector ? (
                   // The squad's sector, in its own colour on every page.
-                  <span className={`rounded-[var(--mx-r-chip)] px-2 py-0.5 text-xs font-black uppercase tracking-wider ${sectorStyle(ctx.sector).chip}`} data-testid="team-sector">
+                  <span className={`guide-sector ${sectorStyle(ctx.sector).chip}`} data-testid="team-sector">
                     <Glyph e={sectorStyle(ctx.sector).icon} /> {ctx.sector}
                   </span>
                 ) : null}
-                <span className="mx-shell-name hidden truncate sm:inline">{team.name}</span>
-                {event.is_rehearsal ? <Badge tone="violet">Rehearsal ×{event.clock_speed}</Badge> : null}
+                {event.is_rehearsal ? <span className="guide-chip">REHEARSAL ×{event.clock_speed}</span> : null}
                 {myRow ? (
-                  <Link href="/team/leaderboard" className="mx-tag text-xs text-phosphor" data-testid="rating-badge">
+                  <Link href="/team/leaderboard" className="guide-chip" data-testid="rating-badge">
                     {badgeText(myRow)}
                   </Link>
                 ) : null}
               </div>
-              <div className="mx-shell-tools">
-                <RealtimeDot />
-                <SoundToggle />
+              <HeaderLinks sections={sections} />
+              <div className="guide-top-right">
+                <span className="guide-trading">
+                  <i /> {portal ? PORTAL_TITLES[portal].toUpperCase() : deskLabel}
+                </span>
+                <span className="guide-cash">
+                  CASH
+                  <b data-testid="team-cash">
+                    {money(team.cash)}
+                    {finance && team.collateral > 0 ? <small className="guide-top-sub"> locked {money(team.collateral)}</small> : null}
+                  </b>
+                </span>
+                {finance ? (
+                  <span className="guide-ticker">
+                    TRADING
+                    <b>
+                      {status.trading}
+                      {status.trading === "OPEN" && status.open_round ? (
+                        <>
+                          {" "}
+                          · R{status.open_round.number} · <Countdown to={status.open_round.closes_at} passed="clearing" />
+                        </>
+                      ) : status.next_round ? (
+                        <>
+                          {" "}
+                          · R{status.next_round.number} AT {clock(status.next_round.opens_at)}
+                        </>
+                      ) : null}
+                    </b>
+                  </span>
+                ) : (
+                  <span className="guide-ticker">
+                    {team.track === "PRODUCT" ? "COMPANY" : "SQUAD'S COMPANY"}
+                    <b data-testid="team-company">
+                      {ctx.company?.ticker
+                        ? `${ctx.company.ticker} · ${money(ctx.company.market_price)}`
+                        : ctx.company
+                          ? "Named on the PRD"
+                          : "After the squad draw"}
+                      {halted ? (
+                        <small className="guide-top-sub guide-top-warn" data-testid="trading-halted">
+                          {" "}
+                          Trading halted
+                          {status.next_round ? (
+                            <>
+                              {" "}
+                              · round {status.next_round.number} opens {clock(status.next_round.opens_at)} (<Countdown to={status.next_round.opens_at} passed="now" />)
+                            </>
+                          ) : null}
+                        </small>
+                      ) : null}
+                    </b>
+                  </span>
+                )}
                 {upNext ? (
                   // The team's own next deadline, on every page.
-                  <span className="text-paper" data-testid="next-deadline">
-                    Next: <span className="text-phosphor">{upNext.title}</span> {clock(upNext.at)} ·{" "}
-                    <Countdown to={upNext.at} passed="now" className="font-semibold text-phosphor" />
+                  <span className="guide-ticker" data-testid="next-deadline">
+                    Next:{" "}
+                    <b>
+                      {upNext.title} {clock(upNext.at)} · <Countdown to={upNext.at} passed="now" />
+                    </b>
                   </span>
                 ) : null}
-                <span>
-                  <ServerClock className="mx-shell-clock" /> <span className="text-muted">IST</span>
+                <span className="guide-ticker guide-clock">
+                  IST
+                  <b>
+                    <ServerClock />
+                  </b>
                 </span>
-                <SignOutButton />
+                <RealtimeDot />
+                <SoundToggle />
               </div>
+            </header>
+            <ActionBar task={next && next.href ? { title: next.title, href: next.href, linkLabel: next.linkLabel, due: next.due } : null} />
+            {/* The market's prices since the IPO, as the demo's thin strip under the task band. */}
+            <div className="guide-preview-note guide-price-strip">
+              <MarketStrip eventId={event.id} />
             </div>
-            {/* Two facts only: the team's cash, and its own thing (a fund: the trading round; the others: their
-                company and its share price). The round and the time left are in the banner below. */}
-            <dl className="mx-shell-stats text-sm">
-              <div>
-                <dt>Your cash</dt>
-                <dd className="font-mono text-base font-bold tabular-nums text-[var(--term-green)]" data-testid="team-cash">
-                  {money(team.cash)}
-                  {finance && team.collateral > 0 ? (
-                    <span className="ml-1 text-xs font-normal text-muted">locked {money(team.collateral)}</span>
-                  ) : null}
-                </dd>
-              </div>
-              {finance ? (
-                <div>
-                  <dt>Trading</dt>
-                  <dd className="text-base">
-                    <Badge tone={status.trading === "OPEN" ? "green" : status.trading === "PAUSED" ? "amber" : "slate"}>{status.trading}</Badge>
-                    {status.trading === "OPEN" && status.open_round ? (
-                      <span className="ml-1 text-sm text-muted">
-                        Round {status.open_round.number} · <Countdown to={status.open_round.closes_at} passed="clearing" className="text-phosphor" />
-                      </span>
-                    ) : status.next_round ? (
-                      <span className="ml-1 text-sm text-muted">
-                        Round {status.next_round.number} at {clock(status.next_round.opens_at)}
-                      </span>
-                    ) : null}
-                  </dd>
-                </div>
-              ) : (
-                <div>
-                  <dt>{team.track === "PRODUCT" ? "Your company" : "Your squad's company"}</dt>
-                  <dd className="font-mono text-base font-bold text-phosphor" data-testid="team-company">
-                    {ctx.company?.ticker
-                      ? `${ctx.company.ticker} · ${money(ctx.company.market_price)}`
-                      : ctx.company
-                        ? <span className="font-sans text-sm font-normal text-muted">Named on the PRD</span>
-                        : <span className="font-sans text-sm font-normal text-muted">After the squad draw</span>}
-                    {halted ? (
-                      <span className="ml-2 font-sans text-xs font-normal text-warn" data-testid="trading-halted">
-                        Trading halted
-                        {status.next_round ? (
-                          <>
-                            {" "}
-                            · round {status.next_round.number} opens {clock(status.next_round.opens_at)} (<Countdown to={status.next_round.opens_at} passed="now" />)
-                          </>
-                        ) : null}
-                      </span>
-                    ) : null}
-                  </dd>
-                </div>
-              )}
-            </dl>
-            <MarketStrip eventId={event.id} />
-          </header>
-          <RoundBanner
-            track={team.track}
-            phase={status.phase}
-            endsAt={status.phase_ends_at}
-            gate={status.gate}
-            next={status.next_phase}
-            openRound={status.trading === "OPEN" ? status.open_round : null}
-            format={event.format}
-            crisis={crisis}
-          />
-          <div className="mx-shell-navwrap">
-            <TeamNav sections={sections} team={{ code: team.code, name: team.name, track: team.track }} />
-          </div>
-          <ActionBar task={next && next.href ? { title: next.title, href: next.href, linkLabel: next.linkLabel, due: next.due } : null} />
-          <Alerts tasks={plan ? alertTasks(plan) : []} track={team.track} teamId={team.id} />
-          {status.paused ? (
-            <p className="border-y border-warn/60 bg-warn/10 px-4 py-2 text-center text-sm font-medium text-warn">
-              The event is paused. Deadlines move later by the length of the pause.
-            </p>
-          ) : null}
-          {team.disqualified ? (
-            <p className="border-y border-danger/70 bg-danger/10 px-4 py-2 text-center text-sm font-medium text-danger-soft">
-              Your team has been disqualified by the fairness officer{team.disqualified_reason ? `: ${team.disqualified_reason}` : "."}
-            </p>
-          ) : null}
-          {latest ? (
-            <Link
-              href="/team/bulletins"
-              className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 px-4 pt-4 text-sm [overflow-wrap:anywhere]"
-              data-testid="latest-bulletin"
-            >
-              <span className="mx-tag text-xs text-phosphor">{latest.kind}</span>{" "}
-              <span className="font-mono text-xs text-muted">{clock(latest.published_at)}</span>{" "}
-              <span className="min-w-0 font-semibold text-paper underline-offset-2 hover:underline">{latest.title}</span>
-            </Link>
-          ) : null}
-          <FeedbackBar className="mx-auto max-w-6xl px-4 pt-3" />
-          <main className="mx-auto max-w-6xl px-4 pb-10 pt-5 sm:px-6">
-            <FocusGate track={team.track} phase={status.phase} taskHref={taskHref} format={event.format}>
-              {children}
-            </FocusGate>
-          </main>
-          <footer className="mx-auto flex max-w-6xl flex-wrap justify-between gap-2 border-t border-line/60 px-4 py-4 font-mono text-[0.7rem] tracking-[0.12em] text-muted sm:px-6">
-            <span aria-hidden>PRIMUS ’26 · WHERE EVERY DECISION CONNECTS</span>
-            <span aria-hidden>IST</span>
-          </footer>
+            <Alerts tasks={plan ? alertTasks(plan) : []} track={team.track} teamId={team.id} />
+            {status.paused ? (
+              <p className="guide-alert guide-warning guide-shell-notice">The event is paused. Deadlines move later by the length of the pause.</p>
+            ) : null}
+            {team.disqualified ? (
+              <p className="guide-alert guide-shell-notice guide-shell-danger">
+                Your team has been disqualified by the fairness officer{team.disqualified_reason ? `: ${team.disqualified_reason}` : "."}
+              </p>
+            ) : null}
+            <div className="guide-banner-slot">
+              <RoundBanner
+                track={team.track}
+                phase={status.phase}
+                endsAt={status.phase_ends_at}
+                gate={status.gate}
+                next={status.next_phase}
+                openRound={status.trading === "OPEN" ? status.open_round : null}
+                format={event.format}
+                crisis={crisis}
+              />
+            </div>
+            <main className="guide-content">
+              <FeedbackBar className="mb-4" />
+              <FocusGate track={team.track} phase={status.phase} taskHref={taskHref} format={event.format}>
+                {children}
+              </FocusGate>
+            </main>
+            <div className="guide-footer" aria-hidden>
+              <span>PRIMUS ’26 · WHERE EVERY DECISION CONNECTS</span>
+              <span>TEAM {team.code} · IST</span>
+            </div>
+            <footer className="guide-desk-footer">
+              <NewsTicker stories={stories} href="/team/bulletins" testId={latest ? "latest-bulletin" : undefined} />
+              <MobileNav sections={sections} />
+            </footer>
           </div>
         </div>
       </FeedbackProvider>

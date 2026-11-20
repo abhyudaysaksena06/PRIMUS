@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { RoomShell } from "../crisis/room-shell";
-import { NewsroomView } from "./newsroom-view";
+import TeamBulletinsPage from "../bulletins/page";
 
 export const metadata: Metadata = { title: "Newsroom" };
 
-// The palette follows the team shell's track (its data-track); this page reads nothing of its own.
-export default function TeamNewsroomPage() {
-  return (
-    <RoomShell track={null} className="">
-      <NewsroomView />
-    </RoomShell>
-  );
-}
+// The newsroom is the demo's newsroom page filled with the event's real bulletins (the same page as Bulletins; the
+// sample feed it showed before was made-up activity).
+export default TeamBulletinsPage;
