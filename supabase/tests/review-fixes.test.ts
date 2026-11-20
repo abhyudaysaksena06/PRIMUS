@@ -118,3 +118,45 @@ describe("F1: Round 3 hiring fees", () => {
     expect(await cashOf(n, a!.product_team_id)).toBe(cash - 2_250_000n);
   });
 });
+
+describe("F2: the draft and a pause", () => {
+  test("a 60 s pause during a by-sector draft defaults nobody; no pick while paused", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    const s = await toRound2(n, 3, "f2-draft", { reveal: false });
+    await n.org("set_feature", n.eventId, "draft_by_sector", true);
+    // The companies' own sector (none when the squads hold no problem card with one).
+    const sector = (await n.one("select app.company_sector($1) as s", [s[0]!.company_id])).s as string | null;
+    const statements = [1, 2, 3].map((number) => ({ number, ...(sector ? { sector } : {}), cap: 1, title: `Statement ${number}`, body: "A problem." }));
+    await n.org("set_problem_statements", n.eventId, JSON.stringify(statements));
+    await n.q(
+      `update deadlines set at = now() + case code when 'DRAFT' then interval '10 seconds' when 'HIRE_5' then interval '55 seconds'
+                                                   when 'DUE_5' then interval '190 seconds' else interval '235 seconds' end
+        where event_id = $1 and code in ('DRAFT', 'HIRE_5', 'DUE_5', 'RATE_5')`,
+      [n.eventId],
+    );
+    await n.advanceTo("SATURATION");
+    const before = await n.q("select company_id, extract(epoch from closes_at - now())::float8 as closes from draft_picks where event_id = $1 order by pick_no", [n.eventId]);
+    expect(before).toHaveLength(3);
+    expect(before[0]!.closes).toBeGreaterThan(5);
+
+    await n.org("pause_event", n.eventId);
+    // No pick while paused.
+    const onClock = s.find((q) => q.company_id === before[0]!.company_id)!;
+    const st1 = (await n.one("select id from problem_statements where event_id = $1 and number = 1", [n.eventId])).id;
+    expect(await n.call(n.team(onClock.p_code), "pick_statement", st1)).toMatchObject({ ok: false, code: "PAUSED" });
+
+    // 60 seconds pass while paused (everything that was planned is now 60 s nearer, or past).
+    await n.q("update events set paused_at = paused_at - interval '60 seconds' where id = $1", [n.eventId]);
+    await n.q("update deadlines set at = at - interval '60 seconds' where event_id = $1", [n.eventId]);
+    await n.q("update draft_picks set opens_at = opens_at - interval '60 seconds', closes_at = closes_at - interval '60 seconds' where event_id = $1", [n.eventId]);
+    await n.org("resume_event", n.eventId);
+    const after = await n.q("select extract(epoch from closes_at - now())::float8 as closes from draft_picks where event_id = $1 order by pick_no", [n.eventId]);
+    for (const [i, p] of after.entries()) expect(Math.abs(p.closes - before[i]!.closes)).toBeLessThan(3);
+    await n.ok(n.lead, "tick", n.eventId);
+    expect((await n.one("select count(*)::int as c from draft_picks where event_id = $1 and (by_default or statement_id is not null)", [n.eventId])).c).toBe(0);
+    // And the company on the clock can pick.
+    const picked = await n.call(n.team(onClock.p_code), "pick_statement", st1);
+    expect(picked.message ?? "").toBe("");
+    expect(picked.ok).toBe(true);
+  });
+});

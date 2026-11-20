@@ -48,6 +48,21 @@ $n$    if p_k = 5 then
       v_shares := 0;
     end if;$n$);
 
+-- F2 (draft, 077). A pause stops the clock for the draft too: resume moves every pick not yet made by the pause's
+-- length (the delta the schedule moves by), and no statement can be picked while the event is paused.
+select app.patch_one_function('public.resume_event(uuid)'::regprocedure,
+$o$  update public.events set paused = false, paused_at = null where id = p_event;$o$,
+$n$  update public.draft_picks
+     set opens_at = opens_at + (now() - v_event.paused_at), closes_at = closes_at + (now() - v_event.paused_at)
+   where event_id = p_event and statement_id is null;
+  update public.events set paused = false, paused_at = null where id = p_event;$n$);
+select app.patch_one_function('public.pick_statement(uuid)'::regprocedure,
+$o$  perform 1 from public.events where id = v_team.event_id for no key update;$o$,
+$n$  perform 1 from public.events where id = v_team.event_id for no key update;
+  if (select e.paused from public.events e where e.id = v_team.event_id) then
+    return app.fail('PAUSED', 'The event is paused. Pick when it resumes.');
+  end if;$n$);
+
 create or replace function public.schema_version()
 returns text
 language sql immutable
