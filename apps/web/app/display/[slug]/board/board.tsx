@@ -21,7 +21,8 @@ export async function Board({ event, status, compact = false }: { event: Display
     const reading = await loadReadingStart(event.id);
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-24 text-center" data-testid="board">
-        <div className="mx-panel glow-box flex flex-col gap-8 rounded-2xl px-16 py-12">
+        <div className="dsp-panel flex flex-col gap-8 px-16 py-12">
+        <p className="dsp-eyebrow" aria-hidden>PUBLIC STAGE OUTPUT / MARKET BOARD</p>
         <p className="text-[56px] leading-tight font-bold" data-testid="board-waiting">
           Companies are listed here from the Reading phase.
         </p>
@@ -40,7 +41,7 @@ export async function Board({ event, status, compact = false }: { event: Display
   if (tiles.length === 0) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center" data-testid="board">
-        <p className="mx-panel rounded-2xl px-16 py-10 text-[48px] font-bold text-muted">No companies are listed.</p>
+        <p className="dsp-panel px-16 py-10 text-[48px] font-bold text-[#9db1a1]">No companies are listed.</p>
       </div>
     );
   }
@@ -62,8 +63,8 @@ export async function Board({ event, status, compact = false }: { event: Display
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="board">
       {pulse && !event.market_closed_at && (pulse.riser || pulse.faller || pulse.busiest) ? (
-        <p className="mx-6 mt-3 flex shrink-0 flex-wrap items-center gap-x-10 gap-y-1 rounded-xl border border-phosphor-dim px-6 py-2 font-mono text-[28px] leading-tight" data-testid="board-pulse">
-          <span className="font-bold text-muted">ROUND {pulse.round} PULSE</span>
+        <p className="dsp-panel mx-6 mt-3 flex shrink-0 flex-wrap items-center gap-x-10 gap-y-1 px-6 py-2 font-mono text-[28px] leading-tight" data-testid="board-pulse">
+          <span className="dsp-eyebrow !text-[24px]">ROUND {pulse.round} PULSE</span>
           {pulse.riser ? (
             <span>
               <Glyph e="📈" /> <span className="font-bold text-phosphor">{pulse.riser.ticker}</span> <span className="text-phosphor glow">{pct(pulse.riser.changeBp)}</span>
@@ -86,8 +87,8 @@ export async function Board({ event, status, compact = false }: { event: Display
       ) : null}
       {race ? (
         // The sector race in one line: each sector's average change since the IPO, best first.
-        <p className="mx-6 mt-3 flex shrink-0 flex-wrap items-center gap-x-10 gap-y-1 rounded-xl border border-line px-6 py-2 text-[28px] leading-tight" data-testid="board-race">
-          <span className="font-mono font-bold text-muted">SECTOR RACE</span>
+        <p className="dsp-panel mx-6 mt-3 flex shrink-0 flex-wrap items-center gap-x-10 gap-y-1 px-6 py-2 text-[28px] leading-tight" data-testid="board-race">
+          <span className="dsp-eyebrow !text-[24px]">SECTOR RACE</span>
           {race.map((r, i) => (
             <span key={r.sector} className={`font-bold ${sectorStyle(r.sector).text}`}>
               <span className="font-mono text-muted">{i + 1}.</span> <Glyph e={sectorStyle(r.sector).icon} /> {r.sector}{" "}

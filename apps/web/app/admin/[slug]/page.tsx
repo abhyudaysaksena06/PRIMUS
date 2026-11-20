@@ -109,16 +109,16 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
                 <li key={t.text}>
                   <Link
                     href={`/admin/${slug}${t.path}`}
-                    className={`flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm ring-1 ring-inset hover:underline ${
+                    className={`adm-row ${
                       t.tone === "red"
-                        ? "bg-danger/10 text-danger-soft ring-danger/60"
+                        ? "red"
                         : t.tone === "amber"
-                          ? "bg-warn/10 text-warn ring-warn/60"
-                          : "bg-raised text-paper ring-line"
+                          ? "amber"
+                          : ""
                     }`}
                   >
                     <span>{t.text}</span>
-                    <span aria-hidden>→</span>
+                    <span className="adm-arrow" aria-hidden>→</span>
                   </Link>
                 </li>
               ))}
@@ -218,9 +218,9 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
           ) : (
             <ul className="space-y-1 text-sm">
               {((deadlines.data ?? []) as { code: DeadlineCode; at: string }[]).map((d) => (
-                <li key={d.code} className="flex justify-between gap-2">
+                <li key={d.code} className="flex justify-between gap-2 border-b border-[#252a33] py-1.5 last:border-0">
                   <span>{DEADLINE_LABELS[d.code]}</span>
-                  <span className="font-mono tabular-nums text-paper">
+                  <span className="adm-time">
                     {clock(d.at)} · <Countdown to={d.at} passed="closed" />
                   </span>
                 </li>
@@ -231,19 +231,19 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
         <Panel title="Big screens">
           <ul className="space-y-2 text-sm">
             <li>
-              <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer" className="flex justify-between gap-3 rounded-md bg-raised px-3 py-2 ring-1 ring-inset ring-line hover:text-phosphor">
+              <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer" className="adm-row">
                 <span>
-                  <b className="text-paper">Live wall</b> <span className="text-muted">· everything at a glance, for your own screen</span>
+                  <b>Live wall</b> <span className="text-[#9ba2ad]">· everything at a glance, for your own screen</span>
                 </span>
-                <span aria-hidden>↗</span>
+                <span className="adm-arrow" aria-hidden>↗</span>
               </a>
             </li>
             <li>
-              <a href={`/display/${slug}`} target="_blank" rel="noreferrer" className="flex justify-between gap-3 rounded-md bg-raised px-3 py-2 ring-1 ring-inset ring-line hover:text-phosphor">
+              <a href={`/display/${slug}`} target="_blank" rel="noreferrer" className="adm-row">
                 <span>
-                  <b className="text-paper">Projector</b> <span className="text-muted">· the price board and the moments</span>
+                  <b>Projector</b> <span className="text-[#9ba2ad]">· the price board and the moments</span>
                 </span>
-                <span aria-hidden>↗</span>
+                <span className="adm-arrow" aria-hidden>↗</span>
               </a>
             </li>
           </ul>
@@ -257,11 +257,11 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
               ["finance", "Finance", "Practice market, IPO bids, cash and orders"],
             ].map(([path, label, what]) => (
               <li key={path}>
-                <Link href={`/admin/${slug}/${path}`} className="flex items-center justify-between gap-3 rounded-md bg-raised px-3 py-2 ring-1 ring-inset ring-line hover:text-phosphor">
+                <Link href={`/admin/${slug}/${path}`} className="adm-row">
                   <span>
-                    <b className="text-paper">{label}</b> <span className="text-muted">· {what}</span>
+                    <b>{label}</b> <span className="text-[#9ba2ad]">· {what}</span>
                   </span>
-                  <span aria-hidden>→</span>
+                  <span className="adm-arrow" aria-hidden>→</span>
                 </Link>
               </li>
             ))}

@@ -37,7 +37,24 @@ export function StaffRoleProvider({ role, children }: { role: Role; children: Re
   return <RoleContext.Provider value={role}>{children}</RoleContext.Provider>;
 }
 
-export function AdminNav({ slug, fairness }: { slug: string; fairness: boolean }) {
+/**
+ * The console's sidebar, in the /demo organiser console's look (admin.css): the brand, the role's sections numbered
+ * 01, 02 … (the number and the arrow are decoration hidden from screen readers, so each link is named by its label
+ * alone), then who is signed in, the projector link, all events and Sign out.
+ */
+export function AdminSidebar({
+  slug,
+  fairness,
+  who,
+  roleLabel,
+  signOut,
+}: {
+  slug: string;
+  fairness: boolean;
+  who: string;
+  roleLabel: string;
+  signOut: ReactNode;
+}) {
   const role: Role = useContext(RoleContext) ?? (fairness ? "FAIRNESS" : "ORGANISER");
   const pathname = usePathname();
   const router = useRouter();
@@ -51,8 +68,8 @@ export function AdminNav({ slug, fairness }: { slug: string; fairness: boolean }
     if (elsewhere) router.replace(landingFor(role, slug));
   }, [elsewhere, role, slug, router]);
   const nav = useRef<HTMLElement>(null);
-  // On a phone the tabs scroll sideways: keep the current one in view. Only the tab row scrolls (scrollIntoView would
-  // also scroll the page, losing the reader's place on a reload or a #link).
+  // Keep the current section in view: on a phone the list scrolls sideways, on a short laptop screen downwards. Only
+  // the list scrolls (scrollIntoView would also scroll the page, losing the reader's place on a reload or a #link).
   useEffect(() => {
     const row = nav.current;
     const tab = row?.querySelector<HTMLElement>('[aria-current="page"]');
@@ -60,26 +77,91 @@ export function AdminNav({ slug, fairness }: { slug: string; fairness: boolean }
     const r = row.getBoundingClientRect();
     const t = tab.getBoundingClientRect();
     if (t.left < r.left || t.right > r.right) row.scrollLeft += t.left - r.left - (r.width - t.width) / 2;
+    if (t.top < r.top || t.bottom > r.bottom) row.scrollTop += t.top - r.top - (r.height - t.height) / 2;
   }, [pathname]);
+  const initials =
+    who
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]!.toUpperCase())
+      .join("") || "OR";
   return (
-    <nav ref={nav} className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4" aria-label="Sections">
-      {tabs.map((s) => {
-        const href = `${base}${s.path}`;
-        const active = s.path === "" ? pathname === base : pathname.startsWith(href);
-        return (
-          <Link
-            key={s.path}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            title={s.hint}
-            className={`whitespace-nowrap border-b-2 px-3 py-2 font-mono text-sm font-medium ${
-              active ? "border-phosphor text-phosphor glow" : "border-transparent text-muted hover:text-phosphor"
-            } ${s.path === "/fairness" && fairness ? "font-semibold" : ""}`}
-          >
-            {s.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <aside className="adm-sidebar">
+      <Link href={base} className="adm-brand" aria-label="PRIMUS control panel">
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG, as on /demo */}
+        <img src="/primus-logo-light.svg" alt="" />
+        <span>
+          <b>
+            PRIMUS <i>’26</i>
+          </b>
+          <small>ORGANISER CONSOLE</small>
+        </span>
+      </Link>
+      <div className="adm-nav-label" aria-hidden>
+        {role === "ORGANISER" || role === "FAIRNESS" ? "EVENT CONTROL" : "STAFF DESK"} <b>{"///"}</b>
+      </div>
+      <nav ref={nav} className="adm-nav" aria-label="Sections">
+        {tabs.map((s, i) => {
+          const href = `${base}${s.path}`;
+          const active = s.path === "" ? pathname === base : pathname.startsWith(href);
+          return (
+            <Link
+              key={s.path}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              title={s.hint}
+              className={s.path === "/fairness" && fairness ? "adm-strong" : undefined}
+            >
+              <small aria-hidden>{String(i + 1).padStart(2, "0")}</small>
+              <span>{s.label}</span>
+              <i aria-hidden>↗</i>
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="adm-side-bottom">
+        <div className="adm-who">
+          <div className="adm-avatar" aria-hidden>
+            {initials}
+          </div>
+          <div className="min-w-0">
+            <b>{who}</b>
+            <small>{roleLabel.toUpperCase()}</small>
+          </div>
+        </div>
+        <div className="adm-side-links">
+          <a href={`/display/${slug}`} target="_blank" rel="noreferrer">
+            ↗ Projector display
+          </a>
+          <Link href="/admin">← All events</Link>
+          {signOut}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+/** The page head of the section open now: an eyebrow, the section's name and what it is for (from SECTIONS). */
+export function AdminPageHead({ slug }: { slug: string }) {
+  const pathname = usePathname();
+  const base = `/admin/${slug}`;
+  const here = pathname === base ? "" : pathname.startsWith(`${base}/`) ? pathname.slice(base.length) : null;
+  if (here === null) return null;
+  // The longest section path that starts the current path (so /judge/calibration is under Judging).
+  const section = SECTIONS.filter((s) => (s.path === "" ? here === "" : here === s.path || here.startsWith(`${s.path}/`))).sort(
+    (a, b) => b.path.length - a.path.length,
+  )[0];
+  if (!section) return null;
+  const sub = section.path !== "" && here !== section.path ? here.slice(section.path.length + 1).split("/")[0] : null;
+  return (
+    <div className="adm-head">
+      <small>
+        Organiser / {section.label}
+        {sub ? ` / ${sub.replace(/-/g, " ")}` : ""}
+      </small>
+      <p className="adm-title">{section.label}.</p>
+      <p>{section.hint}.</p>
+    </div>
   );
 }

@@ -24,7 +24,7 @@ export function Spotlight({ companies }: { companies: SpotlightCompany[] }) {
   }, []);
   const c = companies[i % companies.length]!;
   return (
-    <section className="mx-panel rounded-xl bg-ink px-4 py-3" data-testid="live-spotlight">
+    <section className="dsp-panel px-4 py-3" data-testid="live-spotlight">
       <div className="mb-1 flex items-baseline justify-between">
         <h2 className="font-mono text-[22px] font-bold tracking-wide text-phosphor-mid">SPOTLIGHT</h2>
         <p className="font-mono text-[26px] font-bold text-paper">

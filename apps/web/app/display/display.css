@@ -1,0 +1,118 @@
+/* The projector in the look of the /demo projector page (app/demo/display, .guide-* in app/demo/demo.css): a near
+   black green canvas, squared panels with a soft green gradient and a thin green-grey border, monospace eyebrows in
+   bright green, white monospace figures. Sized for the 1920×1080 stage (stage.tsx). Every class is prefixed dsp- so it
+   cannot touch another area once loaded. */
+
+.dsp-stage {
+  --dsp-bg: #030805;
+  --dsp-green: #39ff88;
+  --dsp-line: rgba(91, 139, 100, 0.32);
+  --dsp-line-soft: rgba(91, 139, 100, 0.2);
+  --dsp-label: #819c87;
+  --dsp-text: #e9f5eb;
+  --dsp-white: #f0fff3;
+  --dsp-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  background: var(--dsp-bg) !important;
+  color: var(--dsp-text);
+}
+.dsp-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -5;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 70% 0%, rgba(22, 90, 48, 0.16), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(70, 240, 151, 0.02) 0 1px, transparent 1px 4px);
+}
+
+/* A panel: the demo's .guide-panel. */
+.dsp-panel {
+  border: 2px solid var(--dsp-line);
+  background: linear-gradient(145deg, rgba(13, 24, 16, 0.97), rgba(6, 13, 8, 0.98));
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+}
+/* A metric tile: the demo's .guide-metric. */
+.dsp-metric {
+  border: 2px solid var(--dsp-line-soft);
+  background: rgba(10, 20, 13, 0.94);
+}
+.dsp-eyebrow {
+  color: var(--dsp-green);
+  font: 700 20px/1.2 var(--dsp-mono);
+  letter-spacing: 0.24em;
+}
+.dsp-label {
+  color: var(--dsp-label);
+  font-family: var(--dsp-mono);
+  letter-spacing: 0.06em;
+}
+.dsp-figure {
+  color: var(--dsp-white);
+  font-family: var(--dsp-mono);
+  font-variant-numeric: tabular-nums;
+}
+.dsp-green {
+  color: var(--dsp-green);
+}
+
+/* The header strip. */
+.dsp-header {
+  border-bottom: 2px solid var(--dsp-line);
+  background: linear-gradient(180deg, rgba(9, 21, 13, 0.98), rgba(4, 10, 6, 0.98));
+}
+.dsp-phase {
+  color: var(--dsp-green);
+  font-family: var(--dsp-mono);
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 18px rgba(57, 255, 136, 0.25);
+}
+.dsp-chip {
+  border: 2px solid var(--dsp-line);
+  color: #9fc6a8;
+  font: 700 22px/1 var(--dsp-mono);
+  letter-spacing: 0.08em;
+}
+
+/* Board tiles. */
+.dsp-tile {
+  border: 2px solid var(--dsp-line-soft);
+  background: linear-gradient(145deg, rgba(13, 24, 16, 0.97), rgba(6, 13, 8, 0.98));
+}
+.dsp-tile [data-testid="tile-ticker"] {
+  color: var(--dsp-green);
+  font-family: var(--dsp-mono);
+  letter-spacing: -0.03em;
+}
+.dsp-tile [data-testid="tile-price"] {
+  color: var(--dsp-white);
+  font-family: var(--dsp-mono);
+}
+.dsp-tile [data-testid="tile-change"] {
+  font-family: var(--dsp-mono);
+}
+
+/* The bottom strips: the board's legend and the news ticker (the demo's event news belt). */
+.dsp-strip {
+  border-top: 2px solid var(--dsp-line);
+  background: #07120b;
+}
+.dsp-news-label {
+  display: grid;
+  place-content: center;
+  padding-inline: 28px;
+  border-right: 2px solid var(--dsp-line);
+  background: rgba(57, 255, 136, 0.08);
+  color: var(--dsp-green);
+  font: 800 22px/1 var(--dsp-mono);
+  letter-spacing: 0.16em;
+  white-space: nowrap;
+}
+
+/* Takeovers: the demo's closing banner look for the strip and a framed body. */
+.dsp-takeover-body {
+  background: linear-gradient(180deg, rgba(5, 12, 7, 0.98), rgba(3, 8, 5, 1));
+}
+.dsp-mover-row {
+  border: 2px solid var(--dsp-line-soft);
+  background: linear-gradient(145deg, rgba(13, 24, 16, 0.97), rgba(6, 13, 8, 0.98));
+}

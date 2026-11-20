@@ -8,15 +8,15 @@ import { EventChannel } from "@/lib/live/channel";
 import { Heartbeat } from "@/lib/live/heartbeat";
 import { FeedbackBar, FeedbackProvider } from "@/lib/live/feedback";
 import { SignOutButton } from "@/components/sign-out-button";
-import { Badge } from "@/components/ui/ui";
+import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { ServerClock } from "@/components/ui/countdown";
 import { RealtimeDot } from "@/components/ui/realtime-dot";
-import { AdminNav } from "./nav";
+import { AdminPageHead, AdminSidebar } from "./nav";
 
 export const metadata: Metadata = { title: { template: "%s · Control panel", default: "Control panel" } };
 
-// Every admin page of one event: header with the phase, trading state and server clock; the section tabs; the
-// event's realtime channel (pages refresh on every broadcast) and the heartbeat (an organiser's console also runs
+// Every admin page of one event, in the /demo organiser console's look (admin.css): the sidebar of sections, a top
+// bar with the phase, trading state and server clock, the section's page head; the event's realtime channel (pages refresh on every broadcast) and the heartbeat (an organiser's console also runs
 // the game clock as a backup).
 export default async function EventAdminLayout({ children, params }: LayoutProps<"/admin/[slug]">) {
   const { slug } = await params;
@@ -28,33 +28,66 @@ export default async function EventAdminLayout({ children, params }: LayoutProps
       <EventChannel eventId={event.id} staff>
         <FeedbackProvider>
         <Heartbeat eventId={event.id} area="admin" tick={organiser} />
-        <div className="min-h-screen">
-          <header className="border-b border-line bg-ink">
-            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href="/admin" className="text-sm text-muted hover:text-phosphor">
-                  Events
-                </Link>
-                <span className="text-muted">/</span>
-                <h1 className="text-base font-semibold glow">{event.name}</h1>
-                {event.is_rehearsal ? <Badge tone="violet">Rehearsal ×{event.clock_speed}</Badge> : <Badge tone="blue">Live</Badge>}
-                <Badge tone="slate">{PHASE_LABELS[status.phase]}</Badge>
-                <Badge tone={status.trading === "OPEN" ? "green" : status.trading === "PAUSED" ? "amber" : "slate"}>{status.trading}</Badge>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <RealtimeDot />
-                <ServerClock className="text-base font-semibold" />
-                <span className="text-muted">IST</span>
-                <span className="hidden text-paper sm:inline">
-                  {viewer!.displayName} · {organiser ? "Organiser" : "Fairness officer"}
+        <div className="adm-app">
+          <div className="adm-atmosphere" aria-hidden />
+          <MatrixRain opacity={0.2} size={15} tone="green" className="adm-rain" />
+          <AdminSidebar
+            slug={slug}
+            fairness={viewer!.role === "FAIRNESS"}
+            who={viewer!.displayName}
+            roleLabel={organiser ? "Organiser" : "Fairness officer"}
+            signOut={<SignOutButton />}
+          />
+          <div className="adm-main">
+            <header className="adm-top">
+              <div className="adm-top-left">
+                <Link href="/admin">Events</Link>
+                <span className="text-[#5f6672]" aria-hidden>
+                  /
                 </span>
-                <SignOutButton />
+                <span className="adm-code" aria-hidden>
+                  PRIMUS ’26
+                </span>
+                <h1 className="adm-event-name">{event.name}</h1>
+                {event.is_rehearsal ? (
+                  <span className="adm-pill violet">Rehearsal ×{event.clock_speed}</span>
+                ) : (
+                  <span className="adm-pill green">Live</span>
+                )}
+                <span className="adm-pill gold">{PHASE_LABELS[status.phase]}</span>
+                <span className={`adm-pill ${status.trading === "OPEN" ? "green" : status.trading === "PAUSED" ? "amber" : ""}`}>{status.trading}</span>
               </div>
+              <div className="adm-top-right">
+                <RealtimeDot />
+                <span className="adm-clock">
+                  <ServerClock className="text-base font-semibold" />
+                  <small>IST</small>
+                </span>
+              </div>
+            </header>
+            <div className="adm-note">
+              <span>
+                Organiser console · {event.is_rehearsal ? "rehearsal" : "live event"} · {event.slug}
+              </span>
+              <span className="flex flex-wrap gap-4">
+                <a href={`/display/${slug}`} target="_blank" rel="noreferrer">
+                  Projector ↗
+                </a>
+                <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer">
+                  Live wall ↗
+                </a>
+              </span>
             </div>
-            <AdminNav slug={slug} fairness={viewer!.role === "FAIRNESS"} />
-          </header>
-          <FeedbackBar className="mx-auto max-w-7xl px-4 pt-4" />
-          <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+            <FeedbackBar className="mx-auto w-[min(100%,1500px)] px-7 pt-4" />
+            <main className="adm-content">
+              <AdminPageHead slug={slug} />
+              {children}
+            </main>
+            <footer className="adm-footer">
+              <span>PRIMUS ’26 · ORGANISER OPERATIONS</span>
+              <span>SERVER CLOCK · IST</span>
+            </footer>
+          </div>
         </div>
       </FeedbackProvider>
       </EventChannel>

@@ -122,13 +122,13 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
 
       {/* ── Now: where the night is and the main buttons ── */}
       <Panel title="Now">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-md bg-raised px-4 py-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted">Current phase</div>
-            <div className="mt-1 text-xl font-semibold text-phosphor" data-testid="run-phase">
+        <div className="adm-metrics">
+          <div className="adm-metric">
+            <div className="adm-label">Current phase</div>
+            <div className="adm-value" data-testid="run-phase">
               {phaseName(status.phase)}
             </div>
-            <div className="mt-1 text-sm text-paper">
+            <div className="adm-delta">
               {status.paused ? (
                 <Badge tone="amber">Paused since {clock(status.paused_at)}</Badge>
               ) : manual ? (
@@ -140,14 +140,14 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
               ) : null}
             </div>
           </div>
-          <div className="rounded-md bg-raised px-4 py-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted">Next step</div>
+          <div className="adm-metric">
+            <div className="adm-label">Next step</div>
             {next ? (
               <>
-                <div className="mt-1 text-xl font-semibold text-phosphor" data-testid="run-next">
+                <div className="adm-value" data-testid="run-next">
                   {next.label}
                 </div>
-                <div className="mt-1 text-sm text-paper">
+                <div className="adm-delta">
                   {holding ? (
                     <Badge tone="amber">Waiting for you</Badge>
                   ) : (
@@ -158,15 +158,15 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
                 </div>
               </>
             ) : (
-              <div className="mt-1 text-sm text-paper">Nothing more in this phase. Start the next phase when you are ready.</div>
+              <div className="adm-delta">Nothing more in this phase. Start the next phase when you are ready.</div>
             )}
           </div>
-          <div className="rounded-md bg-raised px-4 py-3">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted">Trading</div>
-            <div className="mt-1 text-xl font-semibold text-phosphor">
+          <div className="adm-metric">
+            <div className="adm-label">Trading</div>
+            <div className="adm-value">
               {open ? `Window ${open.number} open` : status.paused ? "Paused" : "Closed"}
             </div>
-            <div className="mt-1 text-sm text-paper">
+            <div className="adm-delta">
               {open ? (
                 <>
                   Closes in <Countdown to={open.closes_at} />
@@ -283,23 +283,24 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
             {st.groups.map((g) => (
               <div
                 key={g.key}
-                className={g.title ? "rounded-md border border-line p-3" : st.groups.length > 2 ? "md:col-span-2" : ""}
+                className={g.title ? "adm-group p-3" : st.groups.length > 2 ? "md:col-span-2" : ""}
                 data-testid={g.title ? `group-${g.key}` : undefined}
               >
-                {g.title ? <h3 className="mb-2 text-sm font-semibold text-phosphor">{g.title}</h3> : null}
+                {g.title ? <h3 className="adm-group-title mb-2">{g.title}</h3> : null}
                 <ol className="space-y-2">
                   {g.steps.map((s) => (
                     <li
                       key={s.key}
-                      className={`flex flex-wrap items-center justify-between gap-2 rounded px-2 py-1.5 ${s.state === "NEXT" ? "bg-raised ring-1 ring-warn/60" : s.state === "NOW" ? "bg-raised" : ""}`}
+                      className="adm-step flex flex-wrap items-center justify-between gap-2 px-2 py-1.5"
+                      data-state={s.state}
                       data-testid={`step-${s.key}`}
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <Badge tone={STATE_BADGE[s.state].tone}>{STATE_BADGE[s.state].text}</Badge>
-                        <span className={`text-sm ${s.state === "DONE" ? "text-muted" : "text-phosphor"}`}>{s.label}</span>
+                        <span className={`text-sm ${s.state === "DONE" ? "text-[#8f96a2]" : "text-[#e6e8ed]"}`}>{s.label}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <span className="font-mono tabular-nums text-paper">
+                        <span className="adm-time">
                           {s.doneAt ? clock(s.doneAt) : clock(s.at)}
                           {s.state === "NEXT" && holding ? (
                             <span className="ml-2 text-warn">waiting for you</span>

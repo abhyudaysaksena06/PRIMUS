@@ -3,11 +3,10 @@ import { PHASE_LABELS, type PhaseCode } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/sign-out-button";
-import { Badge } from "@/components/ui/ui";
-import { BentoGrid, BentoItem, BentoTitle } from "@/components/ui/terminal-bento-grid";
+import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { dateTime } from "@/lib/format";
 
-// The events this account can run: the live night and any rehearsal.
+// The events this account can run: the live night and any rehearsal, in the /demo organiser console's look.
 export default async function AdminHome() {
   const viewer = (await currentViewer())!;
   const sb = await supabaseServer();
@@ -17,50 +16,64 @@ export default async function AdminHome() {
     .order("is_rehearsal")
     .order("starts_at");
   return (
-    <main className="terminal-container terminal-theme-scope px-4 py-8">
-      <div className="mx-auto max-w-5xl">
-      <div className="flex items-center justify-between">
-        <h1 className="blinking-cursor text-2xl font-bold glow">Control panel</h1>
-        <SignOutButton />
-      </div>
-      <p className="mt-1 text-paper">
-        {viewer.displayName} · {viewer.role === "FAIRNESS" ? "Fairness officer" : "Organiser"}
-      </p>
-      <section aria-label="Events" className="mt-6">
-        <BentoTitle className="mb-3">Events</BentoTitle>
-        {!events?.length ? (
-          <BentoItem>
-            <p className="text-sm text-paper">No event has been seeded yet (see the README, “Seed an event”).</p>
-          </BentoItem>
-        ) : (
-          <BentoGrid>
-            {events.map((e, i) => (
-              <BentoItem key={e.slug} span={i === 0 && !e.is_rehearsal ? 2 : 1} className={e.is_rehearsal ? "" : "bento-item-hot"}>
-                <Link href={`/admin/${e.slug}/run`} className="flex h-full flex-col justify-between gap-3">
+    <div className="adm-app">
+      <div className="adm-atmosphere" aria-hidden />
+      <MatrixRain opacity={0.2} size={15} tone="green" className="adm-rain" />
+      <header className="adm-top relative z-10">
+        <div className="adm-top-left">
+          <span className="adm-code">PRIMUS ’26</span>
+          <span className="adm-pill gold">Organiser console</span>
+          <span className="text-[13px] text-[#9ba2ad]">
+            {viewer.displayName} · {viewer.role === "FAIRNESS" ? "Fairness officer" : "Organiser"}
+          </span>
+        </div>
+        <div className="adm-top-right adm-side-links">
+          <SignOutButton />
+        </div>
+      </header>
+      <main className="adm-index">
+        <div className="adm-head">
+          <small>Organiser / event control</small>
+          <h1 className="adm-title">Control panel</h1>
+          <p>Pick the event to run: the live night or a rehearsal. Every button inside acts on that event only.</p>
+        </div>
+        <section aria-label="Events">
+          <p className="adm-mono-label mb-3">Events</p>
+          {!events?.length ? (
+            <div className="adm-metric">
+              <p className="text-sm text-[#cbd0d9]">No event has been seeded yet (see the README, “Seed an event”).</p>
+            </div>
+          ) : (
+            <div className="grid gap-[14px] md:grid-cols-2">
+              {events.map((e) => (
+                <Link
+                  key={e.slug}
+                  href={`/admin/${e.slug}/run`}
+                  className="adm-metric flex flex-col justify-between gap-3 transition-colors hover:border-[rgba(255,216,77,.45)]"
+                >
                   <span>
-                    <span className="block font-mono text-xs text-phosphor-mid" aria-hidden>
+                    <span className="adm-label block" aria-hidden>
                       &gt; ./{e.slug}
                     </span>
-                    <span className="font-semibold">{e.name}</span>{" "}
-                    {e.is_rehearsal ? <Badge tone="violet">Rehearsal ×{e.clock_speed}</Badge> : <Badge tone="blue">Live</Badge>}
-                    <span className="block text-sm text-muted">Starts {dateTime(e.starts_at)} IST</span>
+                    <span className="adm-value block">{e.name}</span>
+                    <span className="flex flex-wrap items-center gap-2">
+                      {e.is_rehearsal ? <span className="adm-pill violet">Rehearsal ×{e.clock_speed}</span> : <span className="adm-pill green">Live</span>}
+                      <span className="text-[13px] text-[#9ba2ad]">Starts {dateTime(e.starts_at)} IST</span>
+                    </span>
                   </span>
-                  <span className="text-sm text-phosphor">
+                  <span className="adm-delta flex flex-wrap items-center gap-2">
                     {PHASE_LABELS[e.current_phase as PhaseCode]}
-                    {e.paused ? (
-                      <>
-                        {" "}
-                        <Badge tone="amber">Paused</Badge>
-                      </>
-                    ) : null}
+                    {e.paused ? <span className="adm-pill amber">Paused</span> : null}
+                    <span className="ml-auto" aria-hidden>
+                      OPEN ↗
+                    </span>
                   </span>
                 </Link>
-              </BentoItem>
-            ))}
-          </BentoGrid>
-        )}
-      </section>
-      </div>
-    </main>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }
