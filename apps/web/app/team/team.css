@@ -34,12 +34,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.guide-sector {
-  padding: 4px 7px;
-  font: 800 8px ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 .guide-top-right .guide-cash,
 .guide-top-right .guide-ticker {
   white-space: nowrap;
@@ -119,14 +113,7 @@
   white-space: nowrap;
 }
 
-/* ── Price strip under the task band, and the shell's notices ── */
-.guide-price-strip {
-  padding: 0 !important;
-  border-bottom: 0;
-}
-.guide-price-strip:empty {
-  display: none;
-}
+/* ── The shell's notices (paused, disqualified) ── */
 .guide-shell-notice {
   margin: 0;
   padding-inline: 26px;
@@ -137,124 +124,6 @@
   border-left-color: #ff5d6c;
   background: rgba(128, 22, 34, 0.22);
   color: #ffc7cd;
-}
-
-/* ── Round banner. Home: the demo's panel, in the content column. Other pages: a strip under the task band. ── */
-/* Home: the page's own blocks and the round card share one column, so the card can sit after the greeting (the demo's
-   dashboard starts with "Good evening"). The home root is display: contents; only the order changes, not the DOM. */
-.guide-content:has(.guide-home) {
-  display: flex;
-  flex-direction: column;
-}
-.guide-home {
-  display: contents;
-}
-.guide-home > .guide-page-head {
-  order: -2;
-}
-.guide-home-banner {
-  order: -1;
-}
-.guide-home-banner:has(.guide-round-card) {
-  margin-bottom: 16px;
-}
-.guide-round-label {
-  color: var(--track-accent, #39ff88);
-  font: 700 9px ui-monospace, monospace;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-.guide-round-chips {
-  display: flex;
-  gap: 5px;
-  font: 800 10px ui-monospace, monospace;
-}
-.guide-round-chips li {
-  display: grid;
-  place-items: center;
-  min-width: 26px;
-  height: 26px;
-  padding-inline: 6px;
-  border: 1px solid var(--line-neutral, #2b3340);
-  color: #8f97a4;
-}
-.guide-round-chips li.is-done {
-  border-color: var(--track-line);
-  color: var(--track-accent);
-}
-.guide-round-chips li.is-now {
-  border-color: var(--track-accent);
-  background: var(--track-accent);
-  color: #090a0e;
-}
-.guide-round-icon {
-  color: var(--track-accent);
-  font-size: 30px;
-  line-height: 1;
-}
-.guide-round-title {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: clamp(24px, 3vw, 34px);
-  font-weight: 750;
-  line-height: 1.1;
-  letter-spacing: -0.04em;
-  color: #f0f1f5;
-}
-.guide-round-card.is-danger {
-  border-color: rgba(255, 93, 108, 0.45) !important;
-}
-.guide-round-card.is-danger .guide-round-title {
-  color: #ffb3bb;
-  --mx-cipher-color: #ff5d6c;
-}
-.guide-round-phase {
-  color: var(--track-accent, #39ff88);
-  font: 700 11px ui-monospace, monospace;
-  letter-spacing: 0.04em;
-}
-.guide-round-trading {
-  font: 700 12px ui-monospace, monospace;
-}
-.guide-roundbar {
-  display: grid;
-  gap: 8px;
-  padding: 9px 26px;
-  border-bottom: 1px solid var(--line-neutral, rgba(77, 151, 94, 0.16));
-  background: rgba(9, 10, 14, 0.82);
-}
-.guide-roundbar.is-danger {
-  border-bottom-color: rgba(255, 93, 108, 0.32);
-  background: rgba(60, 10, 16, 0.55);
-}
-.guide-roundbar-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 14px;
-}
-.guide-roundbar-row .guide-phase {
-  font: 700 8px ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-color: var(--track-line);
-  color: var(--track-accent);
-}
-.guide-roundbar.is-danger .guide-phase {
-  border-color: rgba(255, 93, 108, 0.5);
-  color: #ffb3bb;
-}
-.guide-roundbar h2 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #f0f1f5;
-}
-.guide-roundbar-trading {
-  margin-left: auto;
-  color: var(--track-accent);
-  font: 700 11px ui-monospace, monospace;
-  white-space: nowrap;
 }
 
 /* ── Phones (the demo's 760 px break): the sidebar opens as a menu over the page ── */
@@ -285,11 +154,7 @@
   .guide-top-right {
     row-gap: 6px;
   }
-  .guide-top-right .guide-clock {
-    display: none;
-  }
-  .guide-shell-notice,
-  .guide-roundbar {
+  .guide-shell-notice {
     padding-inline: 14px;
   }
   .guide-taskbar > b {
@@ -339,24 +204,7 @@ li:last-child > .guide-news-story {
   }
 }
 
-/* ── Home: the task rows of the "Do this now" panel (the demo's feed rows) ── */
-.guide-task-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  padding: 11px 12px;
-  border: 1px solid var(--line-neutral, #294832);
-  background: rgba(255, 255, 255, 0.015);
-}
-.guide-task-row + .guide-task-row {
-  margin-top: 8px;
-}
-.guide-task-row h3 {
-  font-size: 12px;
-  font-weight: 700;
-  color: #f0f1f5;
-}
+/* ── Home: a task's deadline and time left ── */
 .guide-task-due {
   font: 700 9px ui-monospace, monospace;
   letter-spacing: 0.06em;
@@ -369,52 +217,6 @@ li:last-child > .guide-news-story {
   color: var(--track-accent, #ffbd66);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-}
-.guide-task-big {
-  padding: 16px 18px;
-}
-.guide-task-big h3 {
-  font-family: var(--font-mono);
-  font-size: clamp(18px, 2vw, 24px);
-  line-height: 1.2;
-  letter-spacing: -0.03em;
-  color: #f0f1f5;
-}
-.guide-task-big .guide-task-due b {
-  font-size: 24px;
-}
-
-/* ── My timeline: the demo's "night at a glance" rows ── */
-.guide-timeline li {
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line-neutral, #294832);
-  font-size: 12px;
-  color: #d5d9e2;
-}
-.guide-timeline li:last-child {
-  border-bottom: 0;
-}
-.guide-timeline li[data-state="past"] {
-  color: #7d8592;
-}
-.guide-timeline li[data-state="next"] {
-  color: #f0f1f5;
-  font-weight: 700;
-}
-.guide-timeline-at {
-  display: inline-block;
-  width: 4rem;
-  color: var(--track-accent, #ffbd66);
-  font: 700 10px ui-monospace, monospace;
-  font-variant-numeric: tabular-nums;
-}
-.guide-score-now b {
-  font-size: clamp(24px, 3vw, 34px);
-}
-.guide-app[data-track] .guide-chip.guide-chip-down {
-  border-color: rgba(255, 93, 108, 0.5) !important;
-  color: #ff8a95 !important;
-  background: rgba(128, 22, 34, 0.2) !important;
 }
 
 /* ── Q&A threads and the leaderboard's own row (the demo's feed rows and table) ── */
@@ -446,15 +248,122 @@ li:last-child > .guide-news-story {
   min-height: 84px;
 }
 
-/* Home's "Do this now" pill (kept for its big task card). */
-.mx-taskbar-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 7px;
-  background: var(--track-accent, var(--mx-green));
-  color: #090a0e;
-  font: 800 8px ui-monospace, monospace;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+/* ── The event-news belt at the bottom: an opaque label cell, and the belt fades out at both edges, so no half-cut
+   character shows next to the label. ── */
+.guide-app.guide-app .event-news-label,
+.guide-app.guide-app .event-news-toggle {
+  position: relative;
+  z-index: 1;
+  background-color: #141b24;
+}
+.guide-app.guide-app .event-news-toggle:hover {
+  background-color: #1c2632;
+}
+.guide-app.guide-app[data-track="FINANCE"] :is(.event-news-label, .event-news-toggle) {
+  background: linear-gradient(var(--track-soft), var(--track-soft)), #121108;
+}
+.guide-app .event-news-window {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+
+/* ── Home (app/demo/dashboard): the feed rows of "Do this now" and the live feed, the night at a glance ── */
+.guide-feed-item {
+  padding: 10px;
+  border: 1px solid var(--line-neutral, #294832);
+}
+.guide-feed-item.is-now {
+  border-color: var(--track-accent, #39ff88);
+  background: var(--track-soft, rgba(57, 255, 136, 0.06));
+}
+.guide-feed-time {
+  color: var(--track-accent, #ffbd66);
+  font: 700 9px ui-monospace, monospace;
   white-space: nowrap;
+}
+.guide-glance-row {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line-neutral, #294832);
+}
+.guide-glance-row:last-child {
+  border-bottom: 0;
+}
+.guide-glance-row[data-state="past"] {
+  opacity: 0.55;
+}
+.guide-glance-at {
+  width: 4rem;
+  flex-shrink: 0;
+  color: var(--track-accent, #ffbd66);
+  font: 700 9px ui-monospace, monospace;
+}
+.guide-glance-row[data-state="next"] .guide-glance-at::after {
+  content: " ●";
+}
+.guide-accent-link {
+  color: var(--track-accent, #39ff88);
+}
+
+/* ── Toasts and pop-ups: the demo's alert on an opaque card (it sits over the page's own text) ── */
+.guide-toast {
+  background: #07090c;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+}
+.guide-toast > .guide-alert {
+  margin: 0;
+}
+.guide-toast-good {
+  border-left-color: var(--track-accent, #39ff88) !important;
+}
+.guide-toast-close {
+  padding: 0 4px;
+  color: inherit;
+  opacity: 0.7;
+  font: 700 14px ui-monospace, monospace;
+}
+.guide-toast-close:hover {
+  opacity: 1;
+}
+.guide-popup {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  background: #07090c;
+}
+.guide-app .guide-popup.guide-panel {
+  border-color: rgba(255, 93, 108, 0.55) !important;
+  box-shadow: 0 0 60px rgba(255, 59, 59, 0.22) !important;
+}
+.guide-popup .guide-panel-head h2 {
+  color: #ffb3bb;
+}
+.guide-popup-title {
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #f0f1f5;
+}
+.guide-alert.guide-danger {
+  border-left-color: #ff5d6c !important;
+  background: rgba(128, 22, 34, 0.22) !important;
+  color: #ffc7cd !important;
+}
+
+/* Home: the three tiles under the workspace buttons carry full money figures; a size that fits a third of the panel. */
+.guide-metric b.guide-tile-value {
+  font-size: clamp(13px, 1.05vw, 17px);
+  overflow-wrap: anywhere;
+}
+
+/* How judging works: the prompts markdown (app/team/judging/markdown.tsx) on the demo dark panel. */
+.guide-app .guide-panel code {
+  background: rgba(255, 255, 255, 0.07);
+  color: inherit;
+}
+.guide-app .guide-panel table thead {
+  background: rgba(255, 255, 255, 0.04);
 }

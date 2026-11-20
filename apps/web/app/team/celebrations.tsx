@@ -99,29 +99,27 @@ export function Celebrations({
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4" role="status" aria-live="polite" data-testid="celebrations">
       {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`mx-panel glow-box pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl p-4 ring-2 ${t.tone === "good" ? "ring-phosphor" : "ring-danger"}`}
-          data-testid={`toast-${t.id}`}
-        >
-          <span className={`text-3xl ${t.tone === "good" ? "text-phosphor glow" : "text-danger-soft"}`} aria-hidden>
-            <Glyph e={t.icon} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-mono text-xs font-bold uppercase tracking-widest text-muted">
-              <span className="normal-case tracking-normal text-phosphor-dim" aria-hidden>
-                root@primus:~${" "}
-              </span>
-              {t.title}
-            </p>
-            <p className="text-lg font-extrabold text-phosphor">{t.line}</p>
+        // The demo's alert on an opaque card, the same as the shell's toasts (app/team/alerts.tsx).
+        <div key={t.id} className="guide-toast pointer-events-auto w-full max-w-sm" data-testid={`toast-${t.id}`}>
+          <div className={`guide-alert ${t.tone === "good" ? "guide-toast-good" : "guide-danger"} flex items-center gap-3`}>
+            <span className="text-2xl" aria-hidden>
+              <Glyph e={t.icon} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <b className="block font-mono text-[9px] uppercase tracking-[0.12em]">{t.title}</b>
+              <p className="mt-0.5 text-[14px] font-bold">{t.line}</p>
+            </div>
+            <button
+              type="button"
+              className="guide-btn secondary"
+              onClick={() => {
+                live.delete(t.id);
+                setToasts((ts) => ts.filter((x) => x.id !== t.id));
+              }}
+            >
+              OK
+            </button>
           </div>
-          <button type="button" className="mx-key mx-key-quiet rounded-lg px-2 py-1 text-sm" onClick={() => {
-              live.delete(t.id);
-              setToasts((ts) => ts.filter((x) => x.id !== t.id));
-            }}>
-            OK
-          </button>
         </div>
       ))}
     </div>

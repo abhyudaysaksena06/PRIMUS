@@ -1,6 +1,6 @@
 "use client";
 
-// "Do this now": the one open task of this team that closes first, on every team page but Home (its big card), with its
+// "Do this now": the one open task of this team that closes first, on every team page (as the demo), with its
 // deadline and a button to the place that does it. Nothing to do: no bar. The demo's task strip (.guide-taskbar):
 // DO THIS NOW · the task · DEADLINE 10:35 IST · 0:55 · OPEN TASK →.
 
@@ -18,8 +18,8 @@ export interface BarTask {
 
 export function ActionBar({ task }: { task: BarTask | null }) {
   const path = usePathname();
-  // Home shows the same task as its big card, so the bar would only repeat it there.
-  if (!task || path === "/team") return null;
+  // On every page, Home too, as in the demo; nothing to do: no strip.
+  if (!task) return null;
   const here = path === task.href;
   return (
     <div className="guide-taskbar" role="region" aria-label="Do this now" data-testid="action-bar">

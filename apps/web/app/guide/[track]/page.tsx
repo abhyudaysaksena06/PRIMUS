@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { parseMarkdown } from "@/lib/team/markdown";
 import { GUIDE_TRACKS, type GuideTrack } from "@/lib/team/qr";
 import { Markdown } from "@/app/team/judging/markdown";
-import "@/app/team/crisis/room-design.css";
+import "@/app/demo/demo.css";
 
 // The public track guide (/guide/product, /guide/consulting, /guide/finance): docs/event/primus/<TRACK>.md as a page,
 // opened from the QR code on a team's Home without signing in. Built once at `next build` (static), when the repository
@@ -46,29 +46,37 @@ export default async function GuidePage({ params }: PageProps<"/guide/[track]">)
   if (!isTrack(track)) notFound();
   const text = await readGuide(track);
   return (
-    <main className="pd-root pd-page-bg min-h-dvh px-4 py-8 text-paper sm:py-12" data-track={track.toUpperCase()}>
-      <div className="mx-auto max-w-3xl">
-        <div className="pd-head mb-5">
-          <p className="pd-eyebrow">PRIMUS · {TITLES[track]} guide</p>
-          <p className="pd-title">How the {TITLES[track]} track plays.</p>
+    // The demo's look (app/demo): its page head and one panel, in the track's colours, over the demo's background.
+    <main className="guide-app min-h-dvh" data-track={track.toUpperCase()}>
+      <div className="guide-atmosphere" />
+      <div className="relative mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
+        <div className="guide-page-head">
+          <small>PRIMUS ’26 · {TITLES[track].toUpperCase()} GUIDE</small>
+          <h1>How the {TITLES[track]} track plays.</h1>
         </div>
         {text ? (
-          <article className="pd-panel mt-2 p-5 sm:p-7" data-testid="guide">
-            <Markdown blocks={parseMarkdown(text)} label={`${TITLES[track]} guide`} />
+          <article className="guide-panel" data-testid="guide">
+            <div className="guide-panel-head">
+              <h2>{TITLES[track]} guide</h2>
+              <span>NO SIGN-IN NEEDED</span>
+            </div>
+            <div className="guide-panel-body">
+              <Markdown blocks={parseMarkdown(text)} label={`${TITLES[track]} guide`} />
+            </div>
           </article>
         ) : (
-          <p className="mt-4" data-testid="guide-missing">
+          <p className="guide-alert guide-warning" data-testid="guide-missing">
             The guide is not available here. Ask a member of staff.
           </p>
         )}
-        <nav className="pd-tabs mt-8 border-t border-line pt-5">
+        <nav className="mt-6 flex flex-wrap gap-2">
           {GUIDE_TRACKS.filter((t) => t !== track).map((t) => (
-            <Link key={t} href={`/guide/${t}`} className="pd-tab">
+            <Link key={t} href={`/guide/${t}`} className="guide-btn secondary">
               {TITLES[t]} guide
             </Link>
           ))}
-          <Link href="/login" className="pd-tab is-active">
-            Sign in
+          <Link href="/login" className="guide-btn">
+            Sign in →
           </Link>
         </nav>
       </div>

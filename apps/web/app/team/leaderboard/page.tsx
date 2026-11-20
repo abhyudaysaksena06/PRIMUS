@@ -24,7 +24,7 @@ export default async function LeaderboardPage() {
       <AutoRefresh everyMs={30_000} active={on} />
       <GuidePageTitle
         eyebrow="PRIMUS RATING / LIVE"
-        title="Leaderboard"
+        title="Leaderboard."
         sub="Every company starts at a Rating of 1,000. Each released score moves it: a score above its sector's average for that round raises it, one below lowers it."
       />
       {!on ? (

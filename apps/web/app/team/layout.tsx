@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { PHASE_LABELS } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, money } from "@/lib/format";
@@ -10,33 +10,28 @@ import { Heartbeat } from "@/lib/live/heartbeat";
 import { FallbackRefresh } from "@/app/display/[slug]/fallback-refresh";
 import { FeedbackBar, FeedbackProvider } from "@/lib/live/feedback";
 import { SignOutButton } from "@/components/sign-out-button";
-import { Countdown, ServerClock } from "@/components/ui/countdown";
+import { Countdown } from "@/components/ui/countdown";
 import { PORTAL_TITLES, portalAdmits, portalUrl, teamPortal, wrongPortalMessage } from "@/lib/portal/portal";
-import { MarketStrip } from "./market-strip";
-import { RealtimeDot } from "@/components/ui/realtime-dot";
 import { HeaderLinks, MenuButton, MobileNav, TeamNav } from "./nav";
 import { NewsTicker, type TickerStory } from "@/components/guide/news-ticker";
 import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { ActionBar } from "./action-bar";
 import { Alerts, SoundToggle } from "./alerts";
 import { loadPlanFacts } from "@/lib/team/home-data";
-import { homePlan, nextDeadline } from "@/lib/team/home";
-import { crisisHeadline, crisisSteps } from "@/lib/team/crisis-steps";
+import { homePlan } from "@/lib/team/home";
+import { crisisHeadline } from "@/lib/team/crisis-steps";
 import { alertTasks, nextAction } from "@/lib/team/alerts";
-import { RoundBanner } from "./round-banner";
+import { PhaseEnd } from "./phase-end";
 import { FocusGate } from "./focus-gate";
 import { focusSections, stageInfo, stageOf, withLeaderboard } from "@/lib/team/focus";
 import { featureOn } from "@/lib/event-status";
 import { TeamFeatures } from "@/lib/team/features";
 import { loadCrisisPopups } from "@/lib/team/crisis-popup-data";
 import { withAssigned } from "@/lib/team/assigned-data";
-import { badgeText, leaderboardOpen, loadLeaderboard } from "@/lib/team/leaderboard";
 import { BootSequence } from "@/components/ui/matrix/boot-sequence";
-import { Glyph } from "@/components/ui/matrix/glyph";
 import "@/app/demo/demo.css";
 import "@/app/demo/header-links.css";
 import "./team.css";
-import { sectorStyle } from "@/lib/team/sectors";
 import { CrisisSplash, type CrisisPopups, type SplashCard } from "./crisis-splash";
 import { DraftWatch } from "./crisis/draft-watch";
 
@@ -55,12 +50,18 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   const portal = await teamPortal();
   if (portal && !portalAdmits(portal, team.track)) {
     return (
-      <main className="term flex min-h-dvh items-center justify-center px-4">
-        <div className="max-w-md space-y-4 border border-line bg-panel p-6" data-testid="wrong-portal">
-          <p className="bg-[var(--term-amber)] px-1.5 text-xs font-black tracking-widest text-black">PRIMUS</p>
-          <p className="text-paper">{wrongPortalMessage(portal, team.track, portalUrl(team.track))}</p>
-          <SignOutButton />
-        </div>
+      <main className="guide-app flex min-h-dvh items-center justify-center px-4" data-track={team.track}>
+        <div className="guide-atmosphere" />
+        <section className="guide-panel relative w-full max-w-md" data-testid="wrong-portal">
+          <div className="guide-panel-head">
+            <h2>PRIMUS ’26</h2>
+            <span>WRONG PORTAL</span>
+          </div>
+          <div className="guide-panel-body space-y-4">
+            <p className="guide-alert guide-warning">{wrongPortalMessage(portal, team.track, portalUrl(team.track))}</p>
+            <SignOutButton />
+          </div>
+        </section>
       </main>
     );
   }
@@ -72,21 +73,10 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   });
   // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
   const facts = loaded ? await withAssigned({ ...loaded, submitLast5: featureOn(status, "submit_last_5") }, ctx.company?.id ?? null) : null;
-  const upNext = facts ? nextDeadline(facts) : null;
   const plan = facts ? homePlan(facts) : null;
   const next = plan ? nextAction(plan) : null;
-  // A PRIMUS event's Rounds 2 and 3: the crisis under way and its steps, for the banner's "you are here" row.
+  // A PRIMUS event's Rounds 2 and 3: the crisis under way, for the phase chip.
   const k = facts?.primus?.k ?? null;
-  const crisis =
-    event.format === "PRIMUS" && facts && (status.phase === "PRESSURE" || status.phase === "SATURATION")
-      ? {
-          k,
-          steps:
-            k === null
-              ? []
-              : crisisSteps(team.track, k, Object.fromEntries(facts.deadlines.map((d) => [d.code, d.at])), k === 5 && (facts.primus?.workOpen === true || facts.primus?.hiringK === 5)),
-        }
-      : null;
   const sb = await supabaseServer();
   // The newest bulletins, for the bottom news ticker (the demo's EventNewsTicker); the first is the latest.
   const { data: recent } = await sb
@@ -128,10 +118,6 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   // The live leaderboard (switch leaderboard): a tab for every track, and the Product team's own badge in the header.
   const leaderboardOn = featureOn(status, "leaderboard");
   const sections = withLeaderboard(focusSections(team.track, status.phase, taskHref), leaderboardOn);
-  const myRow =
-    leaderboardOn && team.track === "PRODUCT" && ctx.company
-      ? await loadLeaderboard(sb, event.id).then((rows) => (rows && leaderboardOpen(rows) ? (rows.find((r) => r.company_id === ctx.company!.id) ?? null) : null))
-      : null;
   // Product and Consulting teams do not trade, but the halt after a crisis reveal concerns them too.
   const halted = event.format === "PRIMUS" && team.track !== "FINANCE" && (status.phase === "PRESSURE" || status.phase === "SATURATION") && status.trading !== "OPEN";
   // The demo's top bar: the round chip ("ROUND 2 · CRISIS 1 OF 4") and the time left in it.
@@ -139,6 +125,9 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   const stepName =
     event.format === "PRIMUS" && (status.phase === "PRESSURE" || status.phase === "SATURATION") ? crisisHeadline(status.phase, k, null).name : stageNow.title;
   const phaseChip = (stageNow.round ? `Round ${stageNow.round} · ${stepName}` : stageNow.title).toUpperCase();
+  // The round as words (the old banner's label) and the step of the night, for screen readers and the tests.
+  const roundLabel = stageNow.round ? `Round ${stageNow.round} of 3 · ${stageNow.title}` : stageNow.title;
+  const navRound = status.phase === "SATURATION" || status.phase === "CLOSE" ? 3 : status.phase === "PRESSURE" ? 2 : stageNow.round;
   const deskLabel = team.track === "FINANCE" ? "FINANCE DESK" : team.track === "CONSULTING" ? "CONSULTING DESK" : "PRODUCT DESK";
   const rainTone = team.track === "CONSULTING" ? "blue" : team.track === "PRODUCT" ? "amber" : "green";
   // The bottom ticker: the crisis notices first, then the newest bulletins.
@@ -149,20 +138,6 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     ...(splash ? [{ id: `card-${splash.k}`, time: clock(splash.revealedAt), type: "CRISIS", title: splash.title }] : []),
     ...(recent ?? []).map((b) => ({ id: b.id, time: clock(b.published_at), type: b.kind.toUpperCase(), title: b.title })),
   ];
-  // The round banner: a strip under the task band on every page but Home; on Home, the big card in the page column.
-  const banner = (slot: "top" | "content") => (
-    <RoundBanner
-      track={team.track}
-      phase={status.phase}
-      endsAt={status.phase_ends_at}
-      gate={status.gate}
-      next={status.next_phase}
-      openRound={status.trading === "OPEN" ? status.open_round : null}
-      format={event.format}
-      crisis={crisis}
-      slot={slot}
-    />
-  );
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <TeamFeatures features={status.features}>
@@ -173,41 +148,44 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
         {/* Realtime down: re-read every 20 s until it is back. */}
         <FallbackRefresh everyMs={20_000} safetyMs={0} />
         <BootSequence who={team.code} />
-        <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
         {/* "Your pick!" on every page during a by-sector Round 3 draft (it stops by itself when the draft ends). */}
         <DraftWatch eventId={event.id} companyId={ctx.company?.id ?? null} active={event.format === "PRIMUS" && team.track === "PRODUCT" && status.phase === "SATURATION" && featureOn(status, "draft_by_sector", true)} />
         {/* The demo's shell (app/demo/layout.tsx): the sidebar, the top bar, the DO THIS NOW strip, the page, the
             footer and the news ticker, over the track's rain. */}
         <div className="guide-app terminal-theme-scope term" data-track={team.track} data-menu="closed">
           <div className="guide-atmosphere" />
-          <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />
-          <TeamNav sections={sections} team={{ code: team.code, name: team.name, track: team.track }} />
+          <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
+          {/* As the demo: the rain behind the Product and Consulting desks only. */}
+          {finance ? null : <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />}
+          <TeamNav team={{ code: team.code, name: team.name, track: team.track }} round={navRound} />
           <div className="guide-main guide-participant-main">
             <header className="guide-top">
               <div className="guide-top-left">
                 <MenuButton />
                 <h1 className="guide-team-code">{team.code}</h1>
                 <span className="guide-top-name">{team.name}</span>
-                <b className="guide-phase">{phaseChip}</b>
-                {status.phase_ends_at && new Date(status.phase_ends_at).getTime() > new Date(status.server_time).getTime() ? (
-                  <span className="guide-countdown">
-                    <Countdown to={status.phase_ends_at} passed="now" /> LEFT
+                {/* The demo's phase chip; the round in words and the step (a heading) for screen readers. */}
+                <b className="guide-phase" data-testid="round-banner">
+                  <span className="sr-only" data-testid="round-label">
+                    {roundLabel}
                   </span>
-                ) : null}
-                {ctx.sector ? (
-                  // The squad's sector, in its own colour on every page.
-                  <span className={`guide-sector ${sectorStyle(ctx.sector).chip}`} data-testid="team-sector">
-                    <Glyph e={sectorStyle(ctx.sector).icon} /> {ctx.sector}
+                  <span aria-hidden>{phaseChip}</span>
+                  <span className="sr-only" role="heading" aria-level={2}>
+                    {stepName}
                   </span>
-                ) : null}
-                {event.is_rehearsal ? <span className="guide-chip">REHEARSAL ×{event.clock_speed}</span> : null}
-                {myRow ? (
-                  <Link href="/team/leaderboard" className="guide-chip" data-testid="rating-badge">
-                    {badgeText(myRow)}
-                  </Link>
-                ) : null}
+                </b>
+                {status.phase_ends_at ? (
+                  <span className="guide-countdown" data-testid="team-phase">
+                    <span className="sr-only">{PHASE_LABELS[status.phase]} </span>
+                    <PhaseEnd endsAt={status.phase_ends_at} phase={status.phase} gate={status.gate} next={status.next_phase} variant="left" className="" />
+                  </span>
+                ) : (
+                  <span className="sr-only" data-testid="team-phase">
+                    {PHASE_LABELS[status.phase]}
+                  </span>
+                )}
               </div>
-              <HeaderLinks sections={sections} />
+              <HeaderLinks leaderboard={sections.some((x) => x.path === "/leaderboard")} />
               <div className="guide-top-right">
                 <span className="guide-trading">
                   <i /> {portal ? PORTAL_TITLES[portal].toUpperCase() : deskLabel}
@@ -216,7 +194,6 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                   CASH
                   <b data-testid="team-cash">
                     {money(team.cash)}
-                    {finance && team.collateral > 0 ? <small className="guide-top-sub"> locked {money(team.collateral)}</small> : null}
                   </b>
                 </span>
                 {finance ? (
@@ -249,41 +226,42 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                       {halted ? (
                         <small className="guide-top-sub guide-top-warn" data-testid="trading-halted">
                           {" "}
-                          Trading halted
+                          · HALTED
                           {status.next_round ? (
-                            <>
+                            <span className="sr-only">
                               {" "}
-                              · round {status.next_round.number} opens {clock(status.next_round.opens_at)} (<Countdown to={status.next_round.opens_at} passed="now" />)
-                            </>
+                              Trading halted · round {status.next_round.number} opens {clock(status.next_round.opens_at)}
+                            </span>
                           ) : null}
                         </small>
                       ) : null}
                     </b>
                   </span>
                 )}
-                {upNext ? (
-                  // The team's own next deadline, on every page.
-                  <span className="guide-ticker" data-testid="next-deadline">
-                    Next:{" "}
-                    <b>
-                      {upNext.title} {clock(upNext.at)} · <Countdown to={upNext.at} passed="now" />
-                    </b>
-                  </span>
-                ) : null}
-                <span className="guide-ticker guide-clock">
-                  IST
+                {/* The demo's third chip: Finance its locked collateral, Product the firm it hired, Consulting its clients. */}
+                <span className="guide-ticker">
+                  {finance ? "LOCKED" : team.track === "PRODUCT" ? "CONSULTANT" : "CLIENT"}{" "}
                   <b>
-                    <ServerClock />
+                    {finance
+                      ? money(team.collateral)
+                      : team.track === "PRODUCT"
+                        ? (facts?.primus?.engagement?.firm ?? "OPEN")
+                        : facts?.primus?.clients?.length
+                          ? facts.primus.clients.map((c) => c.ticker ?? c.name ?? "—").join(", ")
+                          : "OPEN"}
                   </b>
                 </span>
-                <RealtimeDot />
                 <SoundToggle />
               </div>
             </header>
             <ActionBar task={next && next.href ? { title: next.title, href: next.href, linkLabel: next.linkLabel, due: next.due } : null} />
-            {/* The market's prices since the IPO, as the demo's thin strip under the task band. */}
-            <div className="guide-preview-note guide-price-strip">
-              <MarketStrip eventId={event.id} />
+            {/* The demo's thin note under the task strip: what this screen is. */}
+            <div className="guide-preview-note flex flex-wrap items-center justify-between gap-2">
+              <span>
+                ● LIVE 3-TRACK EVENT · {team.track} TEAM {team.code}
+                {event.is_rehearsal ? ` · REHEARSAL ×${event.clock_speed}` : ""}
+              </span>
+              <span>PRIMUS ’26 · ALL TIMES IST</span>
             </div>
             <Alerts tasks={plan ? alertTasks(plan) : []} track={team.track} teamId={team.id} />
             {status.paused ? (
@@ -294,9 +272,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                 Your team has been disqualified by the fairness officer{team.disqualified_reason ? `: ${team.disqualified_reason}` : "."}
               </p>
             ) : null}
-            {banner("top")}
             <main className="guide-content">
-              <div className="guide-home-banner">{banner("content")}</div>
               <FeedbackBar className="mb-4" />
               <FocusGate track={team.track} phase={status.phase} taskHref={taskHref} format={event.format}>
                 {children}
@@ -304,11 +280,11 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
             </main>
             <div className="guide-footer" aria-hidden>
               <span>PRIMUS ’26 · WHERE EVERY DECISION CONNECTS</span>
-              <span>TEAM {team.code} · IST</span>
+              <span>TEAM {team.code} · {team.track} · IST</span>
             </div>
             <footer className="guide-desk-footer">
               <NewsTicker stories={stories} href="/team/bulletins" testId={latest ? "latest-bulletin" : undefined} />
-              <MobileNav sections={sections} />
+              <MobileNav track={team.track} round={navRound} />
             </footer>
           </div>
         </div>
