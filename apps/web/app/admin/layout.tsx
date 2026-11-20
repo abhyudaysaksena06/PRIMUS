@@ -1,6 +1,9 @@
-import { requireRole } from "@/lib/auth/viewer";
+import { requireStaff } from "@/lib/auth/staff";
+import { StaffRoleProvider } from "./[slug]/nav";
 
+// The control panel: organisers, the fairness officer and the desk roles (registration, judging, crisis). Each
+// section checks the role again on the server (lib/auth/staff.ts); the tabs show only the role's own sections.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
-  await requireRole(["ORGANISER", "FAIRNESS"], "/admin");
-  return children;
+  const viewer = await requireStaff("/admin");
+  return <StaffRoleProvider role={viewer.role}>{children}</StaffRoleProvider>;
 }
