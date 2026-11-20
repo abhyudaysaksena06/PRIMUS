@@ -67,7 +67,7 @@ export default async function FinanceTrack({ params }: PageProps<"/admin/[slug]/
       <div className="grid gap-3 sm:grid-cols-4">
         <Stat label="Funds" value={funds.length} />
         <Stat label="Practice market" value={practiceState} hint={`${accounts.length} funds traded`} />
-        <Stat label={market?.settled_at ? "Edge paid" : "Edge so far"} value={money(edgeTotal)} hint="practice profit, up to $50,000 a fund" />
+        <Stat label={market?.settled_at ? "Edge paid" : "Edge so far"} value={money(edgeTotal)} hint="practice only: no real cash is paid (migration 082)" />
         <Stat label="Open orders" value={count(orders.length)} hint={status.open_round ? `round ${status.open_round.number}` : "no round open"} />
       </div>
 

@@ -120,7 +120,8 @@ export const PRACTICE = {
   /** Practice money per fund, in cents. */
   startCents: 10_000_000,
   /** The prize each of the top funds wins in real cash, in cents. */
-  prizeCents: 5_000_000,
+  // Practice only (migration 082): nothing from the practice market carries into the real game.
+  prizeCents: 0,
   /** How many funds win the prize. */
   winners: 3,
   /** The most practice profit TushKum's Finance page (app/admin/[slug]/finance) counts as an edge, in cents. */

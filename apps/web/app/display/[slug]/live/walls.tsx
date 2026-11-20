@@ -86,7 +86,7 @@ export async function PracticeWallSection({ event }: { event: DisplayEvent; stat
               <b className="text-phosphor">Consulting</b> answers the ElevenLabs case: winning India&apos;s voices.
             </li>
             <li>
-              <b className="text-phosphor">Finance</b> trades the practice market: the 3 funds worth the most each win $50,000 in real cash for the IPO.
+              <b className="text-phosphor">Finance</b> trades the practice market to learn the desk before the IPO.
             </li>
           </ul>
         </Box>

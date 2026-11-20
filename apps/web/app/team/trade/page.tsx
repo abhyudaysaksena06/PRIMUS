@@ -54,7 +54,7 @@ export default async function TradePage() {
             <Link href="/team/trade/practice" className="font-semibold text-[color:var(--desk-accent)] underline">
               practice market
             </Link>
-            : the 3 funds worth the most when Round 1 ends each win $50,000 in real cash before the IPO.
+            : practice only, to learn the desk before the IPO; nothing from it carries into the real game.
           </p>
         ) : null}
       </DeskPanel>

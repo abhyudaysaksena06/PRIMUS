@@ -701,9 +701,9 @@ describe("practice market", () => {
       { code: "F03", equity: 10_000_000, trades: 2 },
     ]);
     expect(w).toEqual([
-      { code: "F02", rank: 1, prize: 5_000_000 },
-      { code: "F10", rank: 2, prize: 5_000_000 },
-      { code: "F07", rank: 3, prize: 5_000_000 },
+      { code: "F02", rank: 1, prize: 0 },
+      { code: "F10", rank: 2, prize: 0 },
+      { code: "F07", rank: 3, prize: 0 },
     ]);
   });
 });

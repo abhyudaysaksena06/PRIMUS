@@ -21,7 +21,6 @@ export default async function PracticePage() {
   const gate = tradeGate(ctx);
   if (gate) return gate;
   const { status, event } = ctx;
-  const prize = money(PRACTICE.prizeCents);
   const start = money(PRACTICE.startCents);
   // Switch practice_verified (migration 076): one simulated company per checked-in Finance team, prepared by the
   // organisers; a page load never stores the market. Off: named after the Product teams, opened by the first page.
@@ -34,8 +33,8 @@ export default async function PracticePage() {
       <DeskPanel title="Practice market">
         <p className="text-sm text-paper" data-testid="practice-notice">
           The practice market opens with Round 1{data ? ` at ${clock(data.starts_at)}` : ""}. You get {start} of practice money to trade
-          candlestick charts {simulated ? "of simulated companies, one per Finance team" : "named after the Product teams"}. The practice money stays here, but the {PRACTICE.winners} funds worth the most at
-          the close each win {prize} in real cash before the IPO. You must make at least one trade to be ranked.
+          candlestick charts {simulated ? "of simulated companies, one per Finance team" : "named after the Product teams"}. It is practice only, to learn the desk:
+          nothing from it carries into the real game. Trade at least once to be ranked.
         </p>
       </DeskPanel>
     );
@@ -51,20 +50,19 @@ export default async function PracticePage() {
     return (
       <div className="space-y-4">
         <DeskStatus>
-          Practice market closed <span aria-hidden>·</span> {results.length} {results.length === 1 ? "fund" : "funds"} ranked <span aria-hidden>·</span> top{" "}
-          {PRACTICE.winners} win {prize}
+          Practice market closed <span aria-hidden>·</span> {results.length} {results.length === 1 ? "fund" : "funds"} ranked <span aria-hidden>·</span> practice only
         </DeskStatus>
         {mine ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <DeskKpi label="Practice fund" tag="CLOSED" value={money(mine.equity)} foot={`${mine.trades} trades · started at ${start}`} />
             <DeskKpi
               label="Rank"
-              tag={mine.rank !== null ? <span className="text-[#00D68F]">PRIZE</span> : "UNRANKED"}
+              tag={mine.rank !== null ? <span className="text-[#00D68F]">TOP {PRACTICE.winners}</span> : "UNRANKED"}
               tone={mine.rank !== null ? "accent" : "plain"}
               value={mine.rank !== null ? `#${mine.rank}` : "—"}
-              foot={`Top ${PRACTICE.winners} win a prize`}
+              foot="Practice ranking"
             />
-            <DeskKpi label="Real cash added" tag="FOR THE IPO" tone={mine.rank !== null ? "up" : "plain"} value={mine.rank !== null ? money(mine.edge) : "—"} foot="The practice money stays here" />
+            <DeskKpi label="Real-game effect" tag="PRACTICE" tone="plain" value="None" foot="The practice money stays here" />
           </div>
         ) : null}
         <DeskPanel title="Practice market: closed" sub="Final standings" bodyClassName="p-0">
@@ -73,10 +71,10 @@ export default async function PracticePage() {
               Your practice fund finished at <b className="font-mono text-[#F2F5F3]">{money(mine.equity)}</b> ({mine.trades} trades).{" "}
               {mine.rank !== null ? (
                 <>
-                  You placed <b className="text-[color:var(--desk-accent)]">#{mine.rank}</b>: {money(mine.edge)} was added to your real cash for the IPO.
+                  You placed <b className="text-[color:var(--desk-accent)]">#{mine.rank}</b> in the practice ranking.
                 </>
               ) : (
-                <>Only the top {PRACTICE.winners} funds win a prize; the practice money stays in the practice market.</>
+                <>Trade at least once to be ranked; the practice money stays in the practice market.</>
               )}
             </p>
           ) : (
