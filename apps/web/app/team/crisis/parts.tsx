@@ -95,26 +95,27 @@ export function Step({
 
 export function Timeline({ k, steps }: { k: number; steps: TimelineStep[] }) {
   const next = steps.find((s) => !s.passed && s.at);
+  // The demo's metric row under the page head: one tile per step of the sub-round, the next one lit.
   return (
-    <section className="guide-panel" data-testid="subround-timeline">
-      <div className="guide-panel-head">
-        <h2>{subroundTitle(k)}</h2>
-        {next ? (
+    <ol className="guide-grid guide-timeline" data-testid="subround-timeline" aria-label={subroundTitle(k)}>
+      {steps.map((s) => (
+        <li key={s.code} className={`guide-metric ${s.passed ? "opacity-55" : ""} ${s === next ? "is-next" : ""}`}>
+          <small>{s.label.toUpperCase()}</small>
+          <b>{s.at ? clock(s.at) : "—"}</b>
           <span>
-            {next.label} in <Countdown to={next.at} className="text-[#39ff88]" />
+            {s.passed ? (
+              "PASSED"
+            ) : s === next && s.at ? (
+              <>
+                NEXT · <Countdown to={s.at} /> LEFT
+              </>
+            ) : (
+              "LATER"
+            )}
           </span>
-        ) : null}
-      </div>
-      <ol className="guide-panel-body guide-grid guide-timeline">
-        {steps.map((s) => (
-          <li key={s.code} className={`guide-metric ${s.passed ? "opacity-55" : ""} ${s === next ? "is-next" : ""}`}>
-            <small>{s.label}</small>
-            <b className="!text-lg">{s.at ? clock(s.at) : "—"}</b>
-            <span>{s.passed ? "PASSED" : s === next ? "NEXT" : "LATER"}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -215,7 +216,7 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
         // Picks are not broadcast to every screen while the sectors draft: this board catches up when the draft ends.
         <p className="mt-1 text-xs text-muted">The sectors pick at the same time. This board updates when the draft ends; reload the page to see the latest picks.</p>
       ) : null}
-      <p className="mb-3 mt-1 text-sm text-paper">
+      <p className="guide-muted mb-3 mt-1">
         Each company is judged on its own solution; sharing a statement does not change anyone&apos;s price move. A rise is scaled by the score so far across
         the event: ×1.25 for the weakest company down to ×0.25 for the strongest; a fall applies in full. The number beside each company is its score so far.
       </p>
@@ -224,7 +225,7 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
           <li key={g.id} className="border border-[#294832] p-3.5" data-testid={`board-${g.number}`}>
             <p className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[#39ff88]">#{g.number}</span>
-              <span className="font-semibold text-paper">{g.title}</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">{g.title}</span>
               {sectorOf.get(g.id) ? <Chip tone="blue">{sectorOf.get(g.id)}</Chip> : null}
               <Chip tone={g.companies.length >= g.cap ? "red" : "slate"}>
                 {g.companies.length}/{g.cap}

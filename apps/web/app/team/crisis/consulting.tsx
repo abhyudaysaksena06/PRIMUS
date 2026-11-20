@@ -88,6 +88,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
 
   return (
     <div className="guide-stack">
+      <div className="guide-grid two items-start">
       <Step
         n={1}
         title="Your firm's profile"
@@ -97,14 +98,14 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
       >
         <DoThis testId="profile-todo">Say what your firm is good at and what it asks for, then press Save profile.</DoThis>
         {myRate !== null && (minBidOn || (drawOn && !r3)) ? (
-          <p className="mt-2 text-sm text-paper" data-testid="my-base-rate">
+          <p className="guide-muted mt-2" data-testid="my-base-rate">
             Your base rate: <strong className="text-[#39ff88]">{rateText(myRate)}</strong> of a company ({rateShares(myRate).toLocaleString("en-US")}{" "}
             shares), set by your Round 1 memo score.
             {minBidOn ? " It is your minimum bid: no offer for less can be made or accepted." : ""}
             {drawOn && !r3 ? " A company the draw gives you pays it." : ""}
           </p>
         ) : null}
-        <p className="mb-3 mt-1 text-sm text-paper">
+        <p className="guide-muted mb-3 mt-1">
           Every Product team sees this in the firm directory.{" "}
           <Link href={`/team/firms/${encodeURIComponent(ctx.team.code)}`} className="text-[#39ff88] hover:underline">
             See your public profile →
@@ -113,23 +114,23 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         <ActionForm action={saveFirmProfile} submit="Save profile">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm sm:col-span-2">
-              <span className="font-semibold text-paper">Headline</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">Headline</span>
               <input name="headline" maxLength={140} defaultValue={profile?.headline ?? ""} placeholder="Turnarounds for hardware start-ups" className={`guide-input mt-1`} />
             </label>
             <label className="block text-sm">
-              <span className="font-semibold text-paper">Specialities (comma-separated, up to 8)</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">Specialities (comma-separated, up to 8)</span>
               <input name="specialities" defaultValue={profile?.specialities.join(", ") ?? ""} placeholder="supply chain, pricing, PR" className={`guide-input mt-1`} />
             </label>
             <label className="block text-sm">
-              <span className="font-semibold text-paper">Asking fee ($)</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">Asking fee ($)</span>
               <input name="asking" inputMode="decimal" defaultValue={profile ? (profile.asking_cents / 100).toFixed(2) : ""} className={`guide-input mt-1 font-mono`} />
             </label>
             <label className="block text-sm sm:col-span-2">
-              <span className="font-semibold text-paper">Rate card</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">Rate card</span>
               <textarea name="rate_card" maxLength={600} rows={3} defaultValue={profile?.rate_card ?? ""} className={`guide-input mt-1`} />
             </label>
             <label className="block text-sm sm:col-span-2">
-              <span className="font-semibold text-paper">About the firm (who you are, how you work, past wins)</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">About the firm (who you are, how you work, past wins)</span>
               <textarea name="about" maxLength={1000} rows={4} defaultValue={profile?.about ?? ""} className={`guide-input mt-1`} />
             </label>
           </div>
@@ -149,7 +150,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         {hiring && clients.length < FIRM_CLIENTS_PER_SUBROUND ? (
           <details className="border border-[#294832] p-3.5 mt-3" data-testid="pitch-a-company">
             <summary className="guide-btn secondary cursor-pointer list-none">Pitch a company yourself</summary>
-            <p className="mt-2 text-sm text-paper">
+            <p className="guide-muted mt-2">
               You do not have to wait to be asked. Write to a company to talk terms, or send it an offer and it answers first.
             </p>
             {pitchable.length === 0 ? <p className="mt-2 text-sm text-muted">Every company has a firm or an offer from you.</p> : null}
@@ -175,7 +176,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                       hint="Ask for a stake in the company (equity %): its value is shares × the company's share price."
                     />
                     <label className="mt-2 block text-sm">
-                      <span className="font-semibold text-paper">Note (optional)</span>
+                      <span className="guide-label !mb-1.5 !mt-0 uppercase">Note (optional)</span>
                       <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`guide-input mt-1`} />
                     </label>
                   </ActionForm>
@@ -194,6 +195,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
           {drawOn ? <p>When hiring closes, each company with no firm is drawn at random to a firm with room, and pays {r3 ? "10% of its cash" : <>that firm&apos;s base rate</>}.</p> : null}
         </HowItWorks>
       </Step>
+      </div>
 
       <Step n={3} title={clients.length > 1 ? "Write a memo for each client" : "Write your advice memo"} state={clientsState} summary={clientsSummary} testId="step-clients" open={clients.length > 0}>
         {k !== null && clients.length > 0 ? (
