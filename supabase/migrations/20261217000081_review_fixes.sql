@@ -63,6 +63,137 @@ $n$  perform 1 from public.events where id = v_team.event_id for no key update;
     return app.fail('PAUSED', 'The event is paused. Pick when it resumes.');
   end if;$n$);
 
+-- F3 (heartbeat). One step that raises no longer rolls the whole tick back, every 2 seconds, for ever: each step of
+-- app.primus_tick (judging, each reveal, the draft, each sub-round's hiring close, due time and ratings) and of
+-- public.tick (each round's clearing, the hold, the PRIMUS steps) runs in its own sub-transaction. A step that fails
+-- is undone alone, logged (at most once a minute per step, source 'tick:<step>') and, its done-marker unset, tried
+-- again on the next beat; the others go ahead, and the broadcasts are still flushed.
+create or replace function app.tick_step_failed(p_event uuid, p_step text, p_message text, p_state text)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if not exists (select 1 from public.error_log e
+                  where e.event_id = p_event and e.source = 'tick:' || p_step and e.at > now() - interval '1 minute') then
+    insert into public.error_log (event_id, source, message, context)
+    values (p_event, 'tick:' || p_step, coalesce(p_message, 'error'), jsonb_build_object('sqlstate', p_state));
+  end if;
+end
+$$;
+revoke all on function app.tick_step_failed(uuid, text, text, text) from public, anon, authenticated;
+
+select app.patch_one_function('app.primus_tick(uuid)'::regprocedure,
+$o$    v_actions := v_actions || app.auto_judge_tick(p_event);$o$,
+$n$    begin
+      v_actions := v_actions || app.auto_judge_tick(p_event);
+    exception when others then
+      perform app.tick_step_failed(p_event, 'judge', sqlerrm, sqlstate);
+    end;$n$);
+select app.patch_one_function('app.primus_tick(uuid)'::regprocedure,
+$o$      if app.deadline_passed(p_event, ('REVEAL_' || v_k)::public.deadline_code) and app.reveal_subround(p_event, v_k) then
+        v_actions := v_actions || ('revealed crisis ' || v_k);
+      end if;$o$,
+$n$      begin
+        if app.deadline_passed(p_event, ('REVEAL_' || v_k)::public.deadline_code) and app.reveal_subround(p_event, v_k) then
+          v_actions := v_actions || ('revealed crisis ' || v_k);
+        end if;
+      exception when others then
+        perform app.tick_step_failed(p_event, 'reveal_' || v_k, sqlerrm, sqlstate);
+      end;$n$);
+select app.patch_one_function('app.primus_tick(uuid)'::regprocedure,
+$o$  if v_event.current_phase = 'SATURATION' and app.draft_tick(p_event) > 0 then
+    v_actions := v_actions || 'draft defaults'::text;
+  end if;$o$,
+$n$  begin
+    if v_event.current_phase = 'SATURATION' and app.draft_tick(p_event) > 0 then
+      v_actions := v_actions || 'draft defaults'::text;
+    end if;
+  exception when others then
+    perform app.tick_step_failed(p_event, 'draft', sqlerrm, sqlstate);
+  end;$n$);
+select app.patch_one_function('app.primus_tick(uuid)'::regprocedure,
+$o$    if v_sub.hiring_closed_at is null and app.deadline_passed(p_event, ('HIRE_' || v_k)::public.deadline_code) then
+      n := app.assign_default_firms(p_event, v_k);
+      if n > 0 then v_actions := v_actions || ('firms assigned ' || v_k || ': ' || n); end if;
+      update public.offers set status = 'LAPSED', decided_at = now(), updated_at = now()
+       where event_id = p_event and offers.k = v_k and status = 'OPEN';
+      update public.subrounds set hiring_closed_at = now() where event_id = p_event and subrounds.k = v_k;
+      v_actions := v_actions || ('hiring closed ' || v_k);
+      perform app.broadcast(p_event, 'subround', jsonb_build_object('k', v_k, 'step', 'hiring_closed'));
+    end if;$o$,
+$n$    begin
+      if v_sub.hiring_closed_at is null and app.deadline_passed(p_event, ('HIRE_' || v_k)::public.deadline_code) then
+        n := app.assign_default_firms(p_event, v_k);
+        if n > 0 then v_actions := v_actions || ('firms assigned ' || v_k || ': ' || n); end if;
+        update public.offers set status = 'LAPSED', decided_at = now(), updated_at = now()
+         where event_id = p_event and offers.k = v_k and status = 'OPEN';
+        update public.subrounds set hiring_closed_at = now() where event_id = p_event and subrounds.k = v_k;
+        v_actions := v_actions || ('hiring closed ' || v_k);
+        perform app.broadcast(p_event, 'subround', jsonb_build_object('k', v_k, 'step', 'hiring_closed'));
+      end if;
+    exception when others then
+      perform app.tick_step_failed(p_event, 'hire_' || v_k, sqlerrm, sqlstate);
+    end;$n$);
+select app.patch_one_function('app.primus_tick(uuid)'::regprocedure,
+$o$    if v_sub.due_closed_at is null and app.deadline_passed(p_event, ('DUE_' || v_k)::public.deadline_code) then
+      n := app.settle_engagements(p_event, v_k);
+      update public.subrounds set due_closed_at = now() where event_id = p_event and subrounds.k = v_k;
+      v_actions := v_actions || ('escrow settled ' || v_k || ': ' || n);
+      perform app.broadcast(p_event, 'subround', jsonb_build_object('k', v_k, 'step', 'due'));
+    end if;$o$,
+$n$    begin
+      if v_sub.due_closed_at is null and app.deadline_passed(p_event, ('DUE_' || v_k)::public.deadline_code) then
+        n := app.settle_engagements(p_event, v_k);
+        update public.subrounds set due_closed_at = now() where event_id = p_event and subrounds.k = v_k;
+        v_actions := v_actions || ('escrow settled ' || v_k || ': ' || n);
+        perform app.broadcast(p_event, 'subround', jsonb_build_object('k', v_k, 'step', 'due'));
+      end if;
+    exception when others then
+      perform app.tick_step_failed(p_event, 'due_' || v_k, sqlerrm, sqlstate);
+    end;$n$);
+select app.patch_one_function('app.primus_tick(uuid)'::regprocedure,
+$o$    if v_sub.rated_at is null and app.deadline_passed(p_event, ('RATE_' || v_k)::public.deadline_code) then
+      update public.engagements set rating = 3, rating_default = true, rated_at = now()
+       where event_id = p_event and engagements.k = v_k and rating is null;
+      update public.subrounds set rated_at = now() where event_id = p_event and subrounds.k = v_k;
+      v_actions := v_actions || ('ratings closed ' || v_k);
+      perform app.broadcast(p_event, 'subround', jsonb_build_object('k', v_k, 'step', 'rated'));
+    end if;$o$,
+$n$    begin
+      if v_sub.rated_at is null and app.deadline_passed(p_event, ('RATE_' || v_k)::public.deadline_code) then
+        update public.engagements set rating = 3, rating_default = true, rated_at = now()
+         where event_id = p_event and engagements.k = v_k and rating is null;
+        update public.subrounds set rated_at = now() where event_id = p_event and subrounds.k = v_k;
+        v_actions := v_actions || ('ratings closed ' || v_k);
+        perform app.broadcast(p_event, 'subround', jsonb_build_object('k', v_k, 'step', 'rated'));
+      end if;
+    exception when others then
+      perform app.tick_step_failed(p_event, 'rate_' || v_k, sqlerrm, sqlstate);
+    end;$n$);
+select app.patch_one_function('public.tick(uuid)'::regprocedure,
+$o$      perform app.clear_round(r.id);
+      v_actions := v_actions || ('cleared ' || r.number);$o$,
+$n$      begin
+        perform app.clear_round(r.id);
+        v_actions := v_actions || ('cleared ' || r.number);
+      exception when others then
+        perform app.tick_step_failed(p_event, 'clear_round_' || r.number, sqlerrm, sqlstate);
+      end;$n$);
+select app.patch_one_function('public.tick(uuid)'::regprocedure,
+$o$    v_actions := v_actions || app.hold_tick(p_event);
+    v_actions := v_actions || app.primus_tick(p_event);$o$,
+$n$    begin
+      v_actions := v_actions || app.hold_tick(p_event);
+    exception when others then
+      perform app.tick_step_failed(p_event, 'hold', sqlerrm, sqlstate);
+    end;
+    begin
+      v_actions := v_actions || app.primus_tick(p_event);
+    exception when others then
+      perform app.tick_step_failed(p_event, 'primus', sqlerrm, sqlstate);
+    end;$n$);
+
 create or replace function public.schema_version()
 returns text
 language sql immutable

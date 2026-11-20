@@ -160,3 +160,37 @@ describe("F2: the draft and a pause", () => {
     expect(picked.ok).toBe(true);
   });
 });
+
+describe("F3: one failing step does not stop the heartbeat", () => {
+  test("crisis 1's hiring close raises: crisis 2 is still revealed, the broadcasts still flushed, the error logged once; it retries", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    await toRound2(n, 3, "f3-isolation");
+    expect(await landed(n, "perform app.tick_step_failed(p_event, 'hire_' || v_k, sqlerrm, sqlstate);")).toBe("app.primus_tick");
+    expect(await landed(n, "perform app.tick_step_failed(p_event, 'clear_round_' || r.number, sqlerrm, sqlstate);")).toBe("public.tick");
+    expect(await landed(n, "perform app.tick_step_failed(p_event, 'hold', sqlerrm, sqlstate);")).toBe("public.tick");
+    // Test only: closing crisis 1's hiring raises.
+    await n.q(`create function public.f3_boom() returns trigger language plpgsql as $$ begin raise exception 'f3 boom'; end $$`);
+    await n.q(`create trigger f3_boom before update of hiring_closed_at on public.subrounds for each row
+               when (new.k = 1 and new.hiring_closed_at is not null) execute function public.f3_boom()`);
+    try {
+      await n.deadlinePassed("HIRE_1");
+      await n.deadlinePassed("REVEAL_2");
+      await n.q("insert into app.broadcast_pending (event_id, kind, at) values ($1, 'raises', now() - interval '10 seconds')", [n.eventId]);
+      await n.q("delete from realtime.messages");
+      for (let i = 0; i < 2; i++) expect((await n.call(n.lead, "tick", n.eventId)).ok).toBe(true);
+      const sub = await n.q("select k, revealed_at, hiring_closed_at from subrounds where event_id = $1 and k in (1, 2) order by k", [n.eventId]);
+      expect(sub[0]!.hiring_closed_at).toBeNull();
+      expect(sub[1]!.revealed_at).not.toBeNull();
+      expect((await n.one("select count(*)::int as c from app.broadcast_pending where event_id = $1", [n.eventId])).c).toBe(0);
+      expect((await n.q("select 1 from realtime.messages where topic = $1 and event = 'refresh'", [`event:${n.eventId}`])).length).toBe(1);
+      const errors = await n.q("select source, message from error_log where event_id = $1 and source like 'tick:%'", [n.eventId]);
+      expect(errors).toEqual([{ source: "tick:hire_1", message: "f3 boom" }]);
+    } finally {
+      await n.q("drop trigger f3_boom on public.subrounds");
+      await n.q("drop function public.f3_boom()");
+    }
+    // Fixed: the next beat closes the hiring.
+    await n.ok(n.lead, "tick", n.eventId);
+    expect((await n.one("select hiring_closed_at from subrounds where event_id = $1 and k = 1", [n.eventId])).hiring_closed_at).not.toBeNull();
+  });
+});
