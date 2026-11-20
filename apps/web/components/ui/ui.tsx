@@ -1,61 +1,56 @@
-// Small building blocks shared by every area: panels, badges, tables and the result of an action. They are drawn in
-// the PRIMUS demo's look (app/demo): gradient cards with a hairline edge and an accent tick, small capital labels,
-// chip badges, solid accent keys. The colours come from the track's tokens (globals.css, [data-track]).
+// Small building blocks shared by every area: panels, badges, tables, stats, notices and keys. They are the /demo
+// console's own markup (app/demo/ui.tsx, demo.css): a panel is a .guide-panel with a .guide-panel-head (h2 + tag) and
+// a .guide-panel-body, a stat is a .guide-metric, a table is a .guide-table, a badge is a .guide-chip, a notice is a
+// .guide-alert, a key is a .guide-btn and a field is a .guide-input. demo.css is imported here so a page that uses
+// them looks like the demo whatever its layout loads; the tones (chips, notices, the red key) are in globals.css.
+// The control panel's app/admin/guide-ui.tsx re-exports these.
 
 import type { ReactNode } from "react";
-import { CipherText } from "./matrix/cipher-text";
+import "@/app/demo/demo.css";
 
-export function Panel({ title, actions, children, className = "" }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
+export type Tone = "slate" | "green" | "amber" | "red" | "blue" | "violet";
+
+export function Panel({
+  title,
+  tag,
+  actions,
+  children,
+  className = "",
+}: {
+  title?: ReactNode;
+  tag?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <section className={`mx-panel min-w-0 rounded-xl ${className}`}>
-      {title || actions ? (
-        <header className="mx-panel-head flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-t-[inherit] px-4 py-2.5">
-          {title ? (
-            <h2 className="mx-panel-title min-w-0 text-sm [overflow-wrap:anywhere] sm:text-[0.95rem]">
-              {typeof title === "string" ? <CipherText text={title} duration={450} /> : title}
-            </h2>
-          ) : (
-            <span />
-          )}
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-        </header>
+    <section className={`guide-panel ${className}`}>
+      {title || tag || actions ? (
+        <div className="guide-panel-head flex-wrap">
+          {title ? <h2>{title}</h2> : <i />}
+          {tag ? <span>{tag}</span> : null}
+          {actions ? <div className="guide-panel-actions">{actions}</div> : null}
+        </div>
       ) : null}
       {/* Text typed by organisers (a URL in a bulletin, a long reason) wraps instead of widening the page. Table cells
           do not wrap (Td), so tables are unaffected. */}
-      <div className="p-4 [overflow-wrap:anywhere]">{children}</div>
+      <div className="guide-panel-body [overflow-wrap:anywhere]">{children}</div>
     </section>
   );
 }
 
-// Tones are text colours on the dark card: the accent for good and neutral news, amber for warnings, red for errors.
-const TONES = {
-  slate: "text-muted ring-line",
-  green: "text-phosphor ring-phosphor-dim",
-  amber: "text-warn ring-warn/60",
-  red: "text-danger-soft ring-danger/70",
-  blue: "text-phosphor-mid ring-phosphor-dim",
-  violet: "text-paper ring-phosphor-dim",
-} as const;
-export type Tone = keyof typeof TONES;
-
-// A notice's coloured left edge and wash, per tone (the demo's alert boxes).
-const EDGES = {
-  slate: "border-line",
-  green: "border-phosphor",
-  amber: "border-warn",
-  red: "border-danger",
-  blue: "border-phosphor-mid",
-  violet: "border-phosphor-dim",
-} as const;
-
-/** A badge, drawn as a small chip in capitals (the capitals are CSS: the text is unchanged). */
+/** A badge: the demo's chip, coloured by tone (the capitals are CSS: the text is unchanged). */
 export function Badge({ tone = "slate", children }: { tone?: Tone; children: ReactNode }) {
-  return <span className={`mx-tag text-xs ring-0 ${TONES[tone]}`}>{children}</span>;
+  return (
+    <span className="guide-chip" data-tone={tone}>
+      {children}
+    </span>
+  );
 }
 
 /**
- * A table that scrolls sideways inside its panel on a narrow screen. The scroller can take keyboard focus (arrow
- * keys scroll it) and is named after `label`.
+ * The demo's .guide-table, scrolling sideways inside its panel on a narrow screen. The scroller can take keyboard
+ * focus (arrow keys scroll it) and is named after `label`.
  */
 export function Table({
   head,
@@ -72,62 +67,56 @@ export function Table({
 }) {
   const rows = Array.isArray(children) ? children.filter(Boolean) : children;
   const isEmpty = Array.isArray(rows) && rows.length === 0;
-  const name = label ?? "Table";
   return (
-    <div
-      role="region"
-      aria-label={name}
-      tabIndex={0}
-      className={`overflow-x-auto rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-phosphor ${className}`}
-    >
-      <table className="min-w-full text-sm">
+    <div role="region" aria-label={label ?? "Table"} tabIndex={0} className={`guide-table-wrap overflow-x-auto ${className}`}>
+      <table className="guide-table">
         <thead>
-          <tr className="border-b border-line text-left font-mono text-xs uppercase tracking-[0.12em] text-muted">
+          <tr>
             {head.map((h, i) => (
-              <th key={i} className="whitespace-nowrap px-2.5 py-2.5 font-bold">
+              <th key={i} className="whitespace-nowrap">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-line/70 [&>tr]:transition-colors [&>tr:hover]:bg-phosphor/[0.04]">{rows}</tbody>
+        <tbody>{rows}</tbody>
       </table>
-      {isEmpty ? <p className="px-2 py-4 text-sm text-muted">{empty ?? "Nothing yet."}</p> : null}
+      {isEmpty ? <p className="guide-muted px-2 py-4">{empty ?? "Nothing yet."}</p> : null}
     </div>
   );
 }
 
 export function Td({ children, className = "", mono = false }: { children?: ReactNode; className?: string; mono?: boolean }) {
-  return <td className={`whitespace-nowrap px-2.5 py-2 ${mono ? "font-mono tabular-nums" : ""} ${className}`}>{children}</td>;
+  return <td className={`whitespace-nowrap ${mono ? "font-mono tabular-nums" : ""} ${className}`}>{children}</td>;
 }
 
+/** The demo's Metric: a small label, a big figure and an accent line under it. */
 export function Stat({ label, value, hint }: { label: ReactNode; value: ReactNode; hint?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-line bg-raised px-3.5 py-3">
-      <div className="mx-eyebrow text-xs">{label}</div>
-      <div className="mt-1.5 font-mono text-xl font-bold tabular-nums text-paper">{value}</div>
-      {hint ? <div className="mt-0.5 font-mono text-xs text-phosphor">{hint}</div> : null}
+    <div className="guide-metric">
+      <small>{label}</small>
+      <b>{value}</b>
+      {hint ? <span>{hint}</span> : null}
     </div>
   );
 }
 
+/** The demo's alert box; amber is its .guide-warning. A red notice keeps bg-red-50 (a test hook). */
 export function Notice({ tone = "slate", children }: { tone?: Tone; children: ReactNode }) {
-  // A red notice keeps bg-red-50 (a test hook, themed in globals.css as a faint red on the dark page).
+  const cls = tone === "amber" ? "guide-alert guide-warning" : tone === "red" ? "guide-alert guide-danger bg-red-50" : "guide-alert";
   return (
-    <div
-      className={`rounded-md border-l-[3px] ${EDGES[tone]} ${tone === "red" ? "bg-red-50" : "bg-raised/80"} px-3.5 py-2.5 text-sm leading-relaxed ring-1 ring-inset ${TONES[tone]}`}
-    >
+    <div className={cls} data-tone={tone}>
       {children}
     </div>
   );
 }
 
-// Buttons are the demo's keys: a solid key in the track's colour (primary), an outlined key (secondary) and a red
-// outlined key (danger).
+// The demo's keys: a solid key in the track's colour (primary), an outlined key (secondary) and a red outlined key
+// (danger). The mx-key names stay as hooks for the CSS of the rooms that still select them.
 export const buttonClass = {
-  primary: "mx-key rounded-md px-3.5 py-2 text-sm",
-  secondary: "mx-key mx-key-quiet rounded-md px-3.5 py-2 text-sm",
-  danger: "mx-key mx-key-danger rounded-md px-3.5 py-2 text-sm",
+  primary: "guide-btn mx-key",
+  secondary: "guide-btn secondary mx-key mx-key-quiet",
+  danger: "guide-btn secondary guide-btn-danger danger mx-key mx-key-danger",
 } as const;
 
-export const inputClass = "block w-full rounded-md border border-line px-3 py-2 text-sm focus:border-phosphor focus:outline-none";
+export const inputClass = "guide-input";

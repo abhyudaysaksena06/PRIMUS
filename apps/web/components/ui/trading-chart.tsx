@@ -84,7 +84,7 @@ export function TradingChart({
     const closed = live ? candles.slice(0, -1) : candles;
     return detectPatterns(closed.map((c) => ({ open: c.open, close: c.close, high: c.high ?? Math.max(c.open, c.close), low: c.low ?? Math.min(c.open, c.close) })));
   }, [candles, live, patterns]);
-  if (candles.length < 2) return <p className="text-sm text-slate-500">The chart starts after the first two candles.</p>;
+  if (candles.length < 2) return <p className="text-sm text-muted">The chart starts after the first two candles.</p>;
 
   const tickStep = g.yTicks.length > 1 ? g.yTicks[1]!.value - g.yTicks[0]!.value : 1;
   const axis = format === money ? (v: number) => axisMoney(v, tickStep, g.max, money) : format;
@@ -218,7 +218,7 @@ export function TradingChart({
           </g>
         ) : null}
       </svg>
-      <figcaption className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs" style={{ color: C.axis }}>
+      <figcaption className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.08em]" style={{ color: C.axis }}>
         {patterns ? <span>
           <span style={{ color: C.up }}>▲</span> bullish · <span style={{ color: C.down }}>▼</span> bearish · <span style={{ color: C.average }}>◆</span> indecision
         </span> : null}
@@ -237,7 +237,7 @@ export function TradingChart({
       {patterns && patternList ? (
         <div className="mt-2" data-testid={testId ? `${testId}-patterns` : undefined}>
           {recent.length === 0 ? (
-            <p className="text-xs text-slate-500">No pattern yet: they are marked here as the candles form.</p>
+            <p className="text-xs text-muted">No pattern yet: they are marked here as the candles form.</p>
           ) : (
             <ul className="grid gap-1 text-xs lg:grid-cols-2">
               {recent.map((p) => (
@@ -251,7 +251,7 @@ export function TradingChart({
                     {p.bias === "bullish" ? "▲" : p.bias === "bearish" ? "▼" : "◆"}
                   </span>
                   <span>
-                    <b className="text-paper">{p.name}</b> <span className="text-slate-500">({candles[p.index]?.label})</span>: {p.hint}
+                    <b className="text-paper">{p.name}</b> <span className="text-muted">({candles[p.index]?.label})</span>: {p.hint}
                   </span>
                 </li>
               ))}

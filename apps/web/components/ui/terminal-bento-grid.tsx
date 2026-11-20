@@ -1,5 +1,5 @@
 // The bento grid: a grid of cards in the PRIMUS demo's look (gradient card, hairline edge in the track's colour).
-// The look lives in globals.css (.terminal-container, .bento-grid, .bento-item, .blinking-cursor), drawn from the
+// The look lives in globals.css (.terminal-container, .bento-grid, .bento-item), drawn from the
 // track's tokens.
 
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";

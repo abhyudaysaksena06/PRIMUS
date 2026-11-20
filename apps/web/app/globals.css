@@ -287,85 +287,50 @@
 }
 
 @layer components {
-  /* A panel, as the demo's cards: an opaque gradient card with a hairline edge in the track's colour and a short
-     accent tick on its top-left corner. Opaque, so nothing behind it (rain, dither) ever reaches its text. */
+  /* Markup that still carries the old class names (a page not yet moved onto components/ui/ui.tsx) is drawn as the
+     demo's parts (app/demo/demo.css): .mx-panel as a .guide-panel, .mx-key as a .guide-btn (square, small mono
+     capitals, the track's colour), .mx-key-quiet as a secondary key, .mx-key-danger as the red key. */
   .mx-panel {
     position: relative;
-    background: linear-gradient(155deg, var(--mx-panel-a), var(--mx-panel-b)), var(--mx-panel);
+    min-width: 0;
     border: 1px solid var(--mx-panel-line);
-    box-shadow: 0 14px 40px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.04);
+    border-radius: 0;
+    background: linear-gradient(145deg, var(--mx-panel-a), var(--mx-panel-b)), var(--mx-panel);
+    box-shadow: 0 14px 40px rgb(0 0 0 / 0.12);
   }
-  .mx-panel::before {
-    content: "";
-    position: absolute;
-    top: -1px;
-    left: 14px;
-    width: 34px;
-    height: 2px;
-    background: var(--mx-green);
-    box-shadow: 0 0 10px var(--mx-accent-glow);
-    pointer-events: none;
-  }
-  /* A panel's title row: a small heading on a faint accent wash, its actions on the right. */
-  .mx-panel-head {
-    background: linear-gradient(90deg, var(--mx-accent-soft), transparent 70%);
-    border-bottom: 1px solid var(--mx-panel-line);
-  }
-  .mx-panel-title {
-    color: var(--mx-heading);
-    font-family: var(--font-mono);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-  }
-  /* A small label in capitals, as above every demo metric ("AVAILABLE CAPITAL"). */
-  .mx-eyebrow {
-    color: var(--mx-muted);
-    font-family: var(--font-mono);
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-  .mx-eyebrow-accent {
-    color: var(--mx-green);
-  }
-
-  /* A button, as the demo's keys: a solid key in the track's colour (primary), an outlined key (quiet) and a red
-     outlined key (danger). */
   .mx-key {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     border: 1px solid var(--mx-green);
+    border-radius: 0;
     background: var(--mx-green);
     color: var(--mx-on-accent);
-    font-family: var(--font-mono);
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    box-shadow: 0 4px 16px var(--mx-accent-glow), inset 0 1px 0 rgb(255 255 255 / 0.3);
+    font: 800 9px var(--font-mono), ui-monospace, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
     text-shadow: none;
-    transition: filter 140ms, box-shadow 140ms, transform 140ms, background-color 140ms;
+    cursor: pointer;
+    transition: filter 140ms, background-color 140ms, border-color 140ms, color 140ms;
   }
   .mx-key:hover:not(:disabled) {
     filter: brightness(1.12);
-    box-shadow: 0 6px 22px var(--mx-accent-glow), inset 0 1px 0 rgb(255 255 255 / 0.4);
-  }
-  .mx-key:active:not(:disabled) {
-    transform: translateY(1px);
   }
   .mx-key:disabled {
     cursor: not-allowed;
-    opacity: 0.45;
+    opacity: 0.35;
   }
   .mx-key-quiet {
     border-color: var(--mx-accent-line);
-    background: color-mix(in srgb, var(--mx-raised) 60%, transparent);
+    background: transparent;
     color: var(--mx-green-mid);
-    box-shadow: none;
   }
   .mx-key-quiet:hover:not(:disabled) {
     border-color: var(--mx-green);
-    background: var(--mx-accent-soft);
-    color: var(--mx-heading);
+    color: var(--mx-green);
     filter: none;
-    box-shadow: none;
   }
   .mx-key-solid {
     background: var(--mx-green);
@@ -373,32 +338,12 @@
   }
   .mx-key-danger {
     border-color: var(--mx-red);
-    background: rgb(255 59 59 / 0.1);
+    background: rgb(255 95 95 / 0.08);
     color: var(--mx-red-soft);
-    box-shadow: none;
   }
   .mx-key-danger:hover:not(:disabled) {
-    background: rgb(255 59 59 / 0.22);
-    box-shadow: 0 0 14px rgb(255 59 59 / 0.3);
+    background: rgb(255 95 95 / 0.18);
     filter: none;
-  }
-
-  /* A badge, as the demo's chips: small capitals in a thin box of the badge's own colour. The text itself is
-     unchanged (the capitals are CSS). */
-  .mx-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3em;
-    white-space: nowrap;
-    padding: 0.1em 0.55em;
-    border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
-    border-radius: var(--mx-r-chip);
-    background: color-mix(in srgb, currentColor 10%, transparent);
-    font-family: var(--font-mono);
-    font-weight: 700;
-    line-height: 1.5;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
   }
 
   /* The result of an action as a system line: "> SYSTEM: Done." (the prefix is drawn by CSS). */
@@ -616,18 +561,6 @@
     border-color: var(--mx-accent-line);
     box-shadow: 0 12px 30px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.08);
   }
-  /* The one cell that matters most right now. */
-  .bento-item-hot {
-    border-color: var(--mx-accent-line);
-    box-shadow: 0 0 0 1px var(--mx-accent-soft), 0 10px 30px var(--mx-accent-soft), inset 0 1px 0 rgb(255 255 255 / 0.06);
-  }
-
-  /* A blinking underscore after a heading, like a waiting prompt. */
-  .blinking-cursor::after {
-    content: "_";
-    margin-left: 0.1em;
-    animation: blink 1s step-end infinite;
-  }
 }
 
 @keyframes mx-blink {
@@ -649,25 +582,6 @@
 }
 @keyframes mx-boot-line {
   to { opacity: 1; }
-}
-
-/* The terminal bento grid's scan bar and cursor. */
-@keyframes scanline {
-  0% {
-    top: -50%;
-  }
-  100% {
-    top: 100%;
-  }
-}
-
-@keyframes blink {
-  from, to {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
 }
 
 /* The projector's news ticker: the strip is drawn twice side by side and moves by half its width, so it loops without
@@ -733,14 +647,11 @@
 .term ::selection { background: var(--mx-green); color: var(--mx-on-accent); }
 .term table thead tr { color: var(--mx-muted); }
 .term input:focus, .term select:focus, .term textarea:focus { border-color: var(--mx-green); outline-color: var(--mx-green); }
-/* A blinking block cursor after the team code in the header. */
-@keyframes term-blink { 50% { opacity: 0; } }
-.term-cursor { animation: term-blink 1.1s steps(1) infinite; }
 /* The latest candle of a live chart: a frame that fades in and out. */
 @keyframes msim-live-candle { 50% { opacity: 0.15; } }
 .msim-live-candle { animation: msim-live-candle 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .term-cursor, .msim-live-candle { animation: none; }
+  .msim-live-candle { animation: none; }
 }
 
 /* The crisis reveal: the card turns over once (no motion when reduced motion is asked for: motion-safe only). */
@@ -748,24 +659,75 @@
 @keyframes cardflip { from { transform: perspective(900px) rotateY(80deg) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* ── PRIMUS demo visual system ─────────────────────────────────────── */
-.demo-app{--d-green:#39ff88;--d-muted:#8da997;--d-line:rgba(70,240,151,.19);--d-panel:rgba(7,16,11,.88);min-height:100vh;color:#eaffef;background:#020503;position:relative;isolation:isolate}
-.demo-atmosphere{position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 65% -10%,rgba(0,230,118,.12),transparent 48%),linear-gradient(115deg,rgba(0,0,0,.2),transparent 50%),repeating-linear-gradient(0deg,rgba(57,255,136,.018) 0 1px,transparent 1px 4px)}
-.demo-sidebar{position:fixed;z-index:20;inset:0 auto 0 0;width:252px;padding:28px 19px 18px;background:rgba(2,7,4,.94);border-right:1px solid var(--d-line);display:flex;flex-direction:column;backdrop-filter:blur(20px)}
-.demo-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#effff4;padding:4px 8px 32px;border-bottom:1px solid var(--d-line)}
-.demo-brand-mark{font:900 37px/1 ui-monospace,monospace;letter-spacing:-.12em;color:#f2fff5;text-shadow:0 0 16px rgba(57,255,136,.6)}.demo-brand-mark span{color:var(--d-green)}
-.demo-brand b{display:block;font:800 13px ui-monospace,monospace;letter-spacing:.12em}.demo-brand b i{font-style:normal;color:var(--d-green)}.demo-brand small{display:block;margin-top:5px;font:700 8px ui-monospace,monospace;letter-spacing:.23em;color:#789483}
-.demo-side-label{padding:27px 9px 12px;font:700 9px ui-monospace,monospace;letter-spacing:.2em;color:#6f8d7a}.demo-side-label span{color:var(--d-green);margin-left:6px}
-.demo-nav{display:grid;gap:5px}.demo-nav-link{display:flex;align-items:center;gap:12px;padding:13px 10px;color:#a6b9ac;text-decoration:none;border:1px solid transparent;font-size:12px;transition:.2s}.demo-nav-link:hover,.demo-nav-link:focus-visible{color:#effff4;border-color:var(--d-line);background:rgba(57,255,136,.055)}.demo-nav-number{font:700 9px ui-monospace,monospace;color:#668573}.demo-nav-arrow{margin-left:auto;color:var(--d-green);opacity:0;transform:translateX(-4px);transition:.2s}.demo-nav-link:hover .demo-nav-arrow{opacity:1;transform:none}
-.demo-sidebar-bottom{margin-top:auto}.demo-node{padding:12px 9px;border-top:1px solid var(--d-line);border-bottom:1px solid var(--d-line);font:700 9px ui-monospace,monospace;letter-spacing:.12em;color:#9ab3a1}.demo-pulse,.demo-live i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--d-green);box-shadow:0 0 10px var(--d-green);margin-right:8px}.demo-profile{display:flex;gap:10px;align-items:center;padding:17px 4px}.demo-avatar{display:grid;place-items:center;width:34px;height:34px;border:1px solid rgba(57,255,136,.4);background:rgba(57,255,136,.08);font:700 10px ui-monospace,monospace;color:var(--d-green)}.demo-profile b,.demo-profile small{display:block}.demo-profile b{font-size:11px}.demo-profile small{margin-top:4px;color:#718b7a;font:700 8px ui-monospace,monospace;letter-spacing:.07em}.demo-switch{font:700 9px ui-monospace,monospace;letter-spacing:.1em;color:#8da997;text-decoration:none;padding:10px 4px}.demo-switch:hover{color:var(--d-green)}
-.demo-main{min-height:100vh;margin-left:252px;display:flex;flex-direction:column}.demo-topbar{height:65px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 36px;border-bottom:1px solid var(--d-line);background:rgba(2,7,4,.7);backdrop-filter:blur(16px)}.demo-breadcrumb,.demo-top-meta{display:flex;align-items:center;gap:13px;font:700 9px ui-monospace,monospace;letter-spacing:.13em;color:#789483}.demo-breadcrumb b{color:var(--d-green)}.demo-top-meta{gap:22px}.demo-live{color:#b7d5c2}.demo-clock{color:#6d8978}.demo-exit{padding:8px 11px;border:1px solid var(--d-line);color:#a6b9ac;text-decoration:none}.demo-exit:hover{border-color:var(--d-green);color:var(--d-green)}
-.demo-content{width:100%;max-width:1600px;margin:0 auto;padding:36px clamp(20px,3vw,48px) 30px;flex:1}.demo-footer{display:flex;justify-content:space-between;gap:14px;padding:16px 36px;border-top:1px solid rgba(70,240,151,.12);font:700 8px ui-monospace,monospace;letter-spacing:.13em;color:#617d6b}.demo-footer b{color:var(--d-green);padding:0 5px}
-.demo-eyebrow{font:700 9px ui-monospace,monospace;letter-spacing:.22em;color:var(--d-green);text-shadow:0 0 12px rgba(57,255,136,.25)}.demo-page-title{margin:3px 0 29px}.demo-page-title h1{margin:12px 0 8px;color:#effff3;font:700 clamp(30px,3.2vw,43px)/1.08 ui-sans-serif,system-ui,sans-serif;letter-spacing:-.055em}.demo-page-title p{max-width:680px;color:#91a99a;font-size:13px;line-height:1.7}
-.demo-panel{min-width:0;overflow:hidden;border:1px solid var(--d-line);background:linear-gradient(145deg,rgba(11,23,15,.96),rgba(4,11,7,.96));box-shadow:0 12px 38px rgba(0,0,0,.16);position:relative}.demo-panel:before{content:"";position:absolute;top:0;left:0;width:34px;height:1px;background:var(--d-green);box-shadow:0 0 10px var(--d-green)}.demo-panel-head{min-height:49px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 17px;border-bottom:1px solid rgba(70,240,151,.13)}.demo-panel-head h2{margin:0;color:#dfffea;font:700 11px ui-monospace,monospace;letter-spacing:.08em}.demo-panel-head>span{font:700 8px ui-monospace,monospace;letter-spacing:.12em;color:var(--d-green)}.demo-panel-body{padding:17px}
-.demo-metric{padding:17px 18px;border:1px solid var(--d-line);background:linear-gradient(145deg,rgba(11,23,15,.96),rgba(4,11,7,.96));position:relative;overflow:hidden}.demo-metric:after{content:"";position:absolute;right:-30px;top:-45px;width:110px;height:110px;border:1px solid rgba(57,255,136,.1);transform:rotate(45deg)}.demo-metric-label{font:700 8px ui-monospace,monospace;letter-spacing:.17em;color:#8aa594}.demo-metric-value{margin-top:13px;color:#f1fff4;font:700 clamp(20px,2vw,27px) ui-monospace,monospace;letter-spacing:-.06em}.demo-metric-delta{margin-top:8px;font:700 8px ui-monospace,monospace;letter-spacing:.06em;color:#8ce7ac}.demo-metric-delta i{display:inline-block;width:5px;height:5px;margin-right:5px;background:var(--d-green);box-shadow:0 0 7px var(--d-green)}
-.demo-table-wrap{overflow-x:auto}.demo-table{width:100%;border-collapse:collapse;text-align:left;font-size:11px;white-space:nowrap}.demo-table th{padding:12px 11px;border-bottom:1px solid var(--d-line);font:700 8px ui-monospace,monospace;letter-spacing:.14em;color:#7f9b89}.demo-table td{padding:13px 11px;border-bottom:1px solid rgba(70,240,151,.09);color:#9eb4a5}.demo-table tbody tr:hover{background:rgba(57,255,136,.035)}.demo-table tbody tr:last-child td{border-bottom:0}.demo-table td strong{color:#e4ffec;font-weight:600}
-.demo-action{display:inline-flex;align-items:center;gap:18px;padding:11px 15px;background:var(--d-green);color:#031008;text-decoration:none;font:800 9px ui-monospace,monospace;letter-spacing:.09em;transition:.2s}.demo-action:hover{background:#c7ffda;box-shadow:0 0 22px rgba(57,255,136,.25)}.demo-action span{font-size:14px}
-.demo-mobile-nav{display:none}
-.demo-login{position:relative;isolation:isolate;min-height:100svh;overflow:hidden;display:grid;place-items:center;padding:34px 24px;background:#010402;color:#eaffef}.demo-login-grid{position:absolute;inset:0;z-index:-2;background-image:linear-gradient(rgba(57,255,136,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,136,.045) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(to bottom,black,transparent 92%);opacity:.42}.demo-login-glow{position:absolute;z-index:-1;inset:0;background:radial-gradient(ellipse at 50% 25%,rgba(0,230,118,.13),transparent 48%),radial-gradient(ellipse at 50% 100%,rgba(0,90,35,.13),transparent 45%)}.demo-login-content{width:min(100%,1120px);position:relative}.demo-login-top{display:flex;justify-content:space-between;align-items:center}.demo-login-symbol{font:900 38px ui-monospace,monospace;letter-spacing:-.12em;color:#f4fff7;text-shadow:0 0 18px rgba(57,255,136,.7)}.demo-login-symbol span{color:var(--d-green)}.demo-login-top-status{font:700 9px ui-monospace,monospace;letter-spacing:.16em;color:#8db29a}.demo-login-top-status i{display:inline-block;width:6px;height:6px;margin-right:8px;border-radius:50%;background:var(--d-green);box-shadow:0 0 9px var(--d-green)}.demo-login-heading{margin:52px 0 35px}.demo-login-kicker{font:700 9px ui-monospace,monospace;letter-spacing:.24em;color:var(--d-green)}.demo-login-kicker span{padding:0 7px;color:#769c83}.demo-login-heading h1{margin:19px 0 13px;color:#f2fff6;font:750 clamp(46px,7vw,82px)/.98 ui-sans-serif,system-ui,sans-serif;letter-spacing:-.075em}.demo-login-heading h1 em{font-style:normal;color:var(--d-green);text-shadow:0 0 30px rgba(57,255,136,.19)}.demo-login-heading p{margin:0;color:#91a99a;font-size:13px}.demo-portal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.demo-portal-card{min-height:255px;display:flex;flex-direction:column;padding:20px;border:1px solid rgba(70,240,151,.23);background:linear-gradient(145deg,rgba(11,23,15,.94),rgba(4,10,7,.94));color:#effff4;text-decoration:none;transition:transform .25s,border-color .25s,background .25s,box-shadow .25s}.demo-portal-card:hover{transform:translateY(-5px);border-color:rgba(57,255,136,.75);background:linear-gradient(145deg,rgba(15,38,23,.98),rgba(4,13,8,.98));box-shadow:0 15px 50px rgba(0,0,0,.35),0 0 28px rgba(57,255,136,.08)}.demo-portal-card-top{display:flex;align-items:center;justify-content:space-between;color:#789684;font:700 8px ui-monospace,monospace;letter-spacing:.16em}.demo-portal-card-top b{font:400 25px ui-monospace,monospace;color:var(--d-green)}.demo-portal-card-meta{margin-top:26px;color:var(--d-green);font:700 8px ui-monospace,monospace;letter-spacing:.16em}.demo-portal-card h2{margin:9px 0;color:#effff4;font:650 19px ui-sans-serif,system-ui,sans-serif;letter-spacing:-.04em}.demo-portal-card p{margin:0;color:#91a99a;font-size:11px;line-height:1.65}.demo-portal-card-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;padding-top:18px;border-top:1px solid rgba(70,240,151,.14);color:#76917f;font:700 8px ui-monospace,monospace;letter-spacing:.09em}.demo-portal-card-bottom b{color:var(--d-green)}.demo-portal-card-bottom i{font-style:normal;font-size:13px;padding-left:4px}.demo-login-footer{display:flex;justify-content:space-between;gap:12px;margin-top:35px;color:#64816e;font:700 8px ui-monospace,monospace;letter-spacing:.13em}.demo-login-footer b{color:var(--d-green);padding:0 5px}
-@media(max-width:1100px){.demo-sidebar{width:220px}.demo-main{margin-left:220px}.demo-topbar{padding:0 22px}.demo-clock{display:none}}
-@media(max-width:760px){.demo-sidebar{display:none}.demo-main{margin:0;padding-bottom:56px}.demo-topbar{height:54px;padding:0 15px}.demo-breadcrumb{font-size:8px}.demo-top-meta{gap:10px}.demo-live{font-size:8px}.demo-exit{padding:6px;font-size:8px}.demo-content{padding:25px 15px}.demo-footer{padding:13px 15px;font-size:7px}.demo-mobile-nav{position:fixed;z-index:30;inset:auto 0 0;display:flex;justify-content:space-around;gap:3px;padding:8px 4px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--d-line);background:rgba(2,7,4,.97);backdrop-filter:blur(18px)}.demo-mobile-nav a{display:grid;gap:3px;text-align:center;text-decoration:none;color:#a6b9ac;font-size:8px}.demo-mobile-nav small{color:var(--d-green);font:700 8px ui-monospace,monospace}.demo-portal-grid{grid-template-columns:1fr}.demo-login{padding:24px 17px 90px}.demo-login-heading{margin:38px 0 27px}.demo-portal-card{min-height:205px}.demo-login-footer{flex-direction:column;gap:8px}.demo-page-title h1{font-size:32px}}
-@media(prefers-reduced-motion:reduce){.demo-portal-card,.demo-nav-arrow{transition:none}}
+
+.demo-eyebrow{font:700 9px ui-monospace,monospace;letter-spacing:.22em;color:var(--d-green);text-shadow:0 0 12px rgba(57,255,136,.25)}
+
+.demo-login{position:relative;isolation:isolate;min-height:100svh;overflow:hidden;display:grid;place-items:center;padding:34px 24px;background:#010402;color:#eaffef}.demo-login-grid{position:absolute;inset:0;z-index:-2;background-image:linear-gradient(rgba(57,255,136,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(57,255,136,.045) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(to bottom,black,transparent 92%);opacity:.42}.demo-login-glow{position:absolute;z-index:-1;inset:0;background:radial-gradient(ellipse at 50% 25%,rgba(0,230,118,.13),transparent 48%),radial-gradient(ellipse at 50% 100%,rgba(0,90,35,.13),transparent 45%)}.demo-login-content{width:min(100%,1120px);position:relative}.demo-login-top{display:flex;justify-content:space-between;align-items:center}.demo-login-heading{margin:52px 0 35px}.demo-login-heading h1{margin:19px 0 13px;color:#f2fff6;font:750 clamp(46px,7vw,82px)/.98 ui-sans-serif,system-ui,sans-serif;letter-spacing:-.075em}.demo-login-heading h1 em{font-style:normal;color:var(--d-green);text-shadow:0 0 30px rgba(57,255,136,.19)}.demo-login-heading p{margin:0;color:#91a99a;font-size:13px}
+
+@media(max-width:760px){.demo-login{padding:24px 17px 90px}.demo-login-heading{margin:38px 0 27px}}
+
+/* ── The shared parts' tones (components/ui/ui.tsx) ──────────────────────────────────────────────────────────────
+   The demo draws one chip, one alert (violet), its warning (amber) and two keys. The real screens also need a chip
+   and an alert per tone and a red key; these are the demo's colours. Unlayered and !important so they hold over the
+   demo's per-track rules (demo.css), as the control panel's own (admin.css) do. */
+.guide-chip[data-tone] {
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.guide-chip[data-tone="green"],
+.guide-chip[data-tone="blue"] {
+  border-color: color-mix(in srgb, var(--track-accent, #39ff88) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--track-accent, #39ff88) 9%, transparent) !important;
+  color: var(--track-accent, #39ff88) !important;
+}
+.guide-chip[data-tone="amber"] {
+  border-color: rgba(255, 184, 93, 0.45) !important;
+  background: rgba(255, 184, 93, 0.08) !important;
+  color: #ffb85d !important;
+}
+.guide-chip[data-tone="red"] {
+  border-color: rgba(255, 95, 95, 0.45) !important;
+  background: rgba(255, 95, 95, 0.08) !important;
+  color: #ff8a8a !important;
+}
+.guide-chip[data-tone="violet"] {
+  border-color: rgba(169, 139, 255, 0.45) !important;
+  background: rgba(169, 139, 255, 0.1) !important;
+  color: #c9b8ff !important;
+}
+.guide-alert.guide-danger {
+  border-left-color: #ff5f5f !important;
+  background: rgba(120, 24, 24, 0.2) !important;
+  color: #ffc9c9 !important;
+}
+.guide-alert[data-tone="green"],
+.guide-alert[data-tone="blue"] {
+  border-left-color: var(--track-accent, #39ff88) !important;
+  background: color-mix(in srgb, var(--track-accent, #39ff88) 7%, transparent) !important;
+}
+.guide-btn.guide-btn-danger {
+  background: rgba(255, 95, 95, 0.08) !important;
+  border: 1px solid #ff5f5f !important;
+  color: #ff8a8a !important;
+}
+.guide-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.guide-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.guide-input[class*=" w-"] {
+  width: revert-layer;
+}
+.guide-table-wrap {
+  max-width: 100%;
+}
+
