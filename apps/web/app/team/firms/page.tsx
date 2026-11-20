@@ -110,9 +110,9 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
             const openOffer = mine && k !== null ? data.offers.some((o) => o.company_id === mine.id && o.firm_team_id === f.team_id && o.k === k && o.status === "OPEN") : false;
             const complete = profileCompleteness(p);
             return (
-              <li key={f.team_id} className={`border border-[#294832] p-3.5 flex flex-col ${hiredByMe ? "border border-[#294832] p-3.5-hot" : ""}`} data-testid={`directory-${f.code}`}>
+              <li key={f.team_id} className={`border border-[#294832] p-3.5 flex flex-col ${hiredByMe ? "!border-[var(--track-accent)]" : ""}`} data-testid={`directory-${f.code}`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="guide-chip guide-chip-solid">{f.code}</span>
+                  <span className="guide-chip active">{f.code}</span>
                   <span className="text-base font-semibold text-paper">{f.name}</span>
                   {f.team_id === ctx.team.id ? <Chip tone="violet">You</Chip> : null}
                   {hiredByMe ? <Chip tone="green">Hired by you</Chip> : null}

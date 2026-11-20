@@ -87,8 +87,8 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
     <div className="grid gap-4 md:grid-cols-[16rem_1fr]">
       <AutoRefresh everyMs={15_000} active={open} />
       <KeepNewestInView newest={log.at(-1)?.id ?? null} />
-      <nav className="pd-panel h-fit overflow-hidden" aria-label="Conversations">
-        <h2 className="pd-panel-head pd-eyebrow">
+      <nav className="guide-panel h-fit overflow-hidden" aria-label="Conversations">
+        <h2 className="guide-panel-head text-xs font-bold">
           {product ? "Your firms" : "Your clients"}
         </h2>
         <ul className="space-y-1 p-2">
@@ -101,7 +101,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
                 <Link
                   href={`/team/messages?c=${t.company_id}&f=${t.firm_team_id}`}
                   aria-current={current ? "page" : undefined}
-                  className={`block rounded-[10px] border px-3 py-2 transition-colors ${current ? "border-[var(--term-amber)] bg-[var(--pd-soft)]" : "border-transparent hover:border-line hover:bg-raised"}`}
+                  className={`block rounded-[10px] border px-3 py-2 transition-colors ${current ? "border-[var(--term-amber)] bg-[var(--track-soft)]" : "border-transparent hover:border-line hover:bg-raised"}`}
                   data-testid={`thread-${l.title}`}
                 >
                   <span className="flex items-baseline gap-2">
@@ -136,7 +136,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
         <p className="text-sm text-paper">
           A private chat between {product ? "your company and this firm" : "your firm and this client"}. Organisers and the fairness officer can read it too, so keep it fair.
         </p>
-        <div id="chat-log" className="mt-3 max-h-[55vh] min-h-[12rem] overflow-y-auto rounded-xl border border-line bg-[var(--pd-well)] p-3" data-testid="chat-log">
+        <div id="chat-log" className="mt-3 max-h-[55vh] min-h-[12rem] overflow-y-auto rounded-xl border border-line bg-[#050b07] p-3" data-testid="chat-log">
           {log.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
               No messages yet. {product ? "Tell the firm what you need, and what you will pay." : "Tell the company what you can do, and what you ask for it."}
@@ -147,7 +147,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
                 const mine = m.team_id === ctx.team.id;
                 return (
                   <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <article className={`pd-bubble max-w-[85%] text-sm text-paper ${mine ? "pd-bubble-mine" : ""}`}>
+                    <article className={`max-w-[85%] rounded-[10px] border px-3 py-2 text-sm text-paper ${mine ? "border-[var(--track-accent)] bg-[var(--track-soft)]" : "border-[#294832]"}`}>
                       <header className="mb-0.5 flex items-center gap-2 text-xs">
                         <span className="font-semibold text-[#39ff88]">{mine ? "You" : head.title}</span>
                         <time dateTime={m.created_at} className="text-muted">

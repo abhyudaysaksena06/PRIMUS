@@ -127,6 +127,8 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
       {r3 ? (
         <DraftWatch eventId={ctx.event.id} companyId={mine.id} active={draft.bySector && !draft.done && data.picks.length > 0} />
       ) : null}
+      {!r3 ? <ProductRaisePanel data={data} mine={mine} open={ctx.status.phase === "PRESSURE"} /> : null}
+      <div className="guide-grid two items-start">
       {r3 ? (
         <Step
           n={1}
@@ -192,7 +194,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 <li key={s.id} className="border border-[#294832] p-3.5" data-testid={`statement-${s.number}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="guide-chip">#{s.number}</span>
-                    <span className="font-semibold text-paper">{s.title}</span>
+                    <span className="guide-label !mb-1.5 !mt-0 uppercase">{s.title}</span>
                     <Chip tone={full ? "red" : "slate"}>
                       {n}/{s.cap} {full ? "full" : "companies"}
                     </Chip>
@@ -278,7 +280,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 not shown.
               </p>
             ) : null}
-            <ul className="guide-grid two mt-3" aria-label="Firm directory">
+            <ul className="guide-scroll-box compact mt-3 space-y-2" aria-label="Firm directory">
               {listed.map((f) => {
                 const p = data.profiles.get(f.team_id);
                 const open = myOffers.some((o) => o.firm_team_id === f.team_id && o.status === "OPEN");
@@ -286,10 +288,10 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 return (
                   <li key={f.team_id} className="border border-[#294832] p-3.5" data-testid={`firm-${f.code}`}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="guide-chip guide-chip-solid hover:underline">
+                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="guide-chip active hover:underline">
                         {f.code}
                       </Link>
-                      <span className="font-semibold text-paper">{f.name}</span>
+                      <span className="guide-label !mb-1.5 !mt-0 uppercase">{f.name}</span>
                       {f.avg_rating !== null ? <Chip tone="slate">★ {f.avg_rating.toFixed(1)}</Chip> : null}
                     </div>
                     {p?.headline ? <p className="mt-1 text-sm font-semibold text-paper">{p.headline}</p> : null}
@@ -324,7 +326,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                             }
                           />
                           <label className="mt-2 block text-sm">
-                            <span className="font-semibold text-paper">Note (optional)</span>
+                            <span className="guide-label !mb-1.5 !mt-0 uppercase">Note (optional)</span>
                             <input name="note" maxLength={300} className={`guide-input mt-1`} />
                           </label>
                         </ActionForm>
@@ -349,6 +351,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
           </>
         ) : null}
       </Step>
+      </div>
 
       {planType && ws && win ? (
         <Step
@@ -405,15 +408,13 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
             ))}
           </ul>
         ) : (
-          <p className="guide-muted">{rateSummary}</p>
+          null
         )}
         <HowItWorks testId="rate-rules">
           <p>Rate how much the firm helped, from 1 to 5 stars. Each star above 3 adds $1,000 to the firm&apos;s bonus; each star below 3 takes $1,000 away.</p>
           <p>The rating is public and stays on the firm&apos;s profile, so other companies see it when they choose a firm.</p>
         </HowItWorks>
       </Step>
-
-      {!r3 ? <ProductRaisePanel data={data} mine={mine} open={ctx.status.phase === "PRESSURE"} /> : null}
 
       <History data={data} k={k} companyId={mine.id} />
     </div>

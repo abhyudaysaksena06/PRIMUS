@@ -74,10 +74,10 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
         </Link>
       </p>
 
-      <section className="pd-panel overflow-hidden" aria-label="Firm" data-testid="firm-profile">
-        <div className="pd-panel-head justify-start">
-          <span className="guide-chip guide-chip-solid text-sm">{f.code}</span>
-          <span className="pd-title my-0 text-2xl sm:text-3xl">{f.name}</span>
+      <section className="guide-panel overflow-hidden" aria-label="Firm" data-testid="firm-profile">
+        <div className="guide-panel-head justify-start">
+          <span className="guide-chip active text-sm">{f.code}</span>
+          <span className="text-2xl font-bold sm:text-3xl">{f.name}</span>
           <Chip tone="slate">#{rank} by value</Chip>
           {isMe ? <Chip tone="violet">Your firm</Chip> : null}
           {hiredThisFirm ? <Chip tone="green">Hired by you</Chip> : null}
@@ -87,7 +87,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
             </Chip>
           ) : null}
         </div>
-        <div className="pd-panel-body">
+        <div className="guide-panel-body">
           <p className="text-base font-semibold text-paper">{p?.headline || <span className="font-normal text-muted">This firm has not written a headline yet.</span>}</p>
           {p?.specialities.length ? (
             <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Specialities">

@@ -10,17 +10,17 @@ export default async function SquadLayout({ children }: LayoutProps<"/team/squad
   const { team, status, squad } = await loadTeamContext();
   if (!sectionAllowed(team.track, "/squad")) return <>{children}</>;
   const oneCase = (squad?.dealt_card_ids.length ?? 0) === 1;
+  const product = team.track !== "CONSULTING";
   return (
     <RoomShell
       track={team.track}
-      eyebrow="Squad workspace"
-      title={team.track === "CONSULTING" ? "Your squad's briefs" : "Build your product"}
+      eyebrow={product ? `ROUND 1 / PRODUCT IDEA & MVP · ${team.code}` : `ROUND 1 / CONSULTING CRISIS · ${team.code}`}
+      title={product ? "Pitch your idea and build your MVP." : "Solve the crisis."}
       lede={
-        team.track === "CONSULTING"
-          ? "The problem card, your crisis memo and the squad's plans, written with your Product partner."
-          : "Pick the problem card, write the PRD and the squad's plans with your Consulting partner."
+        product
+          ? "Pick the problem card, claim your company name and ticker, and write your PRD (the idea and MVP) with your Consulting partner. Your PRD score sets your IPO share price."
+          : "Read the Round 1 crisis case, write your six-part crisis memo and submit it. Your memo score sets your firm's reputation, which Product teams see when they hire in Round 2."
       }
-      className="space-y-4"
     >
       <SquadTabs show={squadTabsFor(status.phase)} oneCase={oneCase} />
       {children}

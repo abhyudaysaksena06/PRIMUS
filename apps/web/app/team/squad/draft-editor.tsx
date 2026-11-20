@@ -89,8 +89,11 @@ export function DraftEditor(props: DraftEditorProps) {
   const router = useRouter();
   const uid = useId();
   const [state, dispatch] = useReducer(editorReducer, undefined, () => initEditor(type, draft));
-  // The section being written: its tab is lit, as in the demo's editor.
-  const [focused, setFocused] = useState<string | null>(null);
+  // The open section: the demo's editor shows one section at a time under its tabs. The others stay in the form
+  // (hidden by CSS, reachable by their labels); a section that takes focus opens.
+  const sections = TEMPLATES[type];
+  const [active, setActive] = useState<string>(sections[0]!.key);
+  const activeIndex = Math.max(0, sections.findIndex((f) => f.key === active));
 
   // A page refresh brings the latest saved version: shown at once if nothing was typed here, merged otherwise.
   const [seen, setSeen] = useState(draft.version);
@@ -291,7 +294,7 @@ export function DraftEditor(props: DraftEditorProps) {
           </p>
         </div>
         <span className="text-right">
-          <span data-testid="word-total" className={`guide-status block tabular-nums ${stats.over > 0 ? "!text-danger-soft" : ""}`}>
+          <span data-testid="word-total" className={`guide-status block uppercase tabular-nums ${stats.over > 0 ? "!text-danger-soft" : ""}`}>
             {stats.total.toLocaleString("en-US")} / {stats.limit.toLocaleString("en-US")} words
           </span>
           {stats.over > 0 ? <span className="guide-status block !text-danger-soft">{words(stats.over)} over the limit</span> : null}
@@ -299,10 +302,18 @@ export function DraftEditor(props: DraftEditorProps) {
       </div>
 
       <nav className="guide-tabs !mb-0" aria-label={`${SUBMISSION_LABELS[type]} sections`}>
-        {TEMPLATES[type].map((f, i) => (
-          <a key={f.key} href={`#${uid}-${f.key}`} className={focused === f.key ? "active" : ""}>
+        {sections.map((f, i) => (
+          <button
+            key={f.key}
+            type="button"
+            className={active === f.key ? "active" : ""}
+            aria-pressed={active === f.key}
+            aria-controls={`${uid}-${f.key}-section`}
+            onClick={() => setActive(f.key)}
+          >
             {String(i + 1).padStart(2, "0")} · {f.label}
-          </a>
+            {inConflict(f.key) ? " !" : ""}
+          </button>
         ))}
       </nav>
 
@@ -449,14 +460,13 @@ export function DraftEditor(props: DraftEditorProps) {
         </div>
       ) : null}
 
-      {TEMPLATES[type].map((f) => {
+      {sections.map((f) => {
         const id = `${uid}-${f.key}`;
         const n = stats.perField[f.key] ?? 0;
         const text = fields[f.key] ?? "";
         return (
-          <div key={f.key} className="scroll-mt-24">
+          <div key={f.key} id={`${id}-section`} className={active === f.key ? "" : "guide-section-off"} data-section={f.key}>
             <label htmlFor={id} className="guide-label uppercase">
-              <span aria-hidden>{String(TEMPLATES[type].indexOf(f) + 1).padStart(2, "0")} · </span>
               {f.label}
             </label>
             <textarea
@@ -464,18 +474,19 @@ export function DraftEditor(props: DraftEditorProps) {
               value={text}
               onChange={(e) => dispatch({ type: "edit", key: f.key, value: e.target.value })}
               readOnly={!live}
-              rows={rowsFor(text, type === "FLASH" ? 5 : 3)}
-              onFocus={() => setFocused(f.key)}
+              rows={rowsFor(text, type === "FLASH" ? 8 : 6)}
+              onFocus={() => setActive(f.key)}
               aria-describedby={describedBy(f.key, `${id}-words`)}
               className={fieldClass(!live, inConflict(f.key), "guide-textarea")}
             />
-            <div className="mt-2 flex items-center justify-between gap-2">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <span className="guide-muted tabular-nums">
                 <span id={`${id}-words`} data-testid={`words-${f.key}`}>
                   {words(n)}
                 </span>{" "}
                 in this section
               </span>
+              <span className="guide-status uppercase">{!live ? "● Closed" : dirty ? "● Draft in progress" : version.version > 0 ? "● Draft saved" : "● Not saved yet"}</span>
             </div>
             {conflictFor(f.key, f.label)}
           </div>
@@ -514,8 +525,22 @@ export function DraftEditor(props: DraftEditorProps) {
               Cannot submit yet: {problem.message}
             </p>
           ) : null}
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <button type="submit" disabled={!dirty || choosing || pending || submitting} className={buttonClass.secondary}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className="guide-btn secondary" disabled={activeIndex === 0} onClick={() => setActive(sections[activeIndex - 1]!.key)}>
+                ← PREVIOUS
+              </button>
+              <button
+                type="button"
+                className="guide-btn secondary"
+                disabled={activeIndex === sections.length - 1}
+                onClick={() => setActive(sections[activeIndex + 1]!.key)}
+              >
+                NEXT SECTION →
+              </button>
+            </div>
+            <div className="flex flex-wrap items-start gap-2">
+            <button type="submit" disabled={!dirty || choosing || pending || submitting} className="guide-btn secondary">
               {pending ? "Saving…" : dirty ? "Save draft" : "Saved"}
             </button>
             <ActionButton
@@ -536,6 +561,7 @@ export function DraftEditor(props: DraftEditorProps) {
                 "Submit"
               )}
             </ActionButton>
+            </div>
           </div>
           <ResultMessage result={saveResult} />
         </div>

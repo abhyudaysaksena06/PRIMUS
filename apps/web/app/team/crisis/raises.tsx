@@ -27,7 +27,7 @@ export function ProductRaisePanel({ data, mine, open }: { data: CrisisRoomData; 
   return (
     <GuidePanel title="Raise money from Finance (sell equity)">
       <div data-testid="raise-product" className="space-y-3">
-        <p className="text-sm text-paper">
+        <p className="guide-muted">
           Sell a stake in your company to a Finance fund for cash. Choose how much equity (1% to 10%); the fund pays shares × your share price at
           the moment it accepts{mine.market_price ? `, now ${money(mine.market_price)} a share` : ""}. Once per crisis; you always keep at least 40% of your
           company.
@@ -50,7 +50,7 @@ export function ProductRaisePanel({ data, mine, open }: { data: CrisisRoomData; 
           <ActionForm action={postRaise} submit="Post the raise" confirm="Click again to offer this stake to every fund" resetOnSuccess>
             <EquityFields priceCents={mine.market_price} label="Equity to sell (% of your company)" testId="raise-fields" />
             <label className="mt-2 block text-sm">
-              <span className="font-semibold text-paper">Pitch to the funds (optional)</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">Pitch to the funds (optional)</span>
               <input name="note" maxLength={300} placeholder="What the money is for" className={`guide-input mt-1`} />
             </label>
           </ActionForm>
@@ -68,7 +68,7 @@ export function FinanceRaisePanel({ data, ownCompanyId, open }: { data: CrisisRo
   return (
     <GuidePanel title="Companies raising money (buy equity)">
       <div data-testid="raise-finance" className="space-y-3">
-        <p className="text-sm text-paper">
+        <p className="guide-muted">
           A company sells a stake for cash. The price is its share price at the moment you fund it, so you pay shares × that price. The shares are held
           to the close and count in your portfolio value; they are not sold on the exchange. You cannot fund your own squad&apos;s company.
         </p>

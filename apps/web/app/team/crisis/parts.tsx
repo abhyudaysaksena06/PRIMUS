@@ -50,7 +50,7 @@ const STEP_CHIP: Record<StepState, { text: string; cls: string } | null> = {
 
 /**
  * One numbered step of the crisis room: its number (a tick once done), a title, one plain line about where it
- * stands, and its content, folded away unless there is something to do in it (a tap opens any step).
+ * stands, and its content.
  */
 export function Step({
   n,
@@ -73,50 +73,49 @@ export function Step({
   children: ReactNode;
 }) {
   const chip = STEP_CHIP[state];
+  // Drawn as the demo's numbered panels ("1. Offer shares…", "4. Consulting teams…"): the step's state is the panel's
+  // tag, its line about where it stands opens the body. Every step is open, as every demo panel is.
+  void open;
   return (
-    <section id={id} className="guide-panel guide-step min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
-      <details open={open ?? (state === "now" || state === "read")} className="group">
-        <summary className="guide-panel-head cursor-pointer list-none">
-          <span className="min-w-[10rem] flex-1">
-            <h2>
-              <span aria-hidden>{state === "done" ? "✓ " : `${n}. `}</span>
-              {title}
-            </h2>
-            {summary ? <span className="guide-muted mt-1 block !font-sans !text-[11px] !tracking-normal">{summary}</span> : null}
-          </span>
-          {chip ? <span className={`guide-chip ${chip.cls}`}>{chip.text}</span> : null}
-          <span aria-hidden className="guide-step-caret">
-            ▸
-          </span>
-        </summary>
-        <div className="guide-panel-body">{children}</div>
-      </details>
+    <section id={id} className="guide-panel min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
+      <div className="guide-panel-head">
+        <h2>
+          <span aria-hidden>{state === "done" ? "✓ " : `${n}. `}</span>
+          {title}
+        </h2>
+        {chip ? <span className="uppercase">{chip.text}</span> : null}
+      </div>
+      <div className="guide-panel-body">
+        {summary ? <p className="guide-muted mb-3">{summary}</p> : null}
+        {children}
+      </div>
     </section>
   );
 }
 
 export function Timeline({ k, steps }: { k: number; steps: TimelineStep[] }) {
   const next = steps.find((s) => !s.passed && s.at);
+  // The demo's metric row under the page head: one tile per step of the sub-round, the next one lit.
   return (
-    <section className="guide-panel" data-testid="subround-timeline">
-      <div className="guide-panel-head">
-        <h2>{subroundTitle(k)}</h2>
-        {next ? (
+    <ol className="guide-grid guide-timeline" data-testid="subround-timeline" aria-label={subroundTitle(k)}>
+      {steps.map((s) => (
+        <li key={s.code} className={`guide-metric ${s.passed ? "opacity-55" : ""} ${s === next ? "is-next" : ""}`}>
+          <small>{s.label.toUpperCase()}</small>
+          <b>{s.at ? clock(s.at) : "—"}</b>
           <span>
-            {next.label} in <Countdown to={next.at} className="text-[#39ff88]" />
+            {s.passed ? (
+              "PASSED"
+            ) : s === next && s.at ? (
+              <>
+                NEXT · <Countdown to={s.at} /> LEFT
+              </>
+            ) : (
+              "LATER"
+            )}
           </span>
-        ) : null}
-      </div>
-      <ol className="guide-panel-body guide-grid guide-timeline">
-        {steps.map((s) => (
-          <li key={s.code} className={`guide-metric ${s.passed ? "opacity-55" : ""} ${s === next ? "is-next" : ""}`}>
-            <small>{s.label}</small>
-            <b className="!text-lg">{s.at ? clock(s.at) : "—"}</b>
-            <span>{s.passed ? "PASSED" : s === next ? "NEXT" : "LATER"}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -217,7 +216,7 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
         // Picks are not broadcast to every screen while the sectors draft: this board catches up when the draft ends.
         <p className="mt-1 text-xs text-muted">The sectors pick at the same time. This board updates when the draft ends; reload the page to see the latest picks.</p>
       ) : null}
-      <p className="mb-3 mt-1 text-sm text-paper">
+      <p className="guide-muted mb-3 mt-1">
         Each company is judged on its own solution; sharing a statement does not change anyone&apos;s price move. A rise is scaled by the score so far across
         the event: ×1.25 for the weakest company down to ×0.25 for the strongest; a fall applies in full. The number beside each company is its score so far.
       </p>
@@ -226,7 +225,7 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
           <li key={g.id} className="border border-[#294832] p-3.5" data-testid={`board-${g.number}`}>
             <p className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[#39ff88]">#{g.number}</span>
-              <span className="font-semibold text-paper">{g.title}</span>
+              <span className="guide-label !mb-1.5 !mt-0 uppercase">{g.title}</span>
               {sectorOf.get(g.id) ? <Chip tone="blue">{sectorOf.get(g.id)}</Chip> : null}
               <Chip tone={g.companies.length >= g.cap ? "red" : "slate"}>
                 {g.companies.length}/{g.cap}

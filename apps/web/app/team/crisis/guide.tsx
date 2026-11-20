@@ -1,7 +1,8 @@
 // The /demo design's page parts (app/demo/ui.tsx: PageTitle, Panel, Metric) for the real Product and Consulting
-// pages, with the same markup and class names (styled by guide.css inside RoomShell). Server-safe: no hooks.
+// pages, with the same markup and class names (styled by the demo's demo.css, plus exact.css for the parts it lacks). Server-safe: no hooks.
 
 import type { ReactNode } from "react";
+import "./exact.css";
 
 /** A demo panel: a head (title, a small tag, optional links) over a body. */
 export function GuidePanel({
