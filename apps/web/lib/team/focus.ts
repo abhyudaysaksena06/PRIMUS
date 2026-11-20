@@ -265,6 +265,14 @@ export function submissionsFor(phase: PhaseCode): ("PITCH" | "MEMO" | "PLAN" | "
   return (["PITCH", "MEMO", "PLAN", "FLASH"] as const).filter((t) => tabs.includes(`/team/squad/${t.toLowerCase()}`));
 }
 
+/** The live leaderboard (switch `leaderboard`): a tab for all three tracks, in every stage. */
+export const LEADERBOARD_SECTION: TeamSection = { path: "/leaderboard", label: "Leaderboard" };
+
+/** The sections with the leaderboard tab added when the switch is on. */
+export function withLeaderboard(sections: readonly TeamSection[], on: boolean): TeamSection[] {
+  return on && !sections.some((s) => s.path === LEADERBOARD_SECTION.path) ? [...sections, LEADERBOARD_SECTION] : [...sections];
+}
+
 /** Icons for the section buttons. */
 export const SECTION_ICONS: Record<string, string> = {
   "": "🏠",
@@ -282,4 +290,5 @@ export const SECTION_ICONS: Record<string, string> = {
   "/ledger": "📒",
   "/bulletins": "📣",
   "/judging": "⚖️",
+  "/leaderboard": "🏆",
 };
