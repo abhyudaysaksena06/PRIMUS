@@ -15,7 +15,7 @@ export function LedgerTabs({ slug, current, pending }: { slug: string; current: 
     </Link>
   );
   return (
-    <nav className="flex flex-wrap gap-2" aria-label="Ledger views">
+    <nav className="adm-tabs" aria-label="Ledger views">
       {tab(`/admin/${slug}/ledger`, current === "ledger", "Ledger")}
       {tab(
         `/admin/${slug}/ledger/corrections`,

@@ -25,7 +25,7 @@ export function Stage({ children }: { children: ReactNode }) {
     <div className="fixed inset-0 overflow-hidden bg-ink">
       <div
         data-testid="stage"
-        className="mx-stage absolute flex flex-col overflow-hidden bg-ink text-phosphor antialiased"
+        className="mx-stage dsp-stage absolute flex flex-col overflow-hidden bg-ink text-phosphor antialiased"
         style={{
           width: STAGE_W,
           height: STAGE_H,

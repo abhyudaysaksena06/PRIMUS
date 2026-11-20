@@ -32,13 +32,13 @@ export async function SwitchesPanel({ eventId, organiser }: { eventId: string; o
         Each change made for tonight can be turned off here at once, without a deploy; off means the game works exactly as it did
         before it. <strong>Rule</strong> switches change how the game plays: turn them on only after their rehearsal check passed.
       </p>
-      <ul className="divide-y divide-line" data-testid="switches">
+      <ul className="grid gap-2 xl:grid-cols-2" data-testid="switches">
         {rows.map((s) => (
-          <li key={s.key} className="flex flex-wrap items-center justify-between gap-3 py-2" data-testid={`switch-${s.key}`}>
-            <span className="flex items-center gap-2 text-sm text-paper">
+          <li key={s.key} className="adm-row flex-wrap" data-testid={`switch-${s.key}`}>
+            <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-[#e6e8ed]">
               <Badge tone={KIND[s.kind].tone}>{KIND[s.kind].text}</Badge>
               <span>{s.label}</span>
-              {s.is_on !== s.on_by_default ? <span className="text-xs text-muted">(changed from its default)</span> : null}
+              {s.is_on !== s.on_by_default ? <span className="font-mono text-xs text-[#ffd84d]">(changed from its default)</span> : null}
             </span>
             <span className="flex items-center gap-2">
               <Badge tone={s.is_on ? "green" : "slate"}>{s.is_on ? "On" : "Off"}</Badge>

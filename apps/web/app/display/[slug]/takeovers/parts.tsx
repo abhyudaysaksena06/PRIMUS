@@ -66,7 +66,7 @@ export function MoverColumn({
         // One grid for the labels and every row (each row a subgrid), so the columns line up and size to the widest
         // price or change instead of spilling out of a fixed width.
         <div className="mt-2 grid min-h-0 grid-cols-[minmax(0,1fr)_auto_auto] content-start gap-x-8 gap-y-2.5 overflow-hidden">
-          <div className="col-span-3 grid grid-cols-subgrid px-5 text-[28px] leading-snug font-semibold tracking-wide text-muted uppercase">
+          <div className="dsp-label col-span-3 grid grid-cols-subgrid px-5 text-[26px] leading-snug font-semibold tracking-wide uppercase">
             <span>{headers[0]}</span>
             <span className="text-right">{headers[1]}</span>
             <span className="text-right">{headers[2]}</span>
@@ -74,11 +74,11 @@ export function MoverColumn({
           {rows.map((r) => (
             <div
               key={r.key}
-              className="col-span-3 grid grid-cols-subgrid items-center rounded-xl bg-panel px-5 py-1.5"
+              className="dsp-mover-row col-span-3 grid grid-cols-subgrid items-center px-5 py-1.5"
               data-testid={`${testId}-${r.ticker}`}
             >
               <div className="min-w-0">
-                <p className="text-[40px] leading-[1.1] font-black">{r.ticker}</p>
+                <p className="dsp-green font-mono text-[40px] leading-[1.1] font-black">{r.ticker}</p>
                 <p className="truncate text-[28px] leading-[1.25] text-muted">{r.name ?? "—"}</p>
               </div>
               <div className="text-right whitespace-nowrap">{r.middle}</div>

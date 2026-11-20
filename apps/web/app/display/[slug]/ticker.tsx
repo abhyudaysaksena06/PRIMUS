@@ -13,7 +13,7 @@ const TONE: Record<TickerItem["tone"], string> = {
   up: "bg-phosphor text-ink",
   down: "bg-danger text-ink",
   news: "bg-warn text-ink",
-  info: "border-2 border-phosphor-dim text-phosphor",
+  info: "border-2 border-[rgba(91,139,100,.5)] bg-[rgba(57,255,136,.08)] text-[#39ff88]",
 };
 
 export async function NewsTicker({ event, status }: { event: DisplayEvent; status: EventStatus }) {
@@ -69,17 +69,22 @@ export async function NewsTicker({ event, status }: { event: DisplayEvent; statu
   if (items.length === 0) return null;
   const strip = items.map((it) => (
     <span key={it.key} className="mr-16 inline-flex items-center gap-4 whitespace-nowrap">
-      <span className={`rounded-md px-3 py-0.5 text-[24px] font-black ${TONE[it.tone]}`}>{it.tag}</span>
+      <span className={`px-3 py-0.5 font-mono text-[24px] font-black tracking-wider ${TONE[it.tone]}`}>{it.tag}</span>
       <span>{it.text}</span>
     </span>
   ));
   const seconds = Math.max(30, Math.round(items.reduce((n, it) => n + it.tag.length + it.text.length, 0) / 6));
   return (
-    <div className="h-[72px] shrink-0 overflow-hidden border-t-4 border-phosphor-dim bg-ink" role="marquee" aria-label="News ticker" data-testid="news-ticker">
-      <div className="msim-ticker-track flex h-full w-max items-center text-[32px] font-semibold" style={{ ["--ticker-seconds" as string]: `${seconds}s` }}>
-        <div className="flex min-w-[1920px] items-center pl-12">{strip}</div>
-        <div className="flex min-w-[1920px] items-center pl-12" aria-hidden>
-          {strip}
+    <div className="dsp-strip flex h-[72px] shrink-0 overflow-hidden" role="marquee" aria-label="News ticker" data-testid="news-ticker">
+      <span className="dsp-news-label shrink-0" aria-hidden>
+        EVENT NEWS
+      </span>
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="msim-ticker-track flex h-full w-max items-center text-[32px] font-semibold text-[#e9f5eb]" style={{ ["--ticker-seconds" as string]: `${seconds}s` }}>
+          <div className="flex min-w-[1920px] items-center pl-12">{strip}</div>
+          <div className="flex min-w-[1920px] items-center pl-12" aria-hidden>
+            {strip}
+          </div>
         </div>
       </div>
     </div>
