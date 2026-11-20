@@ -4,13 +4,27 @@
 
 import type { SubmissionType } from "@msim/engine";
 import { supabaseServer } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/fetch-all";
 import { wireFeed, type WireItem } from "./wire";
 
 export async function loadWire(eventId: string): Promise<WireItem[]> {
   const sb = await supabaseServer();
   const [scores, companies, bulletins, plans] = await Promise.all([
-    sb.from("scores").select("company_id, type, final_score, tier_bp, released_at").eq("event_id", eventId).eq("status", "RELEASED").not("released_at", "is", null),
-    sb.from("companies").select("id, ticker").eq("event_id", eventId),
+    // Paged: every released score of up to 200 companies passes PostgREST's 1,000 rows a read.
+    fetchAll<{ company_id: string; type: string; final_score: number | null; tier_bp: number | null; released_at: string }>((from, to) =>
+      sb
+        .from("scores")
+        .select("company_id, type, final_score, tier_bp, released_at")
+        .eq("event_id", eventId)
+        .eq("status", "RELEASED")
+        .not("released_at", "is", null)
+        .order("id")
+        .range(from, to),
+    ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
+    // Only the drawn squads' companies (an undrawn team's company never trades).
+    fetchAll<{ id: string; ticker: string | null }>((from, to) =>
+      sb.from("companies").select("id, ticker").eq("event_id", eventId).not("squad_id", "is", null).order("id").range(from, to),
+    ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     sb.from("bulletins").select("kind, title, published_at").eq("event_id", eventId).not("published_at", "is", null).order("published_at", { ascending: false }).limit(20),
     sb.from("phases").select("started_at").eq("event_id", eventId).eq("code", "PLANS_PUBLISHED").maybeSingle<{ started_at: string | null }>(),
   ]);

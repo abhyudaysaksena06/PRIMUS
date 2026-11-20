@@ -4,7 +4,8 @@
 // selected ticker's 30-second candles (live, with the crosshair and pattern markers), and the order panel with the
 // fund's practice cash, positions and profit. The practice money stays here; the top funds win a real-cash prize.
 // Prices tick every 5
-// seconds; the page reads the newest tick for every ticker, and the selected ticker's new ticks, every 5 seconds.
+// seconds; every 5 seconds (± 1.5 s at random, so the funds' terminals do not all ask at once) the page reads only the
+// ticks newer than it holds: the newest for every ticker, and the selected ticker's new ticks.
 // Trades go straight to the database function (practice_trade), which checks everything and fills at the latest
 // price.
 
@@ -74,18 +75,25 @@ export function PracticeTerminal({
   const [filter, setFilter] = useState("");
   const [step, setStep] = useState(initialStep);
   const known = useRef<Record<string, number>>({});
+  /** The newest step read for every ticker (ticks of all tickers share the steps). */
+  const held = useRef(-1);
 
   const byId = useMemo(() => new Map(tickers.map((t) => [t.id, t])), [tickers]);
 
   // Every ticker's newest price (and, once, its opening price).
   const readPrices = useCallback(async () => {
     const k = stepNow();
+    // Only the steps not read yet, at most the last two (one tick of every ticker each: well under 1,000 rows).
+    const from = Math.max(held.current + 1, k - 1, 0);
+    if (from > k) return;
     const { data } = await sb
       .from("practice_ticks")
       .select("ticker_team_id, step, price_cents")
       .eq("event_id", eventId)
-      .in("step", [Math.max(0, k - 1), k]);
+      .gte("step", from)
+      .lte("step", k);
     if (!data) return;
+    for (const r of data as { step: number }[]) held.current = Math.max(held.current, r.step);
     const next: Record<string, { step: number; price: number }> = {};
     for (const r of data as { ticker_team_id: string; step: number; price_cents: number }[]) {
       if (!next[r.ticker_team_id] || next[r.ticker_team_id]!.step < r.step) next[r.ticker_team_id] = { step: r.step, price: r.price_cents };
@@ -139,7 +147,7 @@ export function PracticeTerminal({
     if (data) setOpening(Object.fromEntries((data as { ticker_team_id: string; price_cents: number }[]).map((r) => [r.ticker_team_id, r.price_cents])));
   }, [sb, eventId]);
 
-  // The 5-second heartbeat, just after each tick (the first beat also reads the opening prices and the account).
+  // The heartbeat: every tick (5 s) ± 1.5 s at random (the first beat also reads the opening prices and the account).
   useEffect(() => {
     offset.current = new Date(serverNow).getTime() - Date.now();
   }, [serverNow]);
@@ -150,13 +158,11 @@ export function PracticeTerminal({
       await Promise.all([readPrices(), readSeries(selected), ...(first ? [readOpening(), readAccount()] : [])]);
       first = false;
       setStep(stepNow());
-      const now = Date.now() + offset.current;
-      const wait = tickMs - ((now - start) % tickMs) + 250;
-      timer = setTimeout(beat, Math.max(500, wait));
+      timer = setTimeout(beat, Math.max(1000, tickMs + (Math.random() * 2 - 1) * 1500));
     };
     timer = setTimeout(beat, 0);
     return () => clearTimeout(timer);
-  }, [readPrices, readSeries, readOpening, readAccount, stepNow, selected, tickMs, start]);
+  }, [readPrices, readSeries, readOpening, readAccount, stepNow, selected, tickMs]);
 
   const sel = byId.get(selected);
   const s = series[selected];

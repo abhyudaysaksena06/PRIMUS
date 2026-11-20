@@ -311,7 +311,7 @@ as $$
       'ready', l.loaded >= coalesce(jsonb_array_length(m.companies), l.loaded) and l.loaded > 0,
       'starts_at', m.starts_at, 'tick_seconds', m.tick_seconds, 'steps', m.steps, 'settled', m.settled_at is not null,
       'list', coalesce(m.companies, '[]'::jsonb),
-      'missing', coalesce((select jsonb_agg(c -> 'id') from jsonb_array_elements(m.companies) c
+      'missing', coalesce((select jsonb_agg(c -> 'id' order by k) from jsonb_array_elements(m.companies) with ordinality x(c, k)
                             where not exists (select 1 from public.practice_ticks x
                                                where x.ticker_team_id = (c ->> 'id')::uuid and x.step = 0)), '[]'::jsonb))
     end

@@ -7,6 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { rpc, type ActionResult } from "@/lib/rpc";
 import { currentViewer } from "@/lib/auth/viewer";
 import { supabaseServer } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/fetch-all";
 import { anthropicClient } from "@/lib/judge/call";
 import { hasApiCredential } from "@/lib/judge/config";
 import { FALLBACK_BETA, NEWS_DEFAULT_MODEL, NEWS_SCHEMA, NEWS_SYSTEM, newsPrompt, parseNewsDraft, takesServerFallback } from "@/lib/admin/news-draft";
@@ -35,7 +36,10 @@ export async function draftNews(eventId: string, angle: string): Promise<ActionR
   if (!hasApiCredential(process.env)) return { ok: false, code: "NO_KEY", message: "Set ANTHROPIC_API_KEY in Vercel to draft news with AI." };
   const sb = await supabaseServer();
   const [companies, sectors, bulletins, event] = await Promise.all([
-    sb.from("companies").select("id, ticker, name, ipo_price, market_price").eq("event_id", eventId).limit(200),
+    // Every drawn company (up to 200 a track, paged past PostgREST's 1,000 rows); an undrawn team's company is not news.
+    fetchAll<{ id: string; ticker: string | null; name: string | null; ipo_price: number | null; market_price: number | null }>((from, to) =>
+      sb.from("companies").select("id, ticker, name, ipo_price, market_price").eq("event_id", eventId).not("squad_id", "is", null).order("id").range(from, to),
+    ).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     sb.rpc("company_sectors", { p_event: eventId }),
     sb.from("bulletins").select("title, published_at").eq("event_id", eventId).not("published_at", "is", null).order("published_at", { ascending: false }).limit(8),
     sb.from("events").select("current_phase").eq("id", eventId).maybeSingle<{ current_phase: string }>(),

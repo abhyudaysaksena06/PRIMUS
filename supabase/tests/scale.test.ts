@@ -21,7 +21,6 @@ afterAll(async () => {
 
 const ms = (t0: number) => Math.round(performance.now() - t0);
 const TRACKS: Track[] = ["PRODUCT", "CONSULTING", "FINANCE"];
-const KEY: Record<Track, "product" | "consulting" | "finance"> = { PRODUCT: "product", CONSULTING: "consulting", FINANCE: "finance" };
 
 /** Turns the desk on and checks in `counts[track]` teams of each track (a scattered choice, not the first codes). */
 async function checkIn(n: Night, counts: Record<Track, number>) {
@@ -335,12 +334,14 @@ describe("hot spots at 200 companies × 200 funds", () => {
     } finally {
       c.release();
     }
-    const round = (await n.one("select id from rounds where event_id = $1 and number = 1", [E])).id;
-    await n.q("update rounds set status = 'OPEN', opened_at = now(), opens_at = now() - interval '1 minute', closes_at = now() + interval '1 hour' where id = $1", [round]);
-
-    // The full book: every fund has an order on every company (BUY or SHORT, 1 to 50 shares; 40,000 orders),
-    // written straight into the table (the order checks and the indicative-price trigger are not what is measured).
-    const book = async (roundId: string) => {
+    const openRound = async (number: number) => {
+      const id = (await n.one("select id from rounds where event_id = $1 and number = $2", [E, number])).id as string;
+      await n.q("update rounds set status = 'OPEN', opened_at = now(), opens_at = now() - interval '1 minute', closes_at = now() + interval '1 hour' where id = $1", [id]);
+      return id;
+    };
+    // A book written straight into the table (the order checks and the indicative-price trigger are not what is
+    // measured): each fund orders each company with probability share/256 (BUY or SHORT, 1 to 50 shares).
+    const book = async (roundId: string, share = 256) => {
       const b = await db.pool.connect();
       try {
         await b.query("begin");
@@ -351,23 +352,33 @@ describe("hot spots at 200 companies × 200 funds", () => {
                   (case when get_byte(decode(md5(f.id::text || co.id::text || $2::text), 'hex'), 0) < 128 then 'BUY' else 'SHORT' end)::order_type,
                   1 + get_byte(decode(md5(co.id::text || f.id::text || $2::text), 'hex'), 1) % 50, co.market_price, 0
              from teams f cross join companies co
-            where f.event_id = $1::uuid and f.track = 'FINANCE' and co.event_id = $1::uuid and co.squad_id is not null`,
-          [E, roundId],
+            where f.event_id = $1::uuid and f.track = 'FINANCE' and co.event_id = $1::uuid and co.squad_id is not null
+              and get_byte(decode(md5(f.id::text || co.id::text || $2::text), 'hex'), 2) < $3`,
+          [E, roundId, share],
         );
         await b.query("commit");
       } finally {
         b.release();
       }
+      await n.q("analyze orders");
+      return (await n.one("select count(*)::int as n from orders where round_id = $1", [roundId])).n as number;
     };
-    await book(round);
-    expect((await n.one("select count(*)::int as n from orders where round_id = $1", [round])).n).toBe(40_000);
-    await n.q("analyze orders");
 
+    // Round 1: a busy but realistic round, about 20 orders per fund (~4,000).
+    const round1 = await openRound(1);
+    timings.realistic_book_orders = await book(round1, 26);
     let t0 = performance.now();
-    await n.q("select app.clear_round($1, true)", [round]);
+    await n.q("select app.clear_round($1, true)", [round1]);
+    timings.clear_round_200x200_realistic_book_ms = ms(t0);
+
+    // Round 2: the full book, every fund on every company (40,000 orders).
+    const round2 = await openRound(2);
+    expect(await book(round2)).toBe(40_000);
+    t0 = performance.now();
+    await n.q("select app.clear_round($1, true)", [round2]);
     timings.clear_round_200x200_full_book_ms = ms(t0);
-    expect((await n.one("select count(*)::int as n from orders where round_id = $1 and status = 'FILLED'", [round])).n).toBe(40_000);
-    expect((await n.one("select count(*)::int as n from round_prices where round_id = $1", [round])).n).toBe(200);
+    expect((await n.one("select count(*)::int as n from orders where round_id = $1 and status = 'FILLED'", [round2])).n).toBe(40_000);
+    expect((await n.one("select count(*)::int as n from round_prices where round_id = $1", [round2])).n).toBe(200);
     await n.checkInvariants();
 
     t0 = performance.now();
@@ -375,21 +386,19 @@ describe("hot spots at 200 companies × 200 funds", () => {
     timings.generate_flags_200_funds_ms = ms(t0);
     timings.generate_flags_200_funds_flags = Number(flags);
 
-    // The indicative price (app.track_round_range, on every order) with round 2's book already full.
-    const round2 = (await n.one("select id from rounds where event_id = $1 and number = 2", [E])).id;
-    await n.q("update rounds set status = 'OPEN', opened_at = now(), opens_at = now() - interval '1 minute', closes_at = now() + interval '1 hour' where id = $1", [round2]);
-    await book(round2);
-    await n.q("analyze orders");
+    // The indicative price (app.track_round_range, on every order) with round 3's book already full.
+    const round3 = await openRound(3);
+    await book(round3);
     const funds = await n.q("select id from teams where event_id = $1 and track = 'FINANCE' order by code limit 50", [E]);
-    const target = (await n.one("select id, market_price from companies where event_id = $1 and squad_id is not null order by ticker limit 1", [E]));
+    const target = await n.one("select id, market_price from companies where event_id = $1 and squad_id is not null order by ticker limit 1", [E]);
     t0 = performance.now();
     for (const f of funds) {
       await n.q("insert into orders (event_id, round_id, team_id, company_id, type, qty, entry_price, reserve_cents) values ($1, $2, $3, $4, 'BUY', 5, $5, 0)", [
-        E, round2, f.id, target.id, target.market_price,
+        E, round3, f.id, target.id, target.market_price,
       ]);
     }
     timings.order_with_range_trigger_full_book_ms = Math.round((ms(t0) / funds.length) * 100) / 100;
-    expect((await n.one("select count(*)::int as n from round_ranges where round_id = $1", [round2])).n).toBe(1);
+    expect((await n.one("select count(*)::int as n from round_ranges where round_id = $1", [round3])).n).toBe(1);
 
     // The tick's draft scan with every squad's drafts saved and nothing due (the usual tick), with and without the index.
     await n.q("update submission_drafts set version = 1 where event_id = $1", [E]);
@@ -399,7 +408,19 @@ describe("hot spots at 200 companies × 200 funds", () => {
       for (let i = 0; i < 10; i++) await n.q("select app.auto_submit_due_drafts($1)", [E]);
       return Math.round((ms(t) / 10) * 100) / 100;
     };
-    timings.auto_submit_scan_with_index_ms = await scan();
+    timings.auto_submit_scan_ms = await scan();
+    // The same scan with the deadline checked once per type (a suggested rewrite of auto_submit_due_drafts).
+    const t1 = performance.now();
+    for (let i = 0; i < 10; i++) {
+      await n.q(
+        `select dr.id from submission_drafts dr
+          where dr.event_id = $1 and dr.version > 0
+            and dr.type in (select t from unnest(enum_range(null::submission_type)) t where app.scoring_closed($1, t))
+            and not exists (select 1 from submissions s where s.company_id = dr.company_id and s.type = dr.type)`,
+        [E],
+      );
+    }
+    timings.auto_submit_scan_per_type_ms = Math.round((ms(t1) / 10) * 100) / 100;
     const plan = (await n.q("explain select 1 from submission_drafts dr where dr.event_id = $1 and dr.version > 0", [E])).map((r) => r["QUERY PLAN"]).join(" ");
     expect(plan).toMatch(/submission_drafts_event_type_idx/);
     timings.drafts = (await n.one("select count(*)::int as n from submission_drafts where event_id = $1", [E])).n;

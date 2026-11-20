@@ -4,6 +4,8 @@ import { loadTeamContext } from "@/lib/team/context";
 import { ensurePracticeMarket, loadPracticeMarket, practiceResults, practiceTickers } from "@/lib/team/practice";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, money } from "@/lib/format";
+import { featureOn } from "@/lib/event-status";
+import { RefreshAt } from "@/lib/live/refresh-at";
 import { Notice, Panel } from "@/components/ui/ui";
 import { tradeGate } from "../gate";
 import { PracticeTerminal } from "./terminal";
@@ -20,6 +22,9 @@ export default async function PracticePage() {
   const { status, event } = ctx;
   const prize = money(PRACTICE.prizeCents);
   const start = money(PRACTICE.startCents);
+  // Switch practice_verified (migration 076): one simulated company per checked-in Finance team, prepared by the
+  // organisers; a page load never stores the market. Off: named after the Product teams, opened by the first page.
+  const simulated = featureOn(status, "practice_verified", false);
 
   if (!phaseReached(status.phase, "BUILD")) {
     const sb = await supabaseServer();
@@ -28,15 +33,16 @@ export default async function PracticePage() {
       <Panel title="Practice market">
         <p className="text-sm text-paper" data-testid="practice-notice">
           The practice market opens with Round 1{data ? ` at ${clock(data.starts_at)}` : ""}. You get {start} of practice money to trade
-          candlestick charts named after the Product teams. The practice money stays here, but the {PRACTICE.winners} funds worth the most at
+          candlestick charts {simulated ? "of simulated companies, one per Finance team" : "named after the Product teams"}. The practice money stays here, but the {PRACTICE.winners} funds worth the most at
           the close each win {prize} in real cash before the IPO. You must make at least one trade to be ranked.
         </p>
       </Panel>
     );
   }
 
-  const tickers = await practiceTickers(event.id);
-  const market = status.phase === "BUILD" ? await ensurePracticeMarket(event.id, tickers) : await loadPracticeMarket(event.id);
+  const market =
+    status.phase === "BUILD" && !simulated ? await ensurePracticeMarket(event.id, await practiceTickers(event.id)) : await loadPracticeMarket(event.id);
+  const tickers = market?.companies ?? (market ? await practiceTickers(event.id) : []);
 
   if (status.phase !== "BUILD" || market?.settledAt) {
     const results = await practiceResults(event.id);
@@ -87,6 +93,17 @@ export default async function PracticePage() {
     );
   }
 
+  if (!market && simulated) {
+    // Read again every 15 to 25 seconds (spread out, so the funds do not all reload at once) until it is prepared.
+    return (
+      <Panel title="Practice market">
+        <p className="text-sm text-paper" data-testid="practice-notice">
+          The practice market opens in a moment: the organisers are preparing it. This page opens it by itself.
+        </p>
+        <RefreshAt at={new Date(new Date(status.server_time).getTime() + 15_000).toISOString()} afterMs={0} spreadMs={10_000} />
+      </Panel>
+    );
+  }
   if (!market) {
     return <Notice tone="amber">The practice market could not open. Ask the organisers.</Notice>;
   }
