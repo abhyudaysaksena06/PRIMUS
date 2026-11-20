@@ -21,6 +21,7 @@ export const SECTIONS = [
   { path: "/fairness", label: "Fairness", hint: "Flags and appeals" },
   { path: "/chats", label: "Chats", hint: "Read squad and hire chats" },
   { path: "/exports", label: "Downloads", hint: "CSV files of the ledger, prices, scores, results and the event log" },
+  { path: "/backups", label: "Backups", hint: "Backups after every round; download or restore one" },
   { path: "/health", label: "System health", hint: "Connections, errors and the clock" },
 ] as const;
 
