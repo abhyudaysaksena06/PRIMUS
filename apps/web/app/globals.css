@@ -561,18 +561,6 @@
     border-color: var(--mx-accent-line);
     box-shadow: 0 12px 30px rgb(0 0 0 / 0.38), inset 0 1px 0 rgb(255 255 255 / 0.08);
   }
-  /* The one cell that matters most right now. */
-  .bento-item-hot {
-    border-color: var(--mx-accent-line);
-    box-shadow: 0 0 0 1px var(--mx-accent-soft), 0 10px 30px var(--mx-accent-soft), inset 0 1px 0 rgb(255 255 255 / 0.06);
-  }
-
-  /* A blinking underscore after a heading, like a waiting prompt. */
-  .blinking-cursor::after {
-    content: "_";
-    margin-left: 0.1em;
-    animation: blink 1s step-end infinite;
-  }
 }
 
 @keyframes mx-blink {
@@ -594,25 +582,6 @@
 }
 @keyframes mx-boot-line {
   to { opacity: 1; }
-}
-
-/* The terminal bento grid's scan bar and cursor. */
-@keyframes scanline {
-  0% {
-    top: -50%;
-  }
-  100% {
-    top: 100%;
-  }
-}
-
-@keyframes blink {
-  from, to {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0;
-  }
 }
 
 /* The projector's news ticker: the strip is drawn twice side by side and moves by half its width, so it loops without
@@ -678,14 +647,11 @@
 .term ::selection { background: var(--mx-green); color: var(--mx-on-accent); }
 .term table thead tr { color: var(--mx-muted); }
 .term input:focus, .term select:focus, .term textarea:focus { border-color: var(--mx-green); outline-color: var(--mx-green); }
-/* A blinking block cursor after the team code in the header. */
-@keyframes term-blink { 50% { opacity: 0; } }
-.term-cursor { animation: term-blink 1.1s steps(1) infinite; }
 /* The latest candle of a live chart: a frame that fades in and out. */
 @keyframes msim-live-candle { 50% { opacity: 0.15; } }
 .msim-live-candle { animation: msim-live-candle 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
-  .term-cursor, .msim-live-candle { animation: none; }
+  .msim-live-candle { animation: none; }
 }
 
 /* The crisis reveal: the card turns over once (no motion when reduced motion is asked for: motion-safe only). */

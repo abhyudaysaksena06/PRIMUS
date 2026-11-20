@@ -292,9 +292,20 @@
   font: inherit;
   color: inherit;
 }
-.guide-admin .guide-metric > span,
+.guide-admin .guide-metric > span:not(.flex),
 .guide-admin .guide-metric > .guide-status {
   display: block;
+  line-height: 1.6;
+}
+/* A meta row laid out as a flex row (the events list: chip, phase, start time, OPEN) keeps its flex and gaps, and
+   wraps cleanly. */
+.guide-admin .guide-metric > span.flex {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 6px;
+  margin-top: 8px;
   line-height: 1.6;
 }
 .guide-admin .guide-panel-head a {
