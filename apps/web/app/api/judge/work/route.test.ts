@@ -12,6 +12,7 @@ vi.mock("@/lib/judge", () => ({
   fakeJudgeRefusal: () => null,
   hasApiCredential: () => true,
   promptLoader: () => () => ({}),
+  caseBriefLoader: () => () => null,
   supabaseJudgeDb: () => ({}),
   createJudge: () => () => ({}),
   runWorker: mocks.worker,

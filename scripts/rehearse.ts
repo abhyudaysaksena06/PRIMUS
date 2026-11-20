@@ -18,7 +18,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { adviceOf, phaseReached, planOf, sha256Hex, type PhaseCode, type SubmissionType } from "@msim/engine";
-import { createJudge, judgeConfig, promptLoader, runWorker, supabaseJudgeDb } from "../apps/web/lib/judge/index";
+import { caseBriefLoader, createJudge, judgeConfig, promptLoader, runWorker, supabaseJudgeDb } from "../apps/web/lib/judge/index";
 import { parseStatements } from "../apps/web/lib/admin/content";
 import { parseArgs, required } from "./lib/args";
 import { Bot, emptyStats, limiter, pool, signInCounts, signInTeam, sleep, type BotStats, type Env } from "./lib/bot-runner";
@@ -278,8 +278,9 @@ async function autopilot(sb: SupabaseClient, eventId: string, o: RehearseOptions
     const db = supabaseJudgeDb(sb, eventId);
     const judge = createJudge(config);
     const prompts = promptLoader();
+    const caseBriefs = caseBriefLoader();
     while (!finished()) {
-      const s = await runWorker({ db, judge, budgetMs: 20_000, concurrency: config.concurrency, models: config.models, prompts, eventId });
+      const s = await runWorker({ db, judge, budgetMs: 20_000, concurrency: config.concurrency, models: config.models, prompts, caseBriefs, eventId });
       if (s.claimed === 0) await sleep(3000);
       else note(`judge: ${s.done} done, ${s.sealed} sealed, ${s.failed} failed`);
       if (s.stopped === "fatal") {

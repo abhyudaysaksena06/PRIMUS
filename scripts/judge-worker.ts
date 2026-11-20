@@ -14,6 +14,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import {
+  caseBriefLoader,
   checkJudgeModel,
   createJudge,
   fakeJudgeRefusal,
@@ -91,6 +92,7 @@ async function main(): Promise<number> {
   if (!config.fake && !config.ollama && !hasApiCredential()) throw new Error("ANTHROPIC_API_KEY is not set (or set JUDGE_PROVIDER=ollama)");
   const prompts = promptLoader();
   for (const t of ["PITCH", "PLAN", "FLASH"] as const) prompts(t);
+  const caseBriefs = caseBriefLoader(undefined, (line) => console.warn(line));
 
   const judgeName = config.fake
     ? `the FAKE judge (${config.fakeLatencyMs} ms a call)`
@@ -138,6 +140,7 @@ async function main(): Promise<number> {
       concurrency: config.concurrency,
       models: config.models,
       prompts,
+      caseBriefs,
       eventId: event.id,
       stopSignal: stopper.signal,
       abortSignal: aborter.signal,
