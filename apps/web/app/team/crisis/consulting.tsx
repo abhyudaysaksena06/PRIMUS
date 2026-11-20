@@ -34,7 +34,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
   const offers = k === null ? [] : data.offers.filter((o) => o.firm_team_id === me && o.k === k);
   const clients = k === null ? [] : data.engagements.filter((e) => e.firm_team_id === me && e.k === k);
   // Tonight's hiring rules (migration 071): this firm's base rate is its minimum bid and what a drawn client pays.
-  const minBidOn = featureOn(ctx.status, "hire_min_bid");
+  // Round 3 keeps its 5–20%-of-cash band: no minimum bid there (migration 081).
+  const minBidOn = featureOn(ctx.status, "hire_min_bid") && k !== 5;
   const drawOn = featureOn(ctx.status, "hire_base_rate");
   const myRate = data.firms.find((f) => f.team_id === me)?.base_rate_bp ?? null;
   // Locked = gone: a company that has hired is not listed to pitch (hire_locked makes this page re-read at once).
@@ -94,12 +95,12 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         summary={profileDone ? `“${profile!.headline}” · asking ${profile!.asking_cents > 0 ? money(profile!.asking_cents) : "—"}. Tap to edit.` : "Companies read it to choose a firm. Fill it in first."}
       >
         <DoThis testId="profile-todo">Say what your firm is good at and what it asks for, then press Save profile.</DoThis>
-        {myRate !== null && (minBidOn || drawOn) ? (
+        {myRate !== null && (minBidOn || (drawOn && !r3)) ? (
           <p className="mt-2 text-sm text-paper" data-testid="my-base-rate">
             Your base rate: <strong className="text-[var(--term-amber)]">{rateText(myRate)}</strong> of a company ({rateShares(myRate).toLocaleString("en-US")}{" "}
             shares), set by your Round 1 memo score.
             {minBidOn ? " It is your minimum bid: no offer for less can be made or accepted." : ""}
-            {drawOn ? " A company the draw gives you pays it." : ""}
+            {drawOn && !r3 ? " A company the draw gives you pays it." : ""}
           </p>
         ) : null}
         <p className="mb-3 mt-1 text-sm text-paper">
@@ -189,7 +190,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
           </p>
           <p>The cash is kept safe (in escrow) and paid to you at the due time, but only if your memo for that client is submitted.</p>
           {minBidOn ? <p>Your minimum bid is your base rate: neither side can propose or accept less.</p> : null}
-          {drawOn ? <p>When hiring closes, each company with no firm is drawn at random to a firm with room, and pays that firm&apos;s base rate.</p> : null}
+          {drawOn ? <p>When hiring closes, each company with no firm is drawn at random to a firm with room, and pays {r3 ? "10% of its cash" : <>that firm&apos;s base rate</>}.</p> : null}
         </HowItWorks>
       </Step>
 
@@ -221,7 +222,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                   </div>
                   {e.assigned ? (
                     <p className="mt-1 text-sm text-[var(--term-cyan)]" data-testid="client-assigned">
-                      {assignedToFirm(e, c?.ticker ?? label, myRate, drawOn)} Write its memo like any client&apos;s: the fee is paid only if it is in by {dueAt}.
+                      {assignedToFirm(e, c?.ticker ?? label, myRate, drawOn && !r3)} Write its memo like any client&apos;s: the fee is paid only if it is in by {dueAt}.
                     </p>
                   ) : null}
                   {r3 ? null : (
