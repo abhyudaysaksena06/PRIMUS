@@ -88,7 +88,7 @@ export default async function TeamHome() {
   // The demo's dashboard (app/demo/dashboard): the greeting, three metric cards, then "Do this now" beside the live
   // feed, then the night at a glance beside the latest news.
   return (
-    <div>
+    <div className="guide-home">
       <RefreshAt at={times[0] ?? null} />
       <AutoRefresh everyMs={15_000} active={squadWork} />
 

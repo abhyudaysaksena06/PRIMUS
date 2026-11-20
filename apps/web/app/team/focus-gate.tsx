@@ -27,24 +27,24 @@ export function FocusGate({
   const later = opensIn(track, phase, path);
   const when = later ? stageInfo(later, format) : null;
   return (
-    <div className="mx-panel glow-box mx-auto max-w-md rounded-2xl p-6 text-center" data-testid="not-now">
+    <div className="guide-panel mx-auto max-w-md p-6 text-center" data-testid="not-now">
       <p className="text-6xl text-phosphor" aria-hidden>
         <Glyph e="🔒" />
       </p>
-      <p aria-hidden className="mx-tag mt-2 text-xs text-warn">
+      <p aria-hidden className="guide-chip mt-2">
         Access locked
       </p>
-      <h2 className="mt-1 text-2xl font-extrabold text-phosphor glow">Not right now</h2>
-      <p className="mt-1 text-base text-paper">
+      <h2 className="guide-round-title mt-2">Not right now</h2>
+      <p className="guide-muted mt-2 text-[13px]">
         {when ? (when.round ? `This opens in Round ${when.round}: ${when.title}.` : `This opens at the ${when.title.toLowerCase()}.`) : "This part is not used any more tonight."}{" "}
         Focus on this round for now!
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
-        <Link href="/team" className="mx-key mx-key-quiet rounded-xl px-4 py-2">
+        <Link href="/team" className="guide-btn secondary">
           <Glyph e="🏠" spoken /> Back to Home
         </Link>
         {taskHref ? (
-          <Link href={taskHref} className="mx-key mx-key-solid rounded-xl px-4 py-2">
+          <Link href={taskHref} className="guide-btn">
             <Glyph e="🎯" spoken /> Do this now
           </Link>
         ) : null}

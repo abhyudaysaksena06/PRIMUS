@@ -32,6 +32,7 @@ export function RoundBanner({
   openRound,
   format = "CLASSIC",
   crisis = null,
+  slot,
 }: {
   track: Track;
   phase: PhaseCode;
@@ -41,6 +42,8 @@ export function RoundBanner({
   openRound: { number: number; closes_at: string } | null;
   format?: EventFormat;
   crisis?: CrisisNow | null;
+  /** Where the layout puts this copy (see BannerFrame); none: the form for the page, in place. */
+  slot?: "top" | "content";
 }) {
   const stage = stageOf(phase);
   const info = stageInfo(stage, format);
@@ -132,5 +135,5 @@ export function RoundBanner({
     </section>
   );
 
-  return <BannerFrame full={full} compact={compact} />;
+  return <BannerFrame full={full} compact={compact} slot={slot} />;
 }

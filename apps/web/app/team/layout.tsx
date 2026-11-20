@@ -149,6 +149,20 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     ...(splash ? [{ id: `card-${splash.k}`, time: clock(splash.revealedAt), type: "CRISIS", title: splash.title }] : []),
     ...(recent ?? []).map((b) => ({ id: b.id, time: clock(b.published_at), type: b.kind.toUpperCase(), title: b.title })),
   ];
+  // The round banner: a strip under the task band on every page but Home; on Home, the big card in the page column.
+  const banner = (slot: "top" | "content") => (
+    <RoundBanner
+      track={team.track}
+      phase={status.phase}
+      endsAt={status.phase_ends_at}
+      gate={status.gate}
+      next={status.next_phase}
+      openRound={status.trading === "OPEN" ? status.open_round : null}
+      format={event.format}
+      crisis={crisis}
+      slot={slot}
+    />
+  );
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <TeamFeatures features={status.features}>
@@ -280,19 +294,9 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                 Your team has been disqualified by the fairness officer{team.disqualified_reason ? `: ${team.disqualified_reason}` : "."}
               </p>
             ) : null}
-            <div className="guide-banner-slot">
-              <RoundBanner
-                track={team.track}
-                phase={status.phase}
-                endsAt={status.phase_ends_at}
-                gate={status.gate}
-                next={status.next_phase}
-                openRound={status.trading === "OPEN" ? status.open_round : null}
-                format={event.format}
-                crisis={crisis}
-              />
-            </div>
+            {banner("top")}
             <main className="guide-content">
+              <div className="guide-home-banner">{banner("content")}</div>
               <FeedbackBar className="mb-4" />
               <FocusGate track={team.track} phase={status.phase} taskHref={taskHref} format={event.format}>
                 {children}
