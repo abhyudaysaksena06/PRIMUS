@@ -33,6 +33,8 @@ describe("reset the live event to new", () => {
       await n.ok(n.lead, "desk_check_in", n.eventId, null, code, `Test ${i + 1}`, JSON.stringify([{ full_name: `Member ${i + 1}`, roll_number: `R${i + 1}` }]));
     }
     await n.org("set_feature", n.eventId, "submit_last_5", true);
+    // Round 3 statements uploaded after creation (Content page) survive the reset too (migration 086).
+    await n.q("insert into problem_statements (event_id, number, title, body, cap, sector) select $1, 1, 'S1', 'Body', 7, (select sector from problem_cards where event_id = $1 limit 1)", [n.eventId]);
     const rosterBefore = (await n.one("select count(*)::int as c from roster where event_id = $1", [n.eventId])).c;
 
     // Play: the draw and Round 1.
@@ -66,8 +68,9 @@ describe("reset the live event to new", () => {
     expect((await n.one("select count(*)::int as c from members where event_id = $1", [id])).c).toBe(codes.length);
     expect((await n.one("select count(*)::int as c from roster where event_id = $1", [id])).c).toBe(rosterBefore);
     expect((await n.q("select what from event_log where event_id = $1", [id])).map((x) => x.what)).toContain(
-      "Reset to new: everything played was wiped; registrations and settings kept",
+      "Reset to new: everything played was wiped; registrations, settings and Round 3 statements kept",
     );
+    expect((await n.one("select count(*)::int as c from problem_statements where event_id = $1", [id])).c).toBe(1);
     // A checked-in team can sign in and act again at once.
     const again = await n.one("select app.team_admitted(id) as ok from teams where event_id = $1 and code = $2", [id, codes[0]]);
     expect(again.ok).toBe(true);
