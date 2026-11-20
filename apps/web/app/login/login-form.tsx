@@ -1,5 +1,8 @@
 "use client";
 
+// The sign-in form, drawn as the demo's (app/demo/login): two access tabs, capital labels, dark fields and one solid
+// key. The fields, their names and the messages are the real ones (actions.ts).
+
 import { useActionState, useState } from "react";
 import { signIn, type LoginState } from "./actions";
 
@@ -8,21 +11,14 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(signIn, {});
 
   const tab = (m: "team" | "staff", label: string) => (
-    <button
-      type="button"
-      onClick={() => setMode(m)}
-      aria-pressed={mode === m}
-      className={`flex-1 rounded-md px-3 py-2 font-mono text-sm font-bold ${
-        mode === m ? "bg-phosphor text-ink" : "text-muted hover:text-phosphor"
-      }`}
-    >
+    <button type="button" onClick={() => setMode(m)} aria-pressed={mode === m}>
       {label}
     </button>
   );
 
   return (
     <form action={action} className="space-y-4">
-      <div className="flex gap-1 rounded-lg border border-line bg-ink p-1">
+      <div className="mx-login-tabs">
         {tab("team", "Team")}
         {tab("staff", "Organiser")}
       </div>
@@ -31,7 +27,7 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
 
       {mode === "team" ? (
         <label className="block">
-          <span className="font-mono text-sm font-bold text-phosphor-mid">Team code</span>
+          <span className="mx-login-label">Team code</span>
           <input
             name="code"
             defaultValue={mode === "team" ? (state.login ?? code) : undefined}
@@ -39,25 +35,25 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
             autoComplete="username"
             autoCapitalize="characters"
             placeholder="P07"
-            className="mt-1 block w-full rounded-md border border-phosphor-dim px-3 py-2 text-lg uppercase tracking-wider"
+            className="mx-login-input font-mono uppercase tracking-wider"
           />
         </label>
       ) : (
         <label className="block">
-          <span className="font-mono text-sm font-bold text-phosphor-mid">Email</span>
+          <span className="mx-login-label">Email</span>
           <input
             name="email"
             type="email"
             defaultValue={mode === "staff" ? state.login : undefined}
             required
             autoComplete="username"
-            className="mt-1 block w-full rounded-md border border-phosphor-dim px-3 py-2 text-lg"
+            className="mx-login-input"
           />
         </label>
       )}
 
       <label className="block">
-        <span className="font-mono text-sm font-bold text-phosphor-mid">Password</span>
+        <span className="mx-login-label">Password</span>
         <input
           name="password"
           type="password"
@@ -65,7 +61,7 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
           autoComplete="current-password"
           autoFocus={mode === "team" && !!code}
           placeholder={mode === "team" ? "XXXX-XXXX-XXXX" : undefined}
-          className="mt-1 block w-full rounded-md border border-phosphor-dim px-3 py-2 font-mono text-lg tracking-wider"
+          className="mx-login-input font-mono tracking-wider"
         />
       </label>
 
@@ -75,12 +71,9 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mx-key mx-key-solid w-full rounded-md px-4 py-3 text-base"
-      >
-        {pending ? "Signing in…" : "Sign in"}
+      <button type="submit" disabled={pending} className="mx-login-submit">
+        <span>{pending ? "Signing in…" : "Sign in"}</span>
+        <span aria-hidden>→</span>
       </button>
     </form>
   );

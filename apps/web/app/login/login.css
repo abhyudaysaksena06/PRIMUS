@@ -1,0 +1,233 @@
+/* The sign-in page in the PRIMUS demo's look (app/demo/login, demo.css: .demo-login, .demo-login-card, .guide-tabs,
+   .guide-input). Colours come from the tokens (globals.css): green by default, the track's on a track's portal. */
+.mx-login {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 28px 16px;
+  background: var(--mx-black);
+  color: var(--mx-paper);
+}
+.mx-login-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--mx-backdrop);
+}
+.mx-login-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+  background-image: linear-gradient(var(--mx-accent-soft) 1px, transparent 1px), linear-gradient(90deg, var(--mx-accent-soft) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(180deg, transparent, #000 18%, #000 80%, transparent);
+}
+.mx-login-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 720px;
+  height: 520px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse, var(--mx-accent-soft), transparent 68%);
+}
+.mx-login-content {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 570px);
+}
+.mx-login-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 22px;
+}
+.mx-login-logo {
+  width: 118px;
+  height: auto;
+  filter: drop-shadow(0 0 14px var(--mx-accent-glow));
+}
+.mx-login-network {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mx-muted);
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.12em;
+}
+.mx-login-network i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mx-green);
+  box-shadow: 0 0 10px var(--mx-green);
+}
+.mx-login-card {
+  position: relative;
+  padding: 26px 20px;
+  border: 1px solid rgb(185 192 207 / 0.18);
+  border-radius: var(--mx-r-2xl);
+  background: linear-gradient(145deg, rgb(13 15 20 / 0.96), rgb(6 8 11 / 0.98));
+  box-shadow: 0 28px 100px rgb(0 0 0 / 0.5), inset 0 1px rgb(255 255 255 / 0.03);
+}
+.mx-login-card::before,
+.mx-login-card::after {
+  content: "";
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  pointer-events: none;
+}
+.mx-login-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--mx-green);
+  border-left: 2px solid var(--mx-green);
+  border-top-left-radius: var(--mx-r-2xl);
+}
+.mx-login-card::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 2px solid var(--mx-green);
+  border-bottom: 2px solid var(--mx-green);
+  border-bottom-right-radius: var(--mx-r-2xl);
+}
+.mx-login-eyebrow {
+  color: #a0a5b1;
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.17em;
+}
+.mx-login-eyebrow b {
+  padding: 0 8px;
+  color: var(--mx-green);
+}
+.mx-login-heading {
+  margin: 20px 0 24px;
+}
+.mx-login-heading h1 {
+  margin: 0 0 12px;
+  color: #f4f5f7;
+  font-family: var(--font-sans);
+  font-size: clamp(36px, 9vw, 57px);
+  font-weight: 750;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+  --mx-cipher-color: var(--mx-green);
+}
+.mx-login-heading p {
+  color: #a9aeba;
+  font-size: 15px;
+  line-height: 1.6;
+}
+/* The form: the demo's tabs, labels, fields and key. */
+.mx-login-tabs {
+  display: flex;
+  gap: 6px;
+}
+.mx-login-tabs button {
+  padding: 9px 14px;
+  border: 1px solid rgb(185 192 207 / 0.23);
+  border-radius: var(--mx-r-md);
+  color: #a0a5b1;
+  font: 700 12px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color 160ms, color 160ms, background-color 160ms;
+}
+.mx-login-tabs button:hover {
+  color: #f2f3f6;
+}
+.mx-login-tabs button[aria-pressed="true"] {
+  border-color: var(--mx-green);
+  background: var(--mx-accent-soft);
+  color: var(--mx-green);
+}
+.mx-login-label {
+  display: block;
+  margin: 0 0 7px;
+  color: #a0a5b1;
+  font: 700 11px var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.mx-login .mx-login-input {
+  display: block;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgb(185 192 207 / 0.23);
+  border-radius: var(--mx-r-md);
+  background: rgb(5 7 11 / 0.88);
+  color: #f2f3f6;
+  font-size: 17px;
+}
+.mx-login .mx-login-input:focus {
+  border-color: var(--mx-green);
+  box-shadow: 0 0 0 3px var(--mx-accent-soft);
+}
+.mx-login-submit {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: var(--mx-r-md);
+  background: var(--mx-green);
+  color: var(--mx-on-accent);
+  font: 800 13px var(--font-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 24px var(--mx-accent-glow);
+  transition: filter 160ms;
+}
+.mx-login-submit:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.mx-login-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.mx-login-note {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgb(185 192 207 / 0.14);
+  color: #8f95a2;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.mx-login-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 18px;
+  padding: 0 4px;
+  color: var(--mx-muted);
+  font: 700 9px var(--font-mono);
+  letter-spacing: 0.12em;
+}
+.mx-login-footer b {
+  color: var(--mx-green);
+}
+@media (min-width: 640px) {
+  .mx-login {
+    padding: 42px 28px;
+  }
+  .mx-login-card {
+    padding: 40px 42px;
+  }
+  .mx-login-logo {
+    width: 145px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mx-login-tabs button,
+  .mx-login-submit {
+    transition: none;
+  }
+}

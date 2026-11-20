@@ -1,29 +1,24 @@
-// Small building blocks shared by every area: panels, badges, tables and the result of an action.
+// Small building blocks shared by every area: panels, badges, tables and the result of an action. They are drawn in
+// the PRIMUS demo's look (app/demo): gradient cards with a hairline edge and an accent tick, small capital labels,
+// chip badges, solid accent keys. The colours come from the track's tokens (globals.css, [data-track]).
 
 import type { ReactNode } from "react";
 import { CipherText } from "./matrix/cipher-text";
-import { DitherLayer } from "./matrix/dither-layer";
 
 export function Panel({ title, actions, children, className = "" }: { title?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string }) {
   return (
-    <section className={`mx-panel min-w-0 rounded-lg ${className}`}>
+    <section className={`mx-panel min-w-0 rounded-xl ${className}`}>
       {title || actions ? (
-        <>
-          <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-            {title ? (
-              <h2 className="min-w-0 text-base font-semibold text-phosphor glow [overflow-wrap:anywhere]">
-                {typeof title === "string" ? <CipherText text={title} duration={450} /> : title}
-              </h2>
-            ) : (
-              <span />
-            )}
-            {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-          </header>
-          {/* The rule under the title is a dithered strip (decoration: no text sits on it). */}
-          <div className="relative h-1.5 border-t border-line">
-            <DitherLayer from="top" opacity={0.55} />
-          </div>
-        </>
+        <header className="mx-panel-head flex min-h-12 flex-wrap items-center justify-between gap-2 rounded-t-[inherit] px-4 py-2.5">
+          {title ? (
+            <h2 className="mx-panel-title min-w-0 text-sm [overflow-wrap:anywhere] sm:text-[0.95rem]">
+              {typeof title === "string" ? <CipherText text={title} duration={450} /> : title}
+            </h2>
+          ) : (
+            <span />
+          )}
+          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+        </header>
       ) : null}
       {/* Text typed by organisers (a URL in a bulletin, a long reason) wraps instead of widening the page. Table cells
           do not wrap (Td), so tables are unaffected. */}
@@ -32,7 +27,7 @@ export function Panel({ title, actions, children, className = "" }: { title?: Re
   );
 }
 
-// Tones are text colours on black: green for good and neutral news, amber for warnings, red for errors.
+// Tones are text colours on the dark card: the accent for good and neutral news, amber for warnings, red for errors.
 const TONES = {
   slate: "text-muted ring-line",
   green: "text-phosphor ring-phosphor-dim",
@@ -43,7 +38,17 @@ const TONES = {
 } as const;
 export type Tone = keyof typeof TONES;
 
-/** A badge, drawn as a [ BRACKETED ] tag (the brackets and the capitals are CSS: the text is unchanged). */
+// A notice's coloured left edge and wash, per tone (the demo's alert boxes).
+const EDGES = {
+  slate: "border-line",
+  green: "border-phosphor",
+  amber: "border-warn",
+  red: "border-danger",
+  blue: "border-phosphor-mid",
+  violet: "border-phosphor-dim",
+} as const;
+
+/** A badge, drawn as a small chip in capitals (the capitals are CSS: the text is unchanged). */
 export function Badge({ tone = "slate", children }: { tone?: Tone; children: ReactNode }) {
   return <span className={`mx-tag text-xs ring-0 ${TONES[tone]}`}>{children}</span>;
 }
@@ -77,15 +82,15 @@ export function Table({
     >
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+          <tr className="border-b border-line text-left font-mono text-xs uppercase tracking-[0.12em] text-muted">
             {head.map((h, i) => (
-              <th key={i} className="whitespace-nowrap px-2 py-2 font-semibold">
+              <th key={i} className="whitespace-nowrap px-2.5 py-2.5 font-bold">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-line">{rows}</tbody>
+        <tbody className="divide-y divide-line/70 [&>tr]:transition-colors [&>tr:hover]:bg-phosphor/[0.04]">{rows}</tbody>
       </table>
       {isEmpty ? <p className="px-2 py-4 text-sm text-muted">{empty ?? "Nothing yet."}</p> : null}
     </div>
@@ -93,29 +98,36 @@ export function Table({
 }
 
 export function Td({ children, className = "", mono = false }: { children?: ReactNode; className?: string; mono?: boolean }) {
-  return <td className={`whitespace-nowrap px-2 py-1.5 ${mono ? "font-mono tabular-nums" : ""} ${className}`}>{children}</td>;
+  return <td className={`whitespace-nowrap px-2.5 py-2 ${mono ? "font-mono tabular-nums" : ""} ${className}`}>{children}</td>;
 }
 
 export function Stat({ label, value, hint }: { label: ReactNode; value: ReactNode; hint?: ReactNode }) {
   return (
-    <div className="rounded-md bg-raised px-3 py-2">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted">{label}</div>
-      <div className="mt-0.5 text-lg font-semibold tabular-nums text-phosphor">{value}</div>
-      {hint ? <div className="text-xs text-muted">{hint}</div> : null}
+    <div className="rounded-lg border border-line bg-raised px-3.5 py-3">
+      <div className="mx-eyebrow text-xs">{label}</div>
+      <div className="mt-1.5 font-mono text-xl font-bold tabular-nums text-paper">{value}</div>
+      {hint ? <div className="mt-0.5 font-mono text-xs text-phosphor">{hint}</div> : null}
     </div>
   );
 }
 
 export function Notice({ tone = "slate", children }: { tone?: Tone; children: ReactNode }) {
-  // A red notice keeps bg-red-50 (a test hook, themed in globals.css as a faint red on black).
-  return <div className={`rounded-md ${tone === "red" ? "bg-red-50" : "bg-panel"} px-3 py-2 text-sm ring-1 ring-inset ${TONES[tone]}`}>{children}</div>;
+  // A red notice keeps bg-red-50 (a test hook, themed in globals.css as a faint red on the dark page).
+  return (
+    <div
+      className={`rounded-md border-l-[3px] ${EDGES[tone]} ${tone === "red" ? "bg-red-50" : "bg-raised/80"} px-3.5 py-2.5 text-sm leading-relaxed ring-1 ring-inset ${TONES[tone]}`}
+    >
+      {children}
+    </div>
+  );
 }
 
-// Buttons are terminal keys: an outlined, glowing key (primary), a quiet outline (secondary) and a red key (danger).
+// Buttons are the demo's keys: a solid key in the track's colour (primary), an outlined key (secondary) and a red
+// outlined key (danger).
 export const buttonClass = {
-  primary: "mx-key rounded-md px-3 py-2 text-sm",
-  secondary: "mx-key mx-key-quiet rounded-md px-3 py-2 text-sm",
-  danger: "mx-key mx-key-danger rounded-md px-3 py-2 text-sm",
+  primary: "mx-key rounded-md px-3.5 py-2 text-sm",
+  secondary: "mx-key mx-key-quiet rounded-md px-3.5 py-2 text-sm",
+  danger: "mx-key mx-key-danger rounded-md px-3.5 py-2 text-sm",
 } as const;
 
-export const inputClass = "block w-full rounded-md border border-phosphor-dim px-3 py-2 text-sm focus:border-phosphor focus:outline-none";
+export const inputClass = "block w-full rounded-md border border-line px-3 py-2 text-sm focus:border-phosphor focus:outline-none";

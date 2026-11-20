@@ -1,6 +1,6 @@
-// The terminal bento grid: a grid of glowing, bordered "terminal windows" with a slow scanline sweeping through each.
-// The look lives in globals.css (.terminal-container, .bento-grid, .bento-item, .blinking-cursor and the `scanline` and
-// `blink` keyframes), drawn from the Matrix theme's variables.
+// The bento grid: a grid of cards in the PRIMUS demo's look (gradient card, hairline edge in the track's colour).
+// The look lives in globals.css (.terminal-container, .bento-grid, .bento-item, .blinking-cursor), drawn from the
+// track's tokens.
 
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react";
 
@@ -43,8 +43,8 @@ export function BentoGrid({ className = "", children, ...rest }: ComponentPropsW
 /** A terminal window's title line: "> TITLE", with the prompt drawn as decoration. */
 export function BentoTitle({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <h2 className={`flex min-w-0 items-center gap-2 font-mono text-lg font-extrabold uppercase tracking-wide text-phosphor glow ${className}`}>
-      <span aria-hidden className="text-phosphor-mid">
+    <h2 className={`flex min-w-0 items-center gap-2 font-mono text-base font-bold tracking-wide text-[var(--mx-heading)] ${className}`}>
+      <span aria-hidden className="text-phosphor">
         &gt;
       </span>
       {children}

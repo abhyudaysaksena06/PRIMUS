@@ -79,9 +79,10 @@ function remember(key: string, thresholds: number[]) {
 }
 
 const TONE = {
-  info: "border-line bg-panel text-phosphor",
-  good: "border-phosphor-dim bg-phosphor/10 text-phosphor",
-  warn: "border-warn/60 bg-warn/10 text-warn",
+  // Opaque cards (a toast sits over the page's own text), with a coloured left edge as the demo's alerts.
+  info: "border-line border-l-[3px] border-l-phosphor bg-raised text-phosphor",
+  good: "border-phosphor-dim border-l-[3px] border-l-phosphor bg-raised text-phosphor",
+  warn: "border-warn/60 border-l-[3px] border-l-warn bg-raised text-warn",
 } as const;
 
 export function Alerts({ tasks, track, teamId }: { tasks: AlertTask[]; track: Track; teamId: string }) {

@@ -20,7 +20,6 @@ import { BulletinItem } from "./bulletins/bulletin";
 import { inThisRound } from "@/lib/team/focus";
 import { Glyph } from "@/components/ui/matrix/glyph";
 import { CipherText } from "@/components/ui/matrix/cipher-text";
-import { DitherLayer } from "@/components/ui/matrix/dither-layer";
 import { scoreNow } from "@/lib/team/badges";
 import { loadBadges } from "@/lib/team/badges-data";
 import { BadgesCard } from "./badges-card";
@@ -86,6 +85,14 @@ export default async function TeamHome() {
       <RefreshAt at={times[0] ?? null} />
       <AutoRefresh everyMs={15_000} active={squadWork} />
 
+      {/* The demo's page head: where you are, and a greeting (a line, not a heading: the page's headings stay as they were). */}
+      <div className="mx-page-head">
+        <p className="mx-eyebrow mx-eyebrow-accent text-xs">
+          Team home / {team.track.toLowerCase()} track · {team.code}
+        </p>
+        <p className="mx-page-title">Good evening, {team.name || `Team ${team.code}`}.</p>
+      </div>
+
       <HowToPlayCard track={team.track} format={ctx.event.format} open={stageOf(status.phase) === "BEFORE"} sector={ctx.sector} />
 
       <section className="space-y-3">
@@ -99,11 +106,11 @@ export default async function TeamHome() {
         ) : (
           <>
             <div className="mx-panel flex items-center gap-4 rounded-2xl p-5">
-              <span className="text-4xl text-phosphor" aria-hidden>
+              <span className="grid size-14 shrink-0 place-items-center rounded-xl border border-line bg-raised text-3xl text-phosphor" aria-hidden>
                 <Glyph e={plan.now.length ? "👍" : "☕"} />
               </span>
               <div>
-                <h2 className="text-xl font-extrabold text-phosphor glow">{plan.now.length ? "Nothing to press right now" : "Nothing to do yet"}</h2>
+                <h2 className="text-xl font-extrabold text-[var(--mx-heading)]">{plan.now.length ? "Nothing to press right now" : "Nothing to do yet"}</h2>
                 <p className="mt-0.5 text-base text-paper" data-testid="home-idle">
                   {plan.idle}
                 </p>
@@ -288,18 +295,21 @@ function ScoreNow({ track, score }: { track: string; score: ReturnType<typeof sc
   return (
     <BentoItem as="section" span={3} className="bento-item-hot flex flex-wrap items-center justify-between gap-3" aria-label="Your score now" data-testid="score-now">
       <div>
-        <p className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wide text-muted">
-          <span className="text-base text-phosphor" aria-hidden>
+        <p className="mx-eyebrow flex items-center gap-1.5 text-xs">
+          <span className="text-sm text-phosphor" aria-hidden>
             <Glyph e="📈" />
           </span>
           {track === "CONSULTING" ? "Earned so far" : "Your score now"}
         </p>
-        <p className="mt-1 font-mono text-3xl font-extrabold tabular-nums text-phosphor glow" data-testid="score-now-value">
+        <p className="mt-2 font-mono text-3xl font-extrabold tabular-nums tracking-tight text-[var(--mx-heading)] sm:text-4xl" data-testid="score-now-value">
           {money(score.value)}
         </p>
       </div>
       {score.changeBp !== null ? (
-        <p className={`rounded-xl px-3 py-2 font-mono text-lg font-extrabold tabular-nums ring-1 ${up ? "text-phosphor ring-phosphor" : "text-danger-soft ring-danger"}`} data-testid="score-now-change">
+        <p
+          className={`rounded-lg border px-3 py-2 font-mono text-lg font-extrabold tabular-nums ${up ? "border-[var(--term-green)]/50 bg-[var(--term-green)]/10 text-[var(--term-green)]" : "border-danger/60 bg-danger/10 text-danger-soft"}`}
+          data-testid="score-now-change"
+        >
           {up ? "▲ +" : "▼ "}
           {(score.changeBp / 100).toFixed(2)}% <span className="text-xs font-normal text-muted">since the start</span>
         </p>
@@ -310,25 +320,26 @@ function ScoreNow({ track, score }: { track: string; score: ReturnType<typeof sc
   );
 }
 
+/** A metric card, as the demo's: a small capital label, a big figure, a line under it. */
 function Tile({ icon, label, hot = false, children }: { icon: string; label: string; hot?: boolean; children: ReactNode }) {
   return (
     <BentoItem className={hot ? "bento-item-hot" : ""}>
-      <p className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wide text-muted">
-        <span className="text-base text-phosphor" aria-hidden>
+      <p className="mx-eyebrow flex items-center gap-1.5 text-xs">
+        <span className="text-sm text-phosphor" aria-hidden>
           <Glyph e={icon} />
         </span>
         {label}
       </p>
-      <div className="mt-1 font-mono text-2xl font-extrabold tabular-nums text-phosphor glow">{children}</div>
+      <div className="mt-2.5 font-mono text-2xl font-extrabold tabular-nums tracking-tight text-[var(--mx-heading)]">{children}</div>
     </BentoItem>
   );
 }
 
-/** A titled terminal window in the bento grid: "> 📣 LATEST NEWS". */
+/** A titled card in the bento grid, as the demo's panels: a title row over a hairline, its action on the right. */
 function Card({ icon, title, action, span = 1, children }: { icon: string; title: string; action?: ReactNode; span?: 1 | 2 | 3; children: ReactNode }) {
   return (
     <BentoItem as="section" span={span} aria-label={title}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+      <div className="-mx-[1.15rem] -mt-[1.1rem] mb-3 flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-line bg-gradient-to-r from-phosphor/10 to-transparent px-[1.15rem] py-2">
         <BentoTitle>
           <span aria-hidden>
             <Glyph e={icon} />
@@ -346,39 +357,41 @@ function Due({ t, big = false }: { t: HomeTask; big?: boolean }) {
   if (!t.due) return null;
   return (
     <p className={`whitespace-nowrap ${big ? "sm:text-right" : "text-right"}`}>
-      <span className={`block font-mono text-xs ${big ? "text-paper" : "text-muted"}`}>
+      <span className={`block font-mono text-xs tracking-wide ${big ? "text-paper" : "text-muted"}`}>
         {t.dueLabel} · {clock(t.due)}
       </span>
-      <Countdown to={t.due} passed="closed" className={big ? "text-3xl font-extrabold text-phosphor glow" : "font-semibold text-phosphor"} />
+      <Countdown to={t.due} passed="closed" className={big ? "font-mono text-3xl font-extrabold text-warn" : "font-mono font-bold text-warn"} />
     </p>
   );
 }
 
-/** The one thing to do now: big, with the time left and a big button. */
+/** The one thing to do now: big, with the time left and a big button (the demo's "Do this now" panel). */
 function BigTask({ t }: { t: HomeTask }) {
   return (
-    <li className="mx-panel glow-box relative mb-3 overflow-hidden rounded-2xl border-phosphor" data-testid={`task-${t.key}`} data-state={t.state}>
-      {/* A dithered strip on the top edge marks the one big card; the text sits below it on plain black. */}
-      <div aria-hidden className="relative h-3 border-b border-phosphor-dim">
-        <DitherLayer from="top" tone="bright" opacity={0.6} />
+    <li className="mx-panel relative mb-3 overflow-hidden rounded-2xl" data-testid={`task-${t.key}`} data-state={t.state}>
+      <div className="mx-panel-head flex min-h-11 items-center justify-between gap-2 px-5 py-2">
+        <p className="mx-taskbar-pill">
+          <Glyph e="📝" spoken /> Do this now
+        </p>
+        <span aria-hidden className="hidden font-mono text-[0.7rem] font-bold tracking-[0.14em] text-muted sm:inline">
+          LIVE TASK
+        </span>
       </div>
       <div className="p-5">
-      {/* On a phone the countdown sits under the text, so the text keeps the full width. */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="font-mono text-xs font-bold uppercase tracking-widest text-phosphor-mid">
-            <Glyph e="📝" spoken /> Do this now
-          </p>
-          <h3 className="mt-1 text-2xl font-extrabold leading-tight text-phosphor glow">{t.title}</h3>
-          <p className="mt-1 text-base text-paper">{t.detail}</p>
+        {/* On a phone the countdown sits under the text, so the text keeps the full width. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-2xl font-extrabold leading-tight tracking-tight text-[var(--mx-heading)] sm:text-[1.75rem]">{t.title}</h3>
+            <p className="mt-1.5 text-base leading-relaxed text-muted">{t.detail}</p>
+          </div>
+          <Due t={t} big />
         </div>
-        <Due t={t} big />
-      </div>
-      {t.href ? (
-        <Link href={t.href} className="mx-key mx-key-solid mt-4 rounded-xl px-5 py-3 text-base font-extrabold">
-          {t.linkLabel}
-        </Link>
-      ) : null}
+        {t.href ? (
+          <Link href={t.href} className="mx-key mx-key-solid mt-4 rounded-lg px-5 py-3 text-base font-extrabold">
+            {t.linkLabel}
+            <span aria-hidden> →</span>
+          </Link>
+        ) : null}
       </div>
     </li>
   );
@@ -388,16 +401,16 @@ function BigTask({ t }: { t: HomeTask }) {
 function SmallTask({ t }: { t: HomeTask }) {
   const st = STATE[t.state];
   return (
-    <li className="mx-panel mb-2 flex flex-wrap items-center gap-3 rounded-xl p-3" data-testid={`task-${t.key}`} data-state={t.state}>
-      <span className="text-2xl text-phosphor" aria-hidden>
+    <li className="mx-panel mb-2 flex flex-wrap items-center gap-3 rounded-xl p-3.5" data-testid={`task-${t.key}`} data-state={t.state}>
+      <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-line bg-raised text-xl text-phosphor" aria-hidden>
         <Glyph e={st?.icon ?? "ℹ️"} />
       </span>
       <div className="min-w-[12rem] flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-bold text-phosphor">{t.title}</h3>
+          <h3 className="font-bold text-[var(--mx-heading)]">{t.title}</h3>
           {st ? <span className={`mx-tag text-xs ${st.chip}`}>{t.stateLabel ?? st.label}</span> : null}
         </div>
-        <p className="text-sm text-paper">{t.detail}</p>
+        <p className="text-sm text-muted">{t.detail}</p>
       </div>
       {/* On a phone the countdown and the button go on their own row, under the text. */}
       <div className="flex w-full flex-wrap items-center justify-between gap-3 sm:w-auto">
@@ -405,7 +418,7 @@ function SmallTask({ t }: { t: HomeTask }) {
         {t.href ? (
           <Link
             href={t.href}
-            className={`mx-key shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-sm ${t.state === "todo" ? "" : "mx-key-quiet"}`}
+            className={`mx-key shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm ${t.state === "todo" ? "" : "mx-key-quiet"}`}
           >
             {t.linkLabel}
           </Link>
