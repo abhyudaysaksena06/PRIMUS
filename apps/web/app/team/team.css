@@ -1,69 +1,363 @@
-/* Approved Stitch Matrix Command Centre design — team workspace only. */
-.mx-team-shell {
-  --mx-shell-bg:#070909;--mx-accent:#00e676;--mx-accent-bright:#75ff9e;--mx-accent-mid:#00b86b;
-  --mx-accent-rgb:0,230,118;--mx-accent-deep-rgb:0,65,34;--mx-accent-spec-rgb:117,255,158;
-  --mx-tint-rgb:7,12,10;--mx-accent-ink:#070909;--mx-select-bg:#0c1110;
-  background:#070909;color:#f2f5f3;font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+/* The team shell in the PRIMUS demo's look (app/demo/layout.tsx and demo.css: .guide-app, .guide-sidebar, .guide-top,
+   .guide-taskbar). Colours come from the track's tokens (globals.css, [data-track] on .mx-shell). Phones first: the
+   sections are a sticky row of tabs under the banner; from 900 px they are a fixed sidebar on the left. */
+
+.mx-shell {
+  position: relative;
+  isolation: isolate;
 }
-.mx-team-shell[data-track="CONSULTING"],.mx-team-shell[data-track="FINANCE"] {
-  --mx-shell-bg:#070909;--mx-accent:#00e676;--mx-accent-bright:#75ff9e;--mx-accent-mid:#00b86b;
-  --mx-accent-rgb:0,230,118;--mx-accent-deep-rgb:0,65,34;--mx-accent-spec-rgb:117,255,158;
-  --mx-tint-rgb:7,12,10;--mx-accent-ink:#070909;--mx-select-bg:#0c1110;
+/* The page's own atmosphere (behind everything, never takes a click). */
+.mx-shell-atmos {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--mx-backdrop);
 }
-.mx-team-shell.term {
-  --term-bg:#070909;--term-amber:#00e676;--term-amber-dim:#87948d;--term-green:#00d68f;
-  --term-red:#ff5364;--term-cyan:#75ff9e;--term-line:#1b2420;
-  --mx-black:#070909;--mx-green:#00e676;--mx-green-mid:#00b86b;--mx-green-dim:#285d46;
-  --mx-green-deep:#0c1110;--mx-paper:#f2f5f3;--mx-muted:#87948d;--mx-amber:#00e676;
-  --mx-red:#ff5364;--mx-red-soft:#ff8994;--mx-panel:#0c1110;--mx-raised:#101715;--mx-line:#1b2420;
-  --mx-glow-text:none;--mx-glow-box:0 0 0 1px rgba(0,230,118,.16),0 0 12px rgba(0,230,118,.08);
-  --radius-sm:2px;--radius-md:4px;--radius-lg:8px;--radius-xl:8px;--radius-2xl:8px;
-  --chart-up:#00d68f;--chart-down:#ff5364;--chart-grid:#1b2420;--chart-axis:#87948d;
-  --chart-marker:#285d46;--chart-marker-text:#00e676;--chart-second:#4ce08e;--chart-volume:#285d46;
-  --chart-average:#00e676;--chart-tag-text:#070909;background:#070909;color:#f2f5f3;
-  font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+.mx-shell-atmos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.012) 0 1px, transparent 1px 4px);
 }
-.mx-team-shell :is(h1,h2,h3){color:#f2f5f3;font-family:Geist,Inter,sans-serif;letter-spacing:-.025em;text-shadow:none}
-.mx-team-shell .font-mono,.mx-team-shell .font-data-mono-lg,.mx-team-shell [data-testid="team-cash"],.mx-team-shell [data-testid="team-company"]{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
-.mx-team-shell .mx-team-atmosphere,.mx-team-shell[data-track="CONSULTING"] .mx-team-atmosphere,.mx-team-shell[data-track="FINANCE"] .mx-team-atmosphere{background:radial-gradient(ellipse 70% 45% at 50% 0%,rgba(0,230,118,.08),transparent 75%),linear-gradient(180deg,rgba(7,9,9,.95),rgba(7,9,9,.98))}
-.mx-team-shell .mx-team-vignette{background:none}
-.mx-team-topbar{border-bottom:1px solid #1b2420;background:rgba(7,9,9,.96);backdrop-filter:blur(18px)}
-.mx-team-brand-pill{padding:.2rem .48rem;border:1px solid #285d46;border-radius:3px;background:#0c1110;color:#75ff9e;box-shadow:none;font:700 10px "JetBrains Mono",monospace;letter-spacing:.12em}
-.mx-team-kpi-well{border:1px solid #1b2420;border-radius:6px;background:#101715;box-shadow:none;padding:12px 14px}
-.mx-team-nav-shell{position:sticky;top:0;border-bottom:1px solid #1b2420;background:#0c1110;backdrop-filter:blur(16px);box-shadow:none}
-.mx-team-shell .mx-panel,.mx-team-shell .bento-item{border:1px solid #1b2420;border-radius:8px;background:#101715;box-shadow:none;backdrop-filter:none}
-.mx-team-shell .mx-panel:hover,.mx-team-shell .bento-item:hover,.mx-team-shell .bento-item:focus-within{border-color:#285d46;box-shadow:0 0 8px rgba(0,230,118,.08)}
-.mx-team-shell .mx-key{min-height:36px;border:1px solid #1b2420;border-radius:4px;background:#0c1110;color:#f2f5f3;box-shadow:none;font:600 12px "JetBrains Mono",monospace;text-transform:uppercase}
-.mx-team-shell .mx-key-solid{border-color:#00e676;background:#00e676;color:#070909}
-.mx-team-shell .mx-key-quiet{border-color:#1b2420;background:transparent;color:#f2f5f3}
-.mx-team-shell .mx-tag{border:1px solid #285d46;border-radius:3px;background:#0c1110;color:#75ff9e;font:600 10px "JetBrains Mono",monospace;letter-spacing:.08em;box-shadow:none}
-.mx-team-shell .mx-tag::before,.mx-team-shell .mx-tag::after{content:none}
-.mx-team-shell input:not([type="checkbox"],[type="radio"],[type="file"],[type="hidden"],[type="range"]),.mx-team-shell select,.mx-team-shell textarea{border:1px solid #1b2420;border-radius:4px;background:#0c1110;color:#f2f5f3;box-shadow:none;font-family:"JetBrains Mono",monospace}
-.mx-team-shell input:focus,.mx-team-shell select:focus,.mx-team-shell textarea:focus{border-color:#00e676;box-shadow:0 0 0 1px #00e676,0 0 8px rgba(0,230,118,.2)}
-.mx-team-shell .mx-accent-text,.mx-team-shell .mx-accent-bright,.mx-team-shell .mx-accent-quick{color:#00e676}
-.mx-team-shell .mx-accent-dot{background:#00e676;box-shadow:0 0 8px rgba(0,230,118,.55)}
-.mx-team-shell .mx-accent-pill-active,.mx-team-shell .mx-accent-chip,.mx-team-shell .mx-accent-callout{border:1px solid #285d46;border-radius:4px;background:rgba(0,230,118,.1);color:#75ff9e;box-shadow:none}
-.mx-team-shell .mx-team-actionbar{border-bottom:1px solid #285d46;background:#0c1510;box-shadow:none;backdrop-filter:blur(12px)}
-.mx-team-shell .text-slate-400,.mx-team-shell .text-muted{color:#87948d}
-.mx-team-shell table{border-color:#1b2420}
-.mx-team-shell table thead tr{color:#87948d}
-.mx-team-shell table tbody tr:nth-child(odd){background:rgba(12,17,16,.45)}
-.mx-team-shell .mx-accent-hover-row:hover{background:rgba(0,230,118,.06)}
-.mx-team-command-nav{position:fixed;z-index:45;inset:0 auto 0 0;width:232px;display:flex;flex-direction:column;padding:20px 14px;background:#0c1110;border-right:1px solid #1b2420}
-.mx-team-command-brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px;border-bottom:1px solid #1b2420}
-.mx-team-command-mark{display:grid;place-items:center;width:34px;height:34px;border:1px solid #285d46;border-radius:5px;color:#00e676;font:700 20px "JetBrains Mono",monospace}
-.mx-team-command-brand strong{display:block;color:#f2f5f3;font:700 13px "JetBrains Mono",monospace;letter-spacing:.12em}
-.mx-team-command-brand small{display:block;margin-top:3px;color:#87948d;font:9px "JetBrains Mono",monospace;letter-spacing:.1em}
-.mx-team-command-links{display:flex;flex-direction:column;gap:3px;padding-top:22px;overflow:auto}
-.mx-team-command-label{margin:0 8px 8px;color:#87948d;font:600 9px "JetBrains Mono",monospace;letter-spacing:.12em}
-.mx-team-command-label-secondary{margin-top:24px}
-.mx-team-command-links a{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 10px;border:1px solid transparent;border-radius:4px;color:#bacbb9;font:500 12px Inter,sans-serif;text-decoration:none}
-.mx-team-command-links a:hover{background:#101715;border-color:#1b2420;color:#f2f5f3}
-.mx-team-command-links a.is-active{background:rgba(0,230,118,.09);border-color:#285d46;color:#75ff9e}
-.mx-team-command-links a span{width:16px;color:#00e676;text-align:center}
-.mx-team-command-footer{display:flex;flex-direction:column;gap:12px;margin-top:auto;padding:16px 8px 2px;border-top:1px solid #1b2420;color:#87948d;font:9px "JetBrains Mono",monospace;letter-spacing:.08em}
-.mx-team-command-live{display:flex;align-items:center;gap:8px;color:#75ff9e}
-.mx-team-command-live i{width:6px;height:6px;border-radius:50%;background:#00e676;box-shadow:0 0 8px #00e676}
-@media(min-width:900px){.mx-team-shell .mx-team-chrome{margin-left:232px}.mx-team-shell .mx-team-nav-shell{display:none}}
-@media(max-width:899px){.mx-team-command-nav{position:sticky;inset:auto;width:100%;padding:8px 10px;border-right:0;border-bottom:1px solid #1b2420}.mx-team-command-brand{display:none}.mx-team-command-links{flex-direction:row;gap:5px;padding:0}.mx-team-command-label,.mx-team-command-footer{display:none}.mx-team-command-links a{white-space:nowrap;min-height:34px}}
-@media(max-width:767px){.mx-team-shell .mx-team-kpi-well{padding:10px}}
+
+/* ── Top bar ── */
+.mx-shell-top {
+  position: relative;
+  z-index: 2;
+  border-bottom: 1px solid var(--mx-panel-line);
+  background: color-mix(in srgb, var(--mx-black) 86%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.3);
+}
+.mx-shell-top-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
+}
+.mx-shell-logo {
+  height: 22px;
+  width: auto;
+  filter: drop-shadow(0 0 10px var(--mx-accent-glow));
+}
+.mx-shell-code {
+  color: var(--mx-green);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: none;
+}
+.mx-shell-name {
+  color: var(--mx-muted);
+  font-size: 0.8rem;
+}
+.mx-shell-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  color: var(--mx-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+.mx-shell-tools button {
+  border: 1px solid var(--mx-accent-line);
+  border-radius: var(--mx-r-md);
+  padding: 0.3rem 0.6rem;
+  color: var(--mx-paper);
+  background: color-mix(in srgb, var(--mx-raised) 55%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-decoration: none;
+  transition: border-color 160ms, color 160ms;
+}
+.mx-shell-tools button:hover {
+  border-color: var(--mx-green);
+  color: var(--mx-heading);
+}
+.mx-shell-clock {
+  color: var(--mx-amber);
+  font-weight: 700;
+}
+/* The two facts (cash, and the fund's trading or the squad's company), as the demo's stat pairs. */
+.mx-shell-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--mx-panel-line);
+}
+.mx-shell-stats > div {
+  min-width: 0;
+  padding: 0.45rem 1rem 0.55rem;
+}
+.mx-shell-stats > div + div {
+  border-left: 1px solid var(--mx-panel-line);
+}
+.mx-shell-stats dt {
+  color: var(--mx-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.mx-shell-stats dd {
+  margin-top: 0.15rem;
+}
+
+/* ── Sections: a sticky row of tabs on a phone, a sidebar from 900 px ── */
+.mx-shell-navwrap {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.mx-team-command-nav {
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--mx-black) 94%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.mx-team-command-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.2rem 0.45rem 1.4rem;
+  border-bottom: 1px solid var(--mx-panel-line);
+  color: var(--mx-heading);
+  text-decoration: none;
+}
+.mx-team-command-brand img {
+  width: 52px;
+  height: auto;
+}
+.mx-team-command-brand strong {
+  display: block;
+  font: 800 13px var(--font-mono);
+  letter-spacing: 0.1em;
+}
+.mx-team-command-brand strong i {
+  color: var(--mx-green);
+  font-style: normal;
+}
+.mx-team-command-brand small {
+  display: block;
+  margin-top: 4px;
+  color: var(--mx-muted);
+  font: 700 9px var(--font-mono);
+  letter-spacing: 0.2em;
+}
+.mx-team-command-label {
+  margin: 1.4rem 0.55rem 0.6rem;
+  color: var(--mx-muted);
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.2em;
+}
+.mx-team-command-label b {
+  margin-left: 0.4rem;
+  color: var(--mx-green);
+}
+.mx-team-command-links {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: auto;
+}
+.mx-team-command-links a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 40px;
+  padding: 0 0.7rem;
+  border: 1px solid transparent;
+  border-radius: var(--mx-r-md);
+  color: var(--mx-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: background-color 160ms, border-color 160ms, color 160ms;
+}
+.mx-team-command-links a small {
+  min-width: 1.1rem;
+  color: color-mix(in srgb, var(--mx-muted) 75%, transparent);
+  font: 700 10px var(--font-mono);
+}
+.mx-team-command-links a i {
+  margin-left: auto;
+  color: var(--mx-green);
+  font-style: normal;
+  opacity: 0;
+  transition: opacity 160ms;
+}
+.mx-team-command-links a:hover {
+  border-color: var(--mx-accent-line);
+  background: var(--mx-accent-soft);
+  color: var(--mx-heading);
+}
+.mx-team-command-links a.is-active {
+  border-color: var(--mx-green);
+  background: var(--mx-accent-soft);
+  color: var(--mx-green);
+  box-shadow: inset 3px 0 0 var(--mx-green);
+}
+.mx-team-command-links a.is-active small,
+.mx-team-command-links a:hover i,
+.mx-team-command-links a.is-active i {
+  color: var(--mx-green);
+  opacity: 1;
+}
+.mx-team-command-footer {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: auto;
+  padding: 1rem 0.3rem 0.2rem;
+  border-top: 1px solid var(--mx-panel-line);
+  color: var(--mx-muted);
+  font: 700 10px var(--font-mono);
+  letter-spacing: 0.1em;
+}
+.mx-team-command-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mx-team-command-live i,
+.mx-shell-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mx-green);
+  box-shadow: 0 0 10px var(--mx-green);
+}
+.mx-team-command-team {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.mx-team-command-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--mx-accent-line);
+  border-radius: var(--mx-r-md);
+  background: var(--mx-accent-soft);
+  color: var(--mx-green);
+  font: 800 11px var(--font-mono);
+}
+.mx-team-command-team b {
+  display: block;
+  color: var(--mx-heading);
+  font: 600 12px var(--font-sans);
+  letter-spacing: 0;
+}
+.mx-team-command-team small {
+  display: block;
+  margin-top: 3px;
+  color: var(--mx-green);
+  font: 700 9px var(--font-mono);
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 899px) {
+  .mx-team-command-nav {
+    border-bottom: 1px solid var(--mx-panel-line);
+    padding: 0.4rem 0.6rem;
+  }
+  .mx-team-command-brand,
+  .mx-team-command-label,
+  .mx-team-command-footer {
+    display: none;
+  }
+  .mx-team-command-links {
+    flex-direction: row;
+    gap: 0.35rem;
+    scrollbar-width: none;
+  }
+  .mx-team-command-links::-webkit-scrollbar {
+    display: none;
+  }
+  .mx-team-command-links a {
+    min-height: 36px;
+    white-space: nowrap;
+    border-color: var(--mx-panel-line);
+    background: color-mix(in srgb, var(--mx-raised) 50%, transparent);
+  }
+  .mx-team-command-links a.is-active {
+    box-shadow: none;
+  }
+  .mx-team-command-links a i {
+    display: none;
+  }
+}
+@media (min-width: 900px) {
+  .mx-shell-main {
+    margin-left: 240px;
+  }
+  .mx-team-command-nav {
+    position: fixed;
+    z-index: 45;
+    inset: 0 auto 0 0;
+    width: 240px;
+    padding: 1.4rem 1rem 1rem;
+    border-right: 1px solid var(--mx-panel-line);
+    box-shadow: 8px 0 32px rgb(0 0 0 / 0.35);
+  }
+  .mx-shell-navwrap {
+    position: static;
+  }
+}
+
+/* ── "Do this now": the demo's task band ── */
+.mx-taskbar {
+  position: sticky;
+  top: 52px;
+  z-index: 30;
+  border-bottom: 1px solid var(--mx-accent-line);
+  background: var(--mx-task-bg);
+  color: var(--mx-heading);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.32);
+}
+@media (min-width: 900px) {
+  .mx-taskbar {
+    top: 0;
+  }
+}
+.mx-taskbar-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--mx-r-md);
+  background: var(--mx-green);
+  color: var(--mx-on-accent);
+  font: 800 0.7rem var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px var(--mx-accent-glow);
+}
+
+/* ── Page head (Home's greeting, as the demo's "Good evening, Team XC01.") ── */
+.mx-page-head h1,
+.mx-page-head .mx-page-title {
+  margin: 0.55rem 0 0.4rem;
+  color: var(--mx-heading);
+  font-family: var(--font-mono);
+  font-size: clamp(1.75rem, 4.4vw, 2.7rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx-team-command-links a,
+  .mx-team-command-links a i,
+  .mx-shell-tools button {
+    transition: none;
+  }
+}
