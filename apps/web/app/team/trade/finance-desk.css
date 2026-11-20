@@ -3,10 +3,9 @@
    notices, badges, inputs, keys) takes the desk's palette: near-black ground, warm graphite panels, one yellow accent,
    green for up and red for down. Measured on the panel (#171610): paper 16:1, soft text 10:1, muted 5.6:1. */
 .fin-desk {
+  /* The accent's soft, line and hover mixes and the heatmap selection come from the demo's finance.css
+     (.finance-desk), which the trade layout imports; this sheet re-points the shared theme to the desk. */
   --desk-accent: var(--track-accent, #ffd84d);
-  --desk-accent-soft: color-mix(in srgb, var(--desk-accent) 15%, transparent);
-  --desk-accent-line: color-mix(in srgb, var(--desk-accent) 42%, #171610);
-  --desk-accent-hover: color-mix(in srgb, var(--desk-accent) 82%, white);
   --desk-ground: #070909;
   --desk-well: #11110d;
   --desk-panel: #171610;
@@ -18,7 +17,6 @@
   --desk-muted: #87948d;
   --desk-up: #00d68f;
   --desk-down: #ff5364;
-  --heatmap-selection: var(--desk-accent);
 
   --mx-black: var(--desk-ground);
   --mx-panel: var(--desk-panel);
@@ -42,8 +40,6 @@
 
 .fin-desk :is(h1, h2, h3, h4) {
   color: var(--desk-text);
-  font-family: var(--font-sans);
-  text-shadow: none;
 }
 
 .fin-desk :focus-visible {
@@ -140,18 +136,6 @@
   background: color-mix(in srgb, var(--desk-down) 10%, var(--desk-panel));
 }
 
-/* The candle chart's palette (the demo's finance-candles). */
-.fin-candles {
-  --chart-up: #42de94;
-  --chart-down: #ff697b;
-  --chart-grid: #243541;
-  --chart-axis: #9eaeba;
-  --chart-marker: #798e9b;
-  --chart-average: #e6c26e;
-  --chart-average-slow: #ad95fb;
-  --chart-tag-text: #071316;
-}
-
 /* Wide screens: the desk grows past the team pages' reading column (up to 1700 px) while it stays clear of the team's
    side rail (232 px from 900 px up, team.css) on both sides, since the column is centred on the window. Never narrower
    than the column. A margin, not a transform, so nothing inside loses its fixed positioning. */
@@ -168,12 +152,3 @@
   }
 }
 
-@keyframes fin-live {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .fin-desk .fin-live-dot {
-    animation: fin-live 1.6s ease-in-out infinite;
-  }
-}

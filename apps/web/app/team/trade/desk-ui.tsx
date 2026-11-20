@@ -119,10 +119,9 @@ export function DeskRow({ label, value, testId, tone = "plain", bar, barTone = "
 
 /** The thin status strip under the desk's navigation ("Live trading · round 3 · 2 open orders"), full width of the
  * desk as in the demo (it bleeds over the content padding). */
-export function DeskStatus({ children, live = false }: { children: ReactNode; live?: boolean }) {
+export function DeskStatus({ children }: { children: ReactNode; live?: boolean }) {
   return (
     <p className="-mx-3 -mt-3 mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#2d2a1d] bg-[#11110d] px-4 py-2 font-mono text-xs text-[#BACBB9] sm:-mx-4 sm:-mt-4 lg:px-6">
-      {live ? <span className="fin-live-dot inline-block size-1.5 rounded-full bg-[#00D68F]" aria-hidden /> : null}
       {children}
     </p>
   );

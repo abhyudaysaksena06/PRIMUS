@@ -27,11 +27,24 @@ export default async function HistoryPage() {
       {total === 1 ? "order" : "orders"} <span aria-hidden>·</span> newest round first
     </DeskStatus>
   );
+  const filled = rounds.reduce((n, r) => n + r.lines.filter((l) => l.status === "FILLED").length, 0);
+  const cancelled = rounds.reduce((n, r) => n + r.lines.filter((l) => l.status === "CANCELLED").length, 0);
+  const cash = rounds.reduce((n, r) => n + (r.status === "CLEARED" ? r.cash : 0), 0);
+  // The demo's Risk & Telemetry KPI row, with the fund's own order figures.
+  const kpis = (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <Kpi label="Rounds traded" value={count(rounds.length)} foot="Newest round first" />
+      <Kpi label="Orders placed" value={count(total)} foot={`${count(cancelled)} cancelled`} />
+      <Kpi label="Orders filled" value={count(filled)} tone="up" foot={total > 0 ? `${((filled / total) * 100).toFixed(1)}% of orders` : "No orders yet"} />
+      <Kpi label="Net cash from fills" value={signedMoney(cash)} tone={cash < 0 ? "down" : cash > 0 ? "up" : "plain"} foot="Cleared rounds" />
+    </div>
+  );
 
   if (rounds.length === 0) {
     return (
       <div className="space-y-4">
         {status}
+        {kpis}
         <DeskPanel title="Order history">
           <div className="p-4 text-center">
             <p className="font-mono text-xs text-[#87948D]">
@@ -50,6 +63,7 @@ export default async function HistoryPage() {
   return (
     <div className="space-y-4">
       {status}
+      {kpis}
       {rounds.map((r) => (
         <DeskPanel
           key={r.number}
@@ -75,6 +89,18 @@ export default async function HistoryPage() {
           </DeskTable>
         </DeskPanel>
       ))}
+    </div>
+  );
+}
+
+/** A tile of the demo's Risk & Telemetry KPI row. */
+function Kpi({ label, value, foot, tone = "plain" }: { label: string; value: string; foot: string; tone?: "plain" | "up" | "down" }) {
+  const color = { plain: "text-[#F2F5F3]", up: "text-[#00D68F]", down: "text-[#FF5364]" }[tone];
+  return (
+    <div className="bg-[#171610] border border-white/[0.07] rounded-lg p-4">
+      <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">{label}</div>
+      <div className={`font-mono text-xl font-semibold tabular-nums mt-2 ${color}`}>{value}</div>
+      <div className="font-mono text-xs text-[#87948D] mt-1">{foot}</div>
     </div>
   );
 }
