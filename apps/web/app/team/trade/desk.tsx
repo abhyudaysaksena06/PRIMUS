@@ -16,6 +16,9 @@ import { Countdown } from "@/components/ui/countdown";
 import { Panel } from "@/components/ui/ui";
 import { OrderTicket } from "./ticket";
 
+/** How often an open round's price ranges are re-read (each desk adds ±1 s of its own). */
+const RANGE_POLL_MS = 5000;
+
 export interface DeskCompany {
   id: string;
   ticker: string;
@@ -55,15 +58,25 @@ export function TradeDesk({
     if (!roundId) return;
     const sb = supabaseBrowser();
     let stop = false;
+    let t: ReturnType<typeof setTimeout> | undefined;
     const read = async () => {
-      const { data } = await sb.from("round_ranges").select("round_id, company_id, open_cents, high_cents, low_cents, last_cents").eq("round_id", roundId);
-      if (!stop && data) setSnapshot({ roundId, ranges: data as RangeRow[] });
+      try {
+        // A hidden tab does not read; it catches up on its next beat once it is visible again.
+        if (document.visibilityState === "visible") {
+          const { data } = await sb.from("round_ranges").select("round_id, company_id, open_cents, high_cents, low_cents, last_cents").eq("round_id", roundId);
+          if (!stop && data) setSnapshot({ roundId, ranges: data as RangeRow[] });
+        }
+      } finally {
+        // Every desk reads on its own beat (4–6 s), so a room of screens never reads in the same second, and a failed
+        // read does not stop the polling.
+        if (!stop) t = setTimeout(read, RANGE_POLL_MS - 1000 + Math.random() * 2000);
+      }
     };
-    void read();
-    const t = setInterval(read, 5000);
+    // The first read waits up to 1.5 s: every desk mounts at once when a round opens (the page already has the ranges).
+    t = setTimeout(read, Math.random() * 1500);
     return () => {
       stop = true;
-      clearInterval(t);
+      if (t) clearTimeout(t);
     };
   }, [roundId]);
 
