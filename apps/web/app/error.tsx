@@ -5,19 +5,28 @@
 
 import { usePathname } from "next/navigation";
 import { RetryScreen } from "@/components/retry-screen";
-import { buttonClass } from "@/components/ui/ui";
+import "@/app/demo/demo.css";
 
 export default function AppError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const path = usePathname();
   if (path?.startsWith("/display")) return <RetryScreen error={error} retry={retry} />;
   return (
-    <main className="mx-auto max-w-xl px-4 py-16">
-      <h1 className="text-2xl font-bold">This page could not load</h1>
-      <p className="mt-2 text-paper">Nothing was changed. Try again in a moment.</p>
-      {error.digest ? <p className="mt-2 font-mono text-xs text-muted">{error.digest}</p> : null}
-      <button type="button" onClick={() => retry()} className={`${buttonClass.primary} mt-4`}>
-        Try again
-      </button>
+    // The demo's panel (app/demo/demo.css), on the demo's background.
+    <main className="guide-app flex min-h-dvh items-center justify-center px-4">
+      <div className="guide-atmosphere" />
+      <section className="guide-panel relative w-full max-w-xl">
+        <div className="guide-panel-head">
+          <h1 className="text-[12px] font-bold">This page could not load</h1>
+          <span>PRIMUS ’26</span>
+        </div>
+        <div className="guide-panel-body">
+          <p className="guide-alert guide-warning">Nothing was changed. Try again in a moment.</p>
+          {error.digest ? <p className="guide-muted mt-2 font-mono">{error.digest}</p> : null}
+          <button type="button" onClick={() => retry()} className="guide-btn mt-4">
+            Try again
+          </button>
+        </div>
+      </section>
     </main>
   );
 }

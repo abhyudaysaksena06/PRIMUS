@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { supabaseService } from "@/lib/supabase/service";
 import { RegisterForm } from "./register-form";
+import "@/app/demo/demo.css";
 
 export const metadata: Metadata = { title: "Register your team · PRIMUS" };
 export const dynamic = "force-dynamic";
@@ -27,17 +28,31 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
   const info = await registrationInfo(typeof event === "string" && event ? event : null);
 
   return (
-    <main className="terminal-container terminal-theme-scope flex min-h-dvh justify-center px-4 py-10">
-      <div className="mx-panel glow-box relative h-fit w-full max-w-xl rounded-xl p-6">
-        <h1 className="text-2xl font-bold text-phosphor glow">Register your team</h1>
-        <p className="mt-1 text-paper">{info.name ?? "PRIMUS"}</p>
-        {info.open && info.slug ? (
-          <RegisterForm slug={info.slug} />
-        ) : (
-          <p className="mt-6 rounded-md border border-line px-3 py-2 text-sm" data-testid="register-closed">
-            Registration is closed right now. Check back later, or contact the organisers.
-          </p>
-        )}
+    // The demo's entry page (app/demo/login): the grid and glow, then one entry card.
+    <main className="demo-entry">
+      <div className="demo-login-grid" />
+      <div className="demo-login-glow" />
+      <div className="demo-entry-wrap max-w-xl">
+        <section className="demo-entry-card">
+          <div className="demo-entry-eyebrow">
+            PRIMUS ’26 <b>{"///"}</b> TEAM REGISTRATION
+          </div>
+          <div className="demo-entry-card-top">
+            <div>
+              <h1>
+                Register your <em>team</em>
+              </h1>
+              <p>{info.name ?? "PRIMUS"}</p>
+            </div>
+          </div>
+          {info.open && info.slug ? (
+            <RegisterForm slug={info.slug} />
+          ) : (
+            <p className="guide-alert guide-warning mt-6" data-testid="register-closed">
+              Registration is closed right now. Check back later, or contact the organisers.
+            </p>
+          )}
+        </section>
       </div>
     </main>
   );
