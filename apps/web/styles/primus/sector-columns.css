@@ -1,0 +1,91 @@
+/* The projector's sector columns, team spotlight and the hidden corner controls (app/display/[slug]/board/sectors.tsx). */
+
+.sector-column-page {
+  animation: sector-page-in 600ms ease-out both;
+}
+.sector-spotlight-card {
+  animation: sector-page-in 450ms ease-out both;
+}
+@keyframes sector-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sector-timer-flash {
+  animation: sector-flash 1s steps(2, start) infinite;
+}
+@keyframes sector-flash {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* The corner controls: hidden on the projected image, shown for a moment after the mouse moves. */
+.sector-view-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 760px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.sector-view-toggle.is-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+.sector-view-toggle button,
+.sector-timer-panel input {
+  border: 1px solid #2ee07f;
+  background: #030805;
+  color: #e9f5eb;
+  font: 600 20px/1.2 ui-monospace, monospace;
+  padding: 6px 12px;
+}
+.sector-view-toggle button:hover {
+  background: #0b2a16;
+}
+.sector-view-toggle kbd {
+  margin-left: 6px;
+  border: 1px solid #39ff88;
+  padding: 0 6px;
+  font-size: 16px;
+}
+.sector-timer-panel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid #1d3a26;
+  background: rgb(3 8 5 / 0.95);
+  padding: 10px;
+}
+.sector-timer-panel input {
+  width: 220px;
+}
+.sector-timer-panel p {
+  width: 100%;
+  color: #ffb000;
+  font-size: 18px;
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sector-column-page,
+  .sector-spotlight-card,
+  .sector-timer-flash {
+    animation: none;
+  }
+}
