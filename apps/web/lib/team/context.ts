@@ -3,6 +3,7 @@
 // has formed them. A team can read only its own team row, its own squad and its squad's company (before Reading).
 
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import type { Track } from "@msim/engine";
 import { requireRole, type Viewer } from "@/lib/auth/viewer";
 import { loadEventStatus, type EventStatus } from "@/lib/event-status";
@@ -73,7 +74,7 @@ export const loadTeamContext = cache(async (): Promise<TeamContext> => {
   const viewer = await requireRole(["TEAM"], "/team");
   const sb = await supabaseServer();
   const eventId = viewer.team!.eventId;
-  const [team, event, squad, status] = await Promise.all([
+  const [team, event, squad, status, alive] = await Promise.all([
     sb
       .from("teams")
       .select("id, code, track, name, cash_cents, collateral_cents, disqualified, disqualified_reason")
@@ -86,7 +87,10 @@ export const loadTeamContext = cache(async (): Promise<TeamContext> => {
       .eq("event_id", eventId)
       .maybeSingle<SquadRow>(),
     loadEventStatus(eventId),
+    sb.rpc("my_session_alive"),
   ]);
+  // One device per team (migration 104): this device's session was revoked by a sign-in on another device.
+  if (alive.data === false) redirect("/api/signed-out");
   if (team.error) throw new Error(`Could not read your team: ${team.error.message}`);
   if (event.error) throw new Error(`Could not read the event: ${event.error.message}`);
   if (squad.error) throw new Error(`Could not read your squad: ${squad.error.message}`);

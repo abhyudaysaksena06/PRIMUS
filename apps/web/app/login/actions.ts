@@ -61,6 +61,9 @@ export async function signIn(_prev: LoginState, form: FormData): Promise<LoginSt
     };
   }
 
+  // One device per team (migration 104): this sign-in signs the team out on every other device.
+  if (mode === "team") await sb.auth.signOut({ scope: "others" });
+
   const viewer = await getViewer(sb);
   if (!viewer) {
     await sb.auth.signOut();

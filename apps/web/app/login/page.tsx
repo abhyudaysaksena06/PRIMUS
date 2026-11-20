@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: "Sign in · PRIMUS" };
 export const maxDuration = 30;
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const { next, code } = await searchParams;
+  const { next, code, other } = await searchParams;
   const nextPath = typeof next === "string" ? next : undefined;
   // The QR code on a login card opens /login?code=P07: the team code is filled in and only the password is typed.
   const cardCode = typeof code === "string" ? normalizeTeamCode(code) : "";
@@ -57,6 +57,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
                 : "Sign in with the team code and password on the access card issued at check-in."}
             </p>
           </div>
+          {other ? (
+            <p role="alert" className="mb-3 rounded border border-amber-400/60 bg-amber-400/10 p-2 text-sm text-amber-200" data-testid="signed-in-elsewhere">
+              Your team signed in on another device, so this device was signed out. One device per team: sign in here again only if this is the device your team will use.
+            </p>
+          ) : null}
           <LoginForm next={nextPath} code={prefill} />
           <div className="mt-5 border-t border-[var(--track-line,#294832)] pt-4 text-[9px] leading-5 text-[#8a97a8]">
             Keep your team card safe. Anyone holding it can act for your team, including editing submissions and placing trades.
