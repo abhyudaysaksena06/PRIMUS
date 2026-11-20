@@ -34,6 +34,7 @@ import "@/styles/primus/header-links.css";
 import "./team.css";
 import { CrisisSplash, type CrisisPopups, type SplashCard } from "./crisis-splash";
 import { DraftWatch } from "./crisis/draft-watch";
+import { CopyGuard } from "./copy-guard";
 
 
 export const metadata: Metadata = { title: { template: "%s · Team", default: "Team" } };
@@ -149,6 +150,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
         <FallbackRefresh everyMs={20_000} safetyMs={0} />
         <BootSequence who={team.code} />
         {/* "Your pick!" on every page during a by-sector Round 3 draft (it stops by itself when the draft ends). */}
+        <CopyGuard on={featureOn(status, "paste_block")} />
         <DraftWatch eventId={event.id} companyId={ctx.company?.id ?? null} active={event.format === "PRIMUS" && team.track === "PRODUCT" && status.phase === "SATURATION" && featureOn(status, "draft_by_sector", true)} />
         {/* The demo's shell (app/demo/layout.tsx): the sidebar, the top bar, the DO THIS NOW strip, the page, the
             footer and the news ticker, over the track's rain. */}
