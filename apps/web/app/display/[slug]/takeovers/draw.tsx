@@ -39,7 +39,7 @@ export async function DrawTakeover({ event, takeover }: TakeoverProps) {
             <p className="text-[32px] font-semibold tracking-wide text-muted uppercase">Published commitment · SHA-256 of the secret seed</p>
             <div className="mt-4 grid grid-cols-2 gap-x-10 gap-y-4" data-testid="draw-commitment">
               {hexGroups(commitment).map((g, i) => (
-                <span key={i} className="rounded-xl bg-panel px-6 py-2 text-center font-mono text-[72px] font-bold tracking-wider" data-testid="draw-commitment-group">
+                <span key={i} className="dsp-mover-row px-6 py-2 text-center font-mono text-[72px] font-bold tracking-wider" data-testid="draw-commitment-group">
                   {g}
                 </span>
               ))}

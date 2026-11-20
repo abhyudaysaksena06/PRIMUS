@@ -35,7 +35,7 @@ export async function RevealTakeover({ event, takeover }: TakeoverProps) {
         <p className="text-[64px] leading-tight font-black text-paper">Crisis {k}: every company is hit.</p>
         <div className="grid shrink-0 grid-cols-3 gap-8">
           {tiles.map(([label, value]) => (
-            <div key={label} className="rounded-2xl bg-panel px-8 py-6">
+            <div key={label} className="dsp-metric px-8 py-6">
               <p className="text-[30px] font-semibold tracking-wide text-muted uppercase">{label}</p>
               <p className="text-[80px] leading-tight font-black tabular-nums text-danger">{value}</p>
             </div>

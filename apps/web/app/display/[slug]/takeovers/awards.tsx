@@ -60,7 +60,7 @@ export async function AwardsTakeover({ event, takeover }: TakeoverProps) {
               <section
                 key={s.code}
                 aria-label={s.label}
-                className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-line bg-panel px-6 py-4"
+                className="flex min-h-0 min-w-0 flex-col overflow-hidden dsp-panel px-6 py-4"
                 data-testid={`awards-${s.code}`}
               >
                 <h2 className="text-[36px] leading-tight font-black text-phosphor glow">{s.label}</h2>
@@ -99,7 +99,7 @@ function TrackPodium({ podium }: { podium: Podium }) {
   return (
     <section
       aria-label={podium.label}
-      className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border-2 border-phosphor-dim bg-panel px-6 py-5"
+      className="flex min-h-0 min-w-0 flex-col overflow-hidden dsp-panel px-6 py-5"
       data-testid={`awards-${podium.track}`}
     >
       <h2 className="text-[44px] leading-tight font-black text-phosphor glow">{podium.label}</h2>
