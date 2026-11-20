@@ -140,6 +140,14 @@ function statementText(s: JudgeInput["statement"]): string {
   return `Title: ${s.title}\n\n${plainLines(s.body).trim()}`;
 }
 
+/** The Round 3 companies, one per line: "AQS · FMCG · Clinic waits". */
+export function marketText(market: JudgeInput["market"]): string {
+  const lines = (market ?? [])
+    .filter((m) => m.ticker)
+    .map((m) => [m.ticker, m.sector?.trim() || "(no sector)", m.statement?.trim() || "(no statement)"].join(" · "));
+  return lines.length ? lines.join("\n") : "(none: no Round 3 companies)";
+}
+
 export function buildJudgeRequest(input: JudgeInput, system: string, caseBrief: CaseBrief | null = null): BuiltRequest {
   const names = [input.company_name, ...input.names, ...(input.firm_names ?? [])];
   const parts = nameParts([...(input.member_names ?? []), ...(input.firm_member_names ?? [])], input.ticker);
@@ -163,6 +171,9 @@ export function buildJudgeRequest(input: JudgeInput, system: string, caseBrief: 
     // An event played in sectors: the PRD answers its sector's brief.
     const c = input.problem_card;
     context.push(tag("problem_card", hide(`${c.sector ? `Sector: ${c.sector}\n` : ""}Title: ${c.title}\n\n${plainLines(c.body).trim()}`)));
+  } else if (input.type === "THESIS") {
+    // A fund's investment thesis: every Round 3 company (ticker, sector, statement), the same list for every fund.
+    context.push(tag("market", hide(marketText(input.market))));
   } else if (/^(CRISIS|ADVICE)_\d$/.test(input.type) || input.type === "SOLUTION") {
     // PRIMUS: the business, the crisis or the statement, and (for the company's own answer) the hired firm's advice.
     const round3 = input.type === "SOLUTION" || input.type === "ADVICE_5";

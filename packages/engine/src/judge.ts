@@ -63,6 +63,13 @@ export const RUBRICS: Record<SubmissionType, readonly RubricLine[]> = byKind<rea
     { key: "fit", label: "Fit to the client's crisis", max: 15 },
     { key: "clarity", label: "Clarity", max: 10 },
   ],
+  THESIS: [
+    { key: "thesis", label: "A clear thesis: what the fund backs and why", max: 25 },
+    { key: "evidence", label: "Use of the Round 3 evidence", max: 30 },
+    { key: "portfolio_logic", label: "Portfolio logic: sizing and spread", max: 20 },
+    { key: "risks", label: "Risks and what would change the view", max: 15 },
+    { key: "clarity", label: "Clarity", max: 10 },
+  ],
 });
 
 for (const t of SUBMISSION_TYPES) {
@@ -144,7 +151,7 @@ export const INJECTION_PATTERNS: readonly { name: string; re: RegExp }[] = [
   {
     // Trying to close or open the XML wrapper.
     name: "tag-breakout",
-    re: /<\s*\/?\s*(?:submission|system|instructions?|rubric|assistant|user|context|bulletin|pitch_card|crisis_card|problem_card|deal|data|advice|statement)\b[^>]*>/i,
+    re: /<\s*\/?\s*(?:submission|system|instructions?|rubric|assistant|user|context|bulletin|pitch_card|crisis_card|problem_card|deal|data|advice|statement|market)\b[^>]*>/i,
   },
 ];
 

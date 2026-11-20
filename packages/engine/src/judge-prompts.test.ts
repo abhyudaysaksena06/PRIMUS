@@ -26,6 +26,7 @@ const TAGS: Record<SubmissionKind, readonly string[]> = {
   CRISIS: ["context", "pitch_card", "crisis_card", "advice", "submission"],
   SOLUTION: ["context", "statement", "advice", "submission"],
   ADVICE: ["context", "pitch_card", "crisis_card", "statement", "submission"],
+  THESIS: ["context", "market", "submission"],
 };
 
 /**
@@ -36,7 +37,7 @@ const TAGS: Record<SubmissionKind, readonly string[]> = {
 // PITCH, MEMO, CRISIS, SOLUTION and ADVICE carry the case book's ground truth (the Aviation fact sheet, the ZestUp worked
 // numbers, what a strong answer does for each card and statement), so the judge checks answers against the same facts
 // the teams were given; the caps keep them from growing further.
-const WORD_CAP: Record<SubmissionKind, number> = { PITCH: 1550, PLAN: 950, FLASH: 900, MEMO: 1750, CRISIS: 1850, SOLUTION: 1950, ADVICE: 1600 };
+const WORD_CAP: Record<SubmissionKind, number> = { PITCH: 1550, PLAN: 950, FLASH: 900, MEMO: 1750, CRISIS: 1850, SOLUTION: 1950, ADVICE: 1600, THESIS: 1100 };
 
 /** Rubric table rows: | `key` | what earns points | max | */
 function rubricRows(markdown: string): { key: string; max: number }[] {

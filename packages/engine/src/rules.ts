@@ -52,8 +52,10 @@ export const RULES = {
   INJECTION_PENALTY: 10, // its second and later ones
 
   ADVICE_MIN_WORDS: 150, // a firm's advice memo (ADVICE_k) is at least this long
+  THESIS_MIN_WORDS: 150, // a fund's Round 3 investment thesis is at least this long (migration 089)
+  THESIS_BONUS_PER_POINT: 50_000, // $500 × (score − 50): −$25,000 to +$25,000 (app.thesis_bonus)
 
-  WORD_LIMIT: { ...byKind({ PITCH: 800, PLAN: 500, FLASH: 100, MEMO: 500, CRISIS: 500, SOLUTION: 600, ADVICE: 500 }), QA_ANSWER: 100 },
+  WORD_LIMIT: { ...byKind({ PITCH: 800, PLAN: 500, FLASH: 100, MEMO: 500, CRISIS: 500, SOLUTION: 600, ADVICE: 500, THESIS: 500 }), QA_ANSWER: 100 },
 
   FLAG_CAP_FUNDS: 3, // flag 1: ≥3 funds at the long cap
   FLAG_COSINE: { NUM: 9, DEN: 10 }, // flag 2: cosine ≥ 0.9
