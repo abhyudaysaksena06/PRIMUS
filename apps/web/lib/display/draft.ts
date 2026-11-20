@@ -9,6 +9,11 @@ export interface DraftHead {
   sector: string;
   ticker: string;
   closes_at: string;
+  /** Where the company on the clock picks among its sector's pickers, and how many pickers there are (088). */
+  place?: number;
+  queue?: number;
+  /** The sector's companies beyond its pickers: each is given a statement at random when the pickers are done (088). */
+  others?: number;
 }
 
 /** The heads of the sector queues, by sector name. */
@@ -19,7 +24,9 @@ export function parseDraftHeads(data: unknown): DraftHead[] {
   for (const h of heads as Record<string, unknown>[]) {
     if (!h || typeof h.sector !== "string" || typeof h.ticker !== "string" || typeof h.closes_at !== "string") continue;
     if (Number.isNaN(Date.parse(h.closes_at))) continue;
-    out.push({ sector: h.sector, ticker: h.ticker, closes_at: h.closes_at });
+    const head: DraftHead = { sector: h.sector, ticker: h.ticker, closes_at: h.closes_at };
+    for (const k of ["place", "queue", "others"] as const) if (typeof h[k] === "number") head[k] = h[k] as number;
+    out.push(head);
   }
   return out.sort((a, b) => a.sector.localeCompare(b.sector));
 }

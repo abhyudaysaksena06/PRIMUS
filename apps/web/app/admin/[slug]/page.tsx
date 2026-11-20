@@ -1,3 +1,4 @@
+import { draftHeads as draftHeadsOf } from "@/lib/team/crisis";
 import { requireSection } from "@/lib/auth/staff";
 import type { Metadata } from "next";
 import { DEADLINE_LABELS, PHASE_LABELS, type DeadlineCode } from "@msim/engine";
@@ -34,13 +35,15 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
   const sb = await supabaseServer();
   const [deadlines, picks, companies] = await Promise.all([
     sb.from("deadlines").select("code, at").eq("event_id", event.id).gt("at", status.server_time).order("at").limit(5),
-    sb.from("draft_picks").select("company_id, pick_no, closes_at, statement_id").eq("event_id", event.id).order("pick_no"),
+    sb.from("draft_picks").select("company_id, pick_no, closes_at, statement_id, sector, auto").eq("event_id", event.id).order("pick_no"),
     sb.from("companies").select("id, ticker").eq("event_id", event.id),
   ]);
-  // Round 3's draft, while a company is on the clock.
-  const draftPicks = (picks.data ?? []) as { company_id: string; pick_no: number; closes_at: string; statement_id: string | null }[];
+  // Round 3's draft, while a company is on the clock: with one queue per sector, each sector's picker on the clock
+  // (only the 10 lowest-scoring of each sector pick; the others are given a statement at random, migration 088).
+  const draftPicks = (picks.data ?? []) as { company_id: string; pick_no: number; closes_at: string; statement_id: string | null; sector?: string | null; auto?: boolean }[];
   const ticker = new Map(((companies.data ?? []) as { id: string; ticker: string | null }[]).map((c) => [c.id, c.ticker ?? "—"]));
-  const onClock = draftPicks.find((p) => p.statement_id === null) ?? null;
+  const draftHeads = draftHeadsOf(draftPicks);
+  const onClock = draftHeads[0]?.pick ?? null;
   const next = status.next_phase;
   const blocked = status.gate ?? (status.paused ? "Resume the event before advancing." : null);
 
@@ -78,8 +81,16 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
           </div>
           {onClock ? (
             <p className="mt-3 text-sm text-paper" data-testid="admin-draft-clock">
-              Round 3 draft · on the clock: <strong className="font-mono">{ticker.get(onClock.company_id)}</strong> (pick {onClock.pick_no} of {draftPicks.length}) ·{" "}
-              <Countdown to={onClock.closes_at} passed="given by default on the next heartbeat" /> ·{" "}
+              Round 3 draft · on the clock:{" "}
+              {draftHeads.map((h, i) => (
+                <span key={h.queue}>
+                  {i ? " · " : ""}
+                  {h.queue ? `${h.queue} ` : ""}
+                  <strong className="font-mono">{ticker.get(h.pick.company_id)}</strong> (pick {h.place} of {h.size}
+                  {h.others ? `, then ${h.others} at random` : ""}) <Countdown to={h.pick.closes_at} passed="given by default on the next heartbeat" />
+                </span>
+              ))}{" "}
+              ·{" "}
               <Link href={`/admin/${slug}/product`} className="underline">
                 the draft
               </Link>

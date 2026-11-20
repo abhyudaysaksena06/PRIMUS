@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Rng, rootSeed, sha256Hex, type Stream } from "@msim/engine";
 import { parseStatements } from "../../apps/web/lib/admin/content";
+import { createHash } from "node:crypto";
 import { createTestDb, ROOT } from "./pg";
 import { Night } from "./night";
 import { rowsAs, user, type Caller } from "./helpers";
@@ -21,6 +22,7 @@ afterAll(async () => {
   await db?.drop();
 });
 
+const md5 = (s: string) => createHash("md5").update(s).digest("hex");
 const SEED = sha256Hex("draft-sectors");
 const DICE = "4";
 const LOTTERY_ROOT = rootSeed(SEED, DICE);
@@ -187,18 +189,21 @@ describe("Round 3 draft by sector", () => {
       [6, "aviation"], [4, "fmcg"], [7, "luxury"], [5, "aviation"], [2, "fmcg"], [3, "fmcg"], [1, "fmcg"],
     ]);
     expect(start.map((p) => p.pick_no)).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    // 20 seconds each, the queues' first picks all on the clock now.
+    // 20 seconds each, the queues' first picks all on the clock now. FMCG has 3 statements, so only its 3 lowest pick
+    // (each statement once, migration 088): squad 1 is given a statement when they are done (at 60 s).
     const place = new Map<string, number>();
     for (const p of start) place.set(p.company_id, start.filter((x) => x.sector === p.sector && x.pick_no <= p.pick_no).length);
     for (const p of start) {
-      expect(p.opens).toBeCloseTo(20 * (place.get(p.company_id)! - 1), 0);
-      expect(p.closes).toBeCloseTo(20 * place.get(p.company_id)!, 0);
+      const k = Math.min(place.get(p.company_id)!, 3);
+      expect(p.opens).toBeCloseTo(20 * (p.company_id === by(1).id ? 3 : k - 1), 0);
+      expect(p.closes).toBeCloseTo(20 * k, 0);
     }
-    // The planned length is the longest queue's (FMCG: 4 × 20 s + 20 s), not every company's (7 × 20 s + 20 s = 160 s);
-    // the rest of Round 3 moved with it, keeping its gaps.
+    expect((await n.q("select company_id from draft_picks where event_id = $1 and auto", [n.eventId])).map((r) => r.company_id)).toEqual([by(1).id]);
+    // The planned length is the longest queue's pickers (FMCG: 3 × 20 s + 20 s), not every company's (7 × 20 s + 20 s
+    // = 160 s); the rest of Round 3 moved with it, keeping its gaps.
     const t = await schedule(n);
-    expect(t.draft).toBeGreaterThanOrEqual(99);
-    expect(t.draft).toBeLessThanOrEqual(101);
+    expect(t.draft).toBeGreaterThanOrEqual(79);
+    expect(t.draft).toBeLessThanOrEqual(81);
     expect(t.after_draft).toEqual([45, 180, 225]);
     expect(await onEvent(n)).toEqual([expect.objectContaining({ step: "start", by_sector: true })]);
     expect((await onEvent(n))[0]).not.toHaveProperty("next_product");
@@ -207,7 +212,7 @@ describe("Round 3 draft by sector", () => {
     const lead = await clock(n, n.lead);
     expect(lead).toMatchObject({ by_sector: true, picks: 7, left: 7 });
     expect(lead.heads.map((h: any) => [h.sector, h.company_id, h.place, h.queue, h.left, h.mine])).toEqual([
-      ["aviation", by(6).id, 1, 2, 2, false], ["fmcg", by(4).id, 1, 4, 4, false], ["luxury", by(7).id, 1, 1, 1, false],
+      ["aviation", by(6).id, 1, 2, 2, false], ["fmcg", by(4).id, 1, 3, 3, false], ["luxury", by(7).id, 1, 1, 1, false],
     ]);
     expect((await clock(n, user(n.ev.staff.get("display@example.org")!))).heads).toHaveLength(3);
     expect((await clock(n, n.team(by(4).code))).heads.map((h: any) => [h.company_id, h.mine])).toEqual([[by(4).id, true]]);
@@ -228,7 +233,10 @@ describe("Round 3 draft by sector", () => {
     expect(afterHand.find((p) => p.company_id === by(5).id)!.closes).toBeCloseTo(20, 0);
     expect(afterHand.find((p) => p.company_id === by(4).id)!.closes).toBeCloseTo(fmcgHeadBefore, 0);
     // Caps and sectors hold; only each queue's company on the clock may pick.
-    expect(await n.call(n.team(by(5).code), "pick_statement", st[4])).toMatchObject({ ok: false, code: "STATEMENT_FULL" });
+    expect(await n.call(n.team(by(5).code), "pick_statement", st[4])).toMatchObject({ ok: false, code: "STATEMENT_TAKEN", message: "Statement 4 has already been picked by DRF. Each statement can be picked only once: choose another." });
+    // A company beyond its sector's pickers never picks.
+    expect(await n.call(n.team(by(1).code), "pick_statement", st[1])).toMatchObject({ ok: false, code: "NOT_A_PICKER" });
+    expect((await facts(n, by(1).code)).draft).toMatchObject({ my_turn: false, auto: true, ahead: 3 });
     expect(await n.call(n.team(by(5).code), "pick_statement", st[1])).toMatchObject({ ok: false, code: "WRONG_SECTOR" });
     expect(await n.call(n.team(by(2).code), "pick_statement", st[1])).toMatchObject({ ok: false, code: "NOT_YOUR_TURN" });
     // Luxury is done, but hiring and writing wait for the whole draft.
@@ -255,7 +263,7 @@ describe("Round 3 draft by sector", () => {
     // Replayable: the same draw, asked again, gives the same statement; and it is the TypeScript lottery's.
     const again = await n.q("select (select number from problem_statements where id = app.random_statement($1, $2)) as no from generate_series(1, 2)", [n.eventId, by(2).id]);
     const counted = (no: number) => now.filter((p) => p.statement === no).length;
-    const expected2 = seededOrder(by(2).id, fmcg).find((no) => counted(no) < CAP.get(no)!)!;
+    const expected2 = seededOrder(by(2).id, fmcg).find((no) => counted(no) === 0)!; // untaken only
     expect(again.map((r) => r.no)).toEqual([expected2, expected2]);
 
     // draft_random_fallback is read at each missed pick: off, FMCG's next company gets the least-crowded statement.
@@ -269,7 +277,11 @@ describe("Round 3 draft by sector", () => {
 
     // The draft's deadline: everyone still waiting is placed, in queue order, each on the first statement with room in
     // its own seeded order. Every cap holds and every company stays in its sector.
-    const expected = replayDeadline(now, sectorOf);
+    // The deadline: Aviation's 5 gets its untaken seeded statement (#5), FMCG's 3 the one untaken; then FMCG's other
+    // (squad 1) the least-crowded statement with room, ties broken by md5(event || company || number).
+    const fmcgLeft = fmcg.find((no) => !now.some((p) => p.statement === no))!;
+    const tie = [1, 2].sort((a, b) => md5(`${n.eventId}${by(1).id}${a}`).localeCompare(md5(`${n.eventId}${by(1).id}${b}`)));
+    const expected = new Map([[by(5).id, 5], [by(3).id, fmcgLeft], [by(1).id, tie[0]!]]);
     await n.deadlinePassed("DRAFT");
     await n.ok(n.lead, "tick", n.eventId);
     const end = await picks(n);

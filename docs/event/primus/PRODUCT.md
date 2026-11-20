@@ -26,9 +26,10 @@ badge at the top of every page.
    A good plan pushes your price up; a weak or missing one pushes it down. During Round 2 you can also **raise
    money**: sell 1% to 10% of your company to a fund at the market price, once per crisis. You always keep at least
    40,000 of your shares (40%).
-3. **Round 3 · The final problem (04:45–06:30).** In the **draft** you pick a problem statement from your sector,
-   lowest score so far first, 20 seconds each. The three sectors draft at the same time, each in its own queue. Miss
-   your turn and you get a random statement of your sector that still has room. Then hire a firm and write your
+3. **Round 3 · The final problem (04:45–06:30).** The **draft**: the 10 lowest-scoring companies in each sector pick
+   a statement, lowest first, 20 seconds each, each statement once. Every other company in the sector is given a
+   statement at random, spread evenly across the ten. The three sectors draft at the same time. A picker who misses
+   their turn gets a random statement nobody has picked yet. The draft takes about 4 minutes. Then hire a firm and write your
    **solution** together. Your solution's score moves your price, and Round 3 evens out the field: the weakest
    company going into Round 3 gets ×1.25 of its price rise, the strongest ×0.25, and everyone else in between
    ("score so far" is the average of your PRD and your four crisis plans). A fall applies in full.

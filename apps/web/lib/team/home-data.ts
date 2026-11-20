@@ -46,6 +46,8 @@ interface PrimusRow {
     pick_no: number;
     picked: boolean;
     by_default: boolean;
+    /** Not a picker (migration 088): given a statement at random. Missing on an older database. */
+    auto?: boolean;
     statement: { number: number; title: string } | null;
     my_turn: boolean;
     closes_at: string | null;
@@ -73,6 +75,7 @@ export function primusFacts(row: PrimusRow | null | undefined): PrimusFacts | nu
           pickNo: Number(row.draft.pick_no),
           picked: row.draft.picked,
           byDefault: row.draft.by_default,
+          auto: row.draft.auto === true,
           statement: row.draft.statement,
           myTurn: row.draft.my_turn,
           closesAt: row.draft.closes_at,

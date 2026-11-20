@@ -62,7 +62,19 @@ export interface DraftPickRow {
   by_default: boolean;
   /** The pick's queue when the draft runs by sector (migration 077: the company's sector, lower case); null: one queue. */
   sector?: string | null;
+  /**
+   * Not a picker (migration 088): beyond the 10 lowest-scoring companies of its sector. It never picks; it is given a
+   * statement at random, spread evenly across the sector's statements, when the sector's pickers are done.
+   */
+  auto?: boolean;
 }
+
+/** How many companies of each sector pick in a draft run by sector (app.draft_pickers, migration 088). */
+export const DRAFT_PICKERS = 10;
+
+/** The draft rule in words, for the team page, the projector and the admin panel (migration 088). */
+export const DRAFT_RULE =
+  "The 10 lowest-scoring companies in each sector pick a statement, lowest first, 20 seconds each, each statement once. Every other company in the sector is given a statement at random, spread evenly across the ten.";
 
 export const MAX_COUNTERS = 3;
 /** A firm takes at most two clients per sub-round. */
@@ -171,11 +183,17 @@ export interface DraftState {
   current: DraftPickRow | null;
   mine: DraftPickRow | null;
   myTurn: boolean;
-  /** Picks before mine in my queue still to be made. */
+  /** Picks before mine in my queue still to be made (only pickers pick). */
   ahead: number;
-  /** Where I pick in my queue (1 = first), and how many companies the queue has. */
+  /** Where I pick in my queue (1 = first), and how many pickers the queue has. */
   place: number | null;
   queueSize: number;
+  /** My company is not a picker: it is given a statement at random when my sector's pickers are done (088). */
+  auto: boolean;
+  /** How many companies of my queue are given a statement at random. */
+  others: number;
+  /** My queue's pickers are all done. */
+  pickersDone: boolean;
   /** The draft runs one queue per sector, all at the same time. */
   bySector: boolean;
   /** Every pick has been made (the whole draft, every sector). */
@@ -183,35 +201,47 @@ export interface DraftState {
 }
 
 /** A pick's queue: its sector when the draft runs by sector, else the one queue (""). */
-const queueOf = (p: DraftPickRow) => p.sector ?? "";
+const queueOf = (p: { sector?: string | null }) => p.sector ?? "";
 
 export function draftState(picks: readonly DraftPickRow[], myCompanyId: string | null): DraftState {
   const ordered = [...picks].sort((a, b) => a.pick_no - b.pick_no);
   const bySector = ordered.some((p) => p.sector !== null && p.sector !== undefined);
   const mine = myCompanyId ? (ordered.find((p) => p.company_id === myCompanyId) ?? null) : null;
-  const queue = mine ? ordered.filter((p) => queueOf(p) === queueOf(mine)) : ordered;
+  const sameQueue = mine ? ordered.filter((p) => queueOf(p) === queueOf(mine)) : ordered;
+  const queue = sameQueue.filter((p) => !p.auto);
   const current = queue.find((p) => p.statement_id === null) ?? null;
   const ahead = mine && mine.statement_id === null ? queue.filter((p) => p.statement_id === null && p.pick_no < mine.pick_no).length : 0;
   return {
     current,
     mine,
-    myTurn: !!current && !!mine && current.company_id === mine.company_id,
+    myTurn: !!current && !!mine && !mine.auto && current.company_id === mine.company_id,
     ahead,
-    place: mine ? queue.indexOf(mine) + 1 : null,
+    place: mine && !mine.auto ? queue.indexOf(mine) + 1 : null,
     queueSize: queue.length,
+    auto: !!mine?.auto,
+    others: sameQueue.length - queue.length,
+    pickersDone: queue.length > 0 && queue.every((p) => p.statement_id !== null),
     bySector,
     done: ordered.length > 0 && ordered.every((p) => p.statement_id !== null),
   };
 }
 
-/** The pick on the clock in every queue (one per sector when the draft runs by sector), with its queue's size and picks left. */
-export function draftHeads(picks: readonly DraftPickRow[]): { pick: DraftPickRow; queue: string; place: number; size: number; left: number }[] {
+/**
+ * The pick on the clock in every queue (one per sector when the draft runs by sector), with its queue's number of
+ * pickers, the pickers still to pick, and how many others the sector has (given a statement at random, 088).
+ */
+export function draftHeads<T extends Pick<DraftPickRow, "company_id" | "pick_no" | "statement_id" | "sector" | "auto">>(
+  picks: readonly T[],
+): { pick: T; queue: string; place: number; size: number; left: number; others: number }[] {
   const ordered = [...picks].sort((a, b) => a.pick_no - b.pick_no);
   const queues = [...new Set(ordered.map(queueOf))].sort();
   return queues.flatMap((q) => {
-    const all = ordered.filter((p) => queueOf(p) === q);
+    const inQueue = ordered.filter((p) => queueOf(p) === q);
+    const all = inQueue.filter((p) => !p.auto);
     const head = all.find((p) => p.statement_id === null);
-    return head ? [{ pick: head, queue: q, place: all.indexOf(head) + 1, size: all.length, left: all.filter((p) => p.statement_id === null).length }] : [];
+    return head
+      ? [{ pick: head, queue: q, place: all.indexOf(head) + 1, size: all.length, left: all.filter((p) => p.statement_id === null).length, others: inQueue.length - all.length }]
+      : [];
   });
 }
 

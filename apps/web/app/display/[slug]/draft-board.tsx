@@ -2,9 +2,12 @@
 // companies on it, and the picks still to come. Public data only (tickers, never team names). It replaces the board,
 // and any results screen still showing, until every company has its statement. Picks go to the staff channel only,
 // so the board re-reads itself every 3 s; with one queue per sector (draft_clock) it shows a column per sector.
+// Migration 088: in each sector only the 10 lowest-scoring companies pick, each statement once; the others are given a
+// statement at random, spread evenly, when their sector's pickers are done.
 
 import { Countdown } from "@/components/ui/countdown";
 import { DRAFT_POLL_MS, parseDraftHeads, sameSector, type DraftHead } from "@/lib/display/draft";
+import { DRAFT_RULE } from "@/lib/team/crisis";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { supabaseServer } from "@/lib/supabase/server";
 import { TakeoverFrame } from "./takeovers/frame";
@@ -84,6 +87,12 @@ function SectorDraftBoard({ data }: { data: DraftBoardData }) {
             return (
               <section key={h.sector} className="guide-panel flex min-h-0 flex-col gap-3 p-4" data-testid={`display-draft-sector-${h.sector}`}>
                 <p className="truncate text-[30px] font-bold uppercase tracking-widest text-warn">{h.sector}</p>
+                {h.place && h.queue ? (
+                  <p className="truncate text-[22px] text-muted">
+                    Pick {h.place} of {h.queue}
+                    {h.others ? ` · then ${h.others} given a statement at random` : ""}
+                  </p>
+                ) : null}
                 <div className="flex items-end justify-between gap-4 border-b-4 border-phosphor-dim pb-2">
                   <p className="text-[72px] font-black leading-none text-phosphor">{h.ticker}</p>
                   <p className="font-mono text-[64px] font-black leading-none tabular-nums text-warn">
@@ -93,13 +102,14 @@ function SectorDraftBoard({ data }: { data: DraftBoardData }) {
                 <ul className="flex min-h-0 flex-col gap-1.5 overflow-hidden">
                   {statements.map((s) => {
                     const on = data.picks.filter((p) => p.statement_id === s.id);
-                    const full = on.length >= s.cap;
+                    // Each statement once among the pickers: a picked statement is taken while the sector still picks.
+                    const taken = on.length >= 1;
                     return (
                       <li key={s.id} className="flex items-baseline gap-3 text-[24px] leading-tight" data-testid={`display-statement-${s.number}`}>
                         <span className="font-mono font-bold text-warn">#{s.number}</span>
                         <span className="min-w-0 flex-1 truncate text-paper">{s.title}</span>
-                        <span className={`font-mono font-bold ${full ? "text-danger" : "text-muted"}`}>
-                          {on.length}/{s.cap}
+                        <span className={`font-mono font-bold ${taken ? "text-danger" : "text-muted"}`}>
+                          {taken ? `TAKEN · ${data.tickers.get(on[0]!.company_id) ?? ""}` : "open"}
                         </span>
                       </li>
                     );
@@ -109,8 +119,11 @@ function SectorDraftBoard({ data }: { data: DraftBoardData }) {
             );
           })}
         </div>
+        <p className="shrink-0 text-[26px] text-paper" data-testid="display-draft-rule">
+          {DRAFT_RULE}
+        </p>
         <p className="shrink-0 text-[30px] text-muted">
-          {data.picks.length - left} of {data.picks.length} picked · {left} still to pick
+          {data.picks.length - left} of {data.picks.length} have a statement · {left} still to come
         </p>
       </div>
     </TakeoverFrame>

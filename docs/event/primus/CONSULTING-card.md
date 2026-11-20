@@ -11,7 +11,7 @@
 | first 20 min of each crisis | **Answer offers** | Offers start at your base rate (your minimum bid). Accept, decline or counter (3 counters each). At most 2 clients per crisis. Accepting is final. A company that hires no one gets a random firm with room at that firm's base rate: you may be assigned a client. |
 | by +65 min | **Advice memo for each client** | **150 to 500 words.** No memo, or under 150 words = **no fee** (it goes back to the client). |
 | after the scores | **Bonus** | $500 × (memo score − 50) (from −$10,000 to +$25,000) + $1,000 × (stars − 3), for each client whose fee you earned. No rating = 3 stars. |
-| from the end of the draft (about 05:00) to 06:00 | **Round 3** | Get hired by 05:15, write your memo and help your client's solution (you can edit it with them). |
+| from the end of the draft (about 04:50) to 06:00 | **Round 3** | Your client gets its statement in the draft (the 10 lowest-scoring companies in each sector pick, each statement once; every other company is given one at random, spread evenly across the ten). Get hired by 05:15, write your memo and help your client's solution (you can edit it with them). |
 | 07:10 | Awards | |
 
 **Tips**
