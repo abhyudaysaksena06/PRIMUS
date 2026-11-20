@@ -79,6 +79,7 @@ describe("grants", () => {
       "desk_check_in",
       "desk_check_out",
       "dismiss_appeal",
+      "display_teams",
       "draft_clock",
       "draft_sectors",
       "draw_preview",

@@ -107,6 +107,17 @@ describe("catch-up SQL", () => {
     }
   });
 
+  test("from 090 (the live database before 092) the catch-up from 090 applies 092", async () => {
+    const db = await partialDb("20261226000090");
+    try {
+      await db.client.query(catchUpSql(migrations, "20261226000090"));
+      expect((await db.client.query("select public.schema_version() as v")).rows[0].v).toBe(LAST);
+      expect((await db.client.query(SNAPSHOT)).rows.map((r) => r.x)).toEqual(expected);
+    } finally {
+      await db.drop();
+    }
+  });
+
   test("a database whose functions have Windows line endings (pasted into the SQL editor) is caught up all the same", async () => {
     const db = await partialDb("20261129000063");
     try {

@@ -9,7 +9,7 @@ import type { DisplayEvent } from "@/lib/display/frame";
 import { boardTiles, highlightUntil } from "@/lib/display/board";
 import { clock } from "@/lib/format";
 import { latestUpdates, sectorColumns } from "@/lib/display/rotation";
-import { loadBoard, loadReadingStart, loadSectorBoard } from "./data";
+import { loadBoard, loadDisplayTeams, loadReadingStart, loadSectorBoard } from "./data";
 import { BoardPages } from "./pages";
 import { SectorRotation } from "./sectors";
 import { marketPulse, MOODS } from "@/lib/team/pulse";
@@ -50,7 +50,12 @@ export async function Board({ event, status, compact = false }: { event: Display
     );
   }
 
-  const [{ companies, round }, race, sectorBoard] = await Promise.all([loadBoard(event.id), loadSectorRace(event.id), loadSectorBoard(event.id)]);
+  const [{ companies, round }, race, sectorBoard, teams] = await Promise.all([
+    loadBoard(event.id),
+    loadSectorRace(event.id),
+    loadSectorBoard(event.id),
+    loadDisplayTeams(event.id),
+  ]);
   const tiles = boardTiles(companies, round?.round_prices ?? [], event.market_closed_at !== null);
   // From the draw on: the sector columns and the team spotlight (only companies the draw placed in a sector).
   const columns = sectorBoard ? sectorColumns(tiles, sectorBoard.sectors, latestUpdates(sectorBoard.moves, sectorBoard.hires)) : [];
@@ -114,7 +119,7 @@ export async function Board({ event, status, compact = false }: { event: Display
         </p>
       ) : null}
       {columns.length > 0 ? (
-        <SectorRotation columns={columns} serverTime={status.server_time} compact={compact} />
+        <SectorRotation columns={columns} teams={teams} serverTime={status.server_time} compact={compact} />
       ) : (
       <BoardPages
         tiles={tiles}

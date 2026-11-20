@@ -15,6 +15,7 @@ import {
   moveBpOf,
   moveText,
   otherView,
+  parseDisplayTeams,
   parseView,
   sectorColumns,
   spotlightCards,
@@ -54,13 +55,39 @@ describe("the team spotlight", () => {
     expect(spotlightIndex(SPOTLIGHT_MS - 1, 7)).toBe(0);
   });
 
-  test("the cards are every company of every column, sector by sector", () => {
-    const cols = sectorColumns([tile("AAA"), tile("BBB"), tile("CCC")], new Map([["aaa", "Luxury"], ["bbb", "FMCG"], ["ccc", "FMCG"]]), new Map());
-    expect(spotlightCards(cols).map((c) => [c.sector, c.row.ticker])).toEqual([
+  const cols = () => sectorColumns([tile("AAA"), tile("BBB"), tile("CCC")], new Map([["aaa", "Luxury"], ["bbb", "FMCG"], ["ccc", "FMCG"]]), new Map());
+
+  test("without the team list (an older database): every company of every column, sector by sector", () => {
+    expect(spotlightCards(cols()).map((c) => (c.track === "PRODUCT" ? [c.sector, c.row?.ticker] : null))).toEqual([
       ["FMCG", "BBB"],
       ["FMCG", "CCC"],
       ["Luxury", "AAA"],
     ]);
+  });
+
+  test("with the team list: one card per listed team of every track, a Product card with its company's row", () => {
+    const teams = parseDisplayTeams([
+      { code: "P01", name: "Builders", track: "PRODUCT", company: { id: "bbb", ticker: "BBB", name: "B", sector: "FMCG" }, base_rate_bp: null, clients: null },
+      { code: "P02", name: "Walk-in", track: "PRODUCT", company: null, base_rate_bp: null, clients: null },
+      { code: "C01", name: "Advisers", track: "CONSULTING", company: null, base_rate_bp: 250, clients: 3 },
+      { code: "F01", name: "Fund One", track: "FINANCE", company: null, base_rate_bp: null, clients: null },
+      { code: 7, name: "bad" },
+      "junk",
+    ]);
+    const cards = spotlightCards(cols(), teams);
+    expect(cards.map((c) => [c.track, c.code])).toEqual([
+      ["PRODUCT", "P01"],
+      ["PRODUCT", "P02"],
+      ["CONSULTING", "C01"],
+      ["FINANCE", "F01"],
+    ]);
+    const p1 = cards[0]!;
+    expect(p1.track === "PRODUCT" && p1.row?.ticker).toBe("BBB");
+    expect(p1.track === "PRODUCT" && p1.sector).toBe("FMCG");
+    expect(cards[1]!.track === "PRODUCT" && cards[1]!.row).toBeNull();
+    expect(cards[2]).toMatchObject({ baseRateBp: 250, clients: 3, name: "Advisers" });
+    expect(Object.keys(cards[3]!).sort()).toEqual(["code", "key", "name", "track"]);
+    expect(parseDisplayTeams(null)).toEqual([]);
   });
 });
 

@@ -196,18 +196,48 @@ export function sectorColumns(tiles: readonly BoardTile[], sectors: ReadonlyMap<
 
 // ───────────────────────────── The Teams spotlight ─────────────────────────────
 
-/**
- * One spotlight card. The display account reads public data only (RLS: no team's code, name, cash or check-in time
- * before AWARDS, and no migration may add a public read tonight), so the cards are the registered companies: a
- * company exists only for a squad the draw formed, and company_sectors lists only those.
- */
-export interface SpotlightEntry {
-  track: "PRODUCT";
-  sector: string;
-  row: SectorRow;
+/** A team as public.display_teams (migration 092) gives it: only listed teams, only public facts, never cash. */
+export interface DisplayTeam {
+  code: string;
+  name: string;
+  track: "PRODUCT" | "CONSULTING" | "FINANCE";
+  company: { id: string; ticker: string | null; name: string | null; sector: string | null } | null;
+  base_rate_bp: number | null;
+  clients: number | null;
 }
 
-/** Every company of every column, in the columns' order (sector by sector, ticker order within). */
-export function spotlightCards(columns: readonly SectorColumn[]): SpotlightEntry[] {
-  return columns.flatMap((c) => c.rows.map((row) => ({ track: "PRODUCT" as const, sector: c.sector, row })));
+/** One spotlight card: a team (code, name, track and its track's facts), or a company when no team list is read. */
+export type SpotlightEntry =
+  | { track: "PRODUCT"; key: string; code: string | null; name: string | null; sector: string | null; row: SectorRow | null }
+  | { track: "CONSULTING"; key: string; code: string; name: string; baseRateBp: number | null; clients: number }
+  | { track: "FINANCE"; key: string; code: string; name: string };
+
+/** The rows of `display_teams` read back: anything malformed is left out. */
+export function parseDisplayTeams(data: unknown): DisplayTeam[] {
+  if (!Array.isArray(data)) return [];
+  return data.filter(
+    (t): t is DisplayTeam =>
+      !!t && typeof t === "object" && typeof t.code === "string" && typeof t.name === "string" && ["PRODUCT", "CONSULTING", "FINANCE"].includes(t.track),
+  );
+}
+
+/**
+ * The spotlight's cards. With the team list (`teams`, in its order: Product, Consulting, Finance, by code): one card
+ * per listed team, a Product card carrying its company's row from the columns (price, change, latest update). Without
+ * it (null: an older database), every company of every column, sector by sector.
+ */
+export function spotlightCards(columns: readonly SectorColumn[], teams: readonly DisplayTeam[] | null = null): SpotlightEntry[] {
+  const rows = new Map<string, { row: SectorRow; sector: string }>();
+  for (const c of columns) for (const row of c.rows) rows.set(row.id, { row, sector: c.sector });
+  if (teams === null) {
+    return [...rows.values()].map(({ row, sector }) => ({ track: "PRODUCT", key: row.id, code: null, name: null, sector, row }));
+  }
+  return teams.map((t): SpotlightEntry => {
+    if (t.track === "PRODUCT") {
+      const found = t.company ? rows.get(t.company.id) : undefined;
+      return { track: "PRODUCT", key: t.code, code: t.code, name: t.name, sector: found?.sector ?? t.company?.sector ?? null, row: found?.row ?? null };
+    }
+    if (t.track === "CONSULTING") return { track: "CONSULTING", key: t.code, code: t.code, name: t.name, baseRateBp: t.base_rate_bp, clients: t.clients ?? 0 };
+    return { track: "FINANCE", key: t.code, code: t.code, name: t.name };
+  });
 }

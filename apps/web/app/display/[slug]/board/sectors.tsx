@@ -24,6 +24,7 @@ import {
   spotlightCards,
   spotlightIndex,
   type ColumnLayout,
+  type DisplayTeam,
   type ScreenView,
   type SectorColumn,
   type SectorRow,
@@ -127,7 +128,18 @@ function TimerPanel({ now, timer, onSet }: { now: number; timer: TimerOverride |
   );
 }
 
-export function SectorRotation({ columns, serverTime, compact = false }: { columns: SectorColumn[]; serverTime: string; compact?: boolean }) {
+export function SectorRotation({
+  columns,
+  teams,
+  serverTime,
+  compact = false,
+}: {
+  columns: SectorColumn[];
+  /** The listed teams (display_teams); null on an older database (the spotlight then shows the companies). */
+  teams: DisplayTeam[] | null;
+  serverTime: string;
+  compact?: boolean;
+}) {
   const live = useServerNow(500);
   const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
   const now = hydrated ? live : Date.parse(serverTime);
@@ -171,7 +183,7 @@ export function SectorRotation({ columns, serverTime, compact = false }: { colum
     setTimerState(t);
   };
 
-  const cards = spotlightCards(columns);
+  const cards = spotlightCards(columns, teams);
   return (
     <>
       <div className={`sector-view-toggle ${toggleShown || panelOpen ? "is-shown" : ""}`} data-testid="display-controls">
@@ -297,10 +309,10 @@ function Spotlight({ cards, now }: { cards: SpotlightEntry[]; now: number }) {
   return (
     <>
       <div className="flex min-h-0 flex-1 items-center justify-center px-24 py-6" data-testid="team-spotlight">
-        {card ? <SpotlightCard key={card.row.id} card={card} /> : <p className="guide-panel px-16 py-10 text-[48px] font-bold text-[#9db1a1]">No registered teams yet.</p>}
+        {card ? <SpotlightCard key={card.key} card={card} /> : <p className="guide-panel px-16 py-10 text-[48px] font-bold text-[#9db1a1]">No registered teams yet.</p>}
       </div>
       <footer className="guide-footer guide-stage-legend flex h-[44px] shrink-0 items-center justify-between gap-8">
-        <p className="min-w-0 truncate">Team spotlight · every registered company in turn</p>
+        <p className="min-w-0 truncate">Team spotlight · every registered team of every track in turn</p>
         {i !== null ? (
           <p className="guide-status shrink-0 tabular-nums" data-testid="team-spotlight-count">
             {i + 1} / {cards.length}
@@ -311,27 +323,92 @@ function Spotlight({ cards, now }: { cards: SpotlightEntry[]; now: number }) {
   );
 }
 
+const TRACK_LABEL = { PRODUCT: "Product", CONSULTING: "Consulting", FINANCE: "Finance" } as const;
+
+/** The card's frame: the track line on top, the team's code and name large, then the track's facts. */
+function CardFrame({ card, border, eyebrow, children }: { card: SpotlightEntry; border: string; eyebrow: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section
+      className={`guide-metric guide-tile sector-spotlight-card flex w-full max-w-[1500px] flex-col gap-8 border-l-8 px-14 py-10 ${border}`}
+      data-testid={`spotlight-${card.key}`}
+      data-track={card.track}
+    >
+      <span className="text-[34px] font-bold tracking-wide uppercase">{eyebrow}</span>
+      {card.code ? (
+        <div className="flex min-w-0 items-baseline gap-10">
+          <span className="shrink-0 font-mono text-[120px] leading-none font-black tracking-tight glow" data-testid="spotlight-code">
+            {card.code}
+          </span>
+          <span className="min-w-0 truncate text-[64px] font-bold" data-testid="spotlight-name">
+            {card.name}
+          </span>
+        </div>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
 function SpotlightCard({ card }: { card: SpotlightEntry }) {
+  if (card.track === "CONSULTING") {
+    return (
+      <CardFrame card={card} border="border-[#4fb8ff]" eyebrow={<span className="text-[#8fd6ff]">Consulting · firm</span>}>
+        <div className="flex items-baseline gap-16 tabular-nums">
+          <span className="text-[56px]">
+            <span className="text-muted">Base rate </span>
+            <b>{card.baseRateBp === null ? "—" : `${(card.baseRateBp / 100).toFixed(2)}%`}</b>
+          </span>
+          <span className="text-[56px]">
+            <span className="text-muted">Clients </span>
+            <b>{card.clients}</b>
+          </span>
+        </div>
+      </CardFrame>
+    );
+  }
+  if (card.track === "FINANCE") {
+    return (
+      <CardFrame card={card} border="border-[#ffb000]" eyebrow={<span className="text-[#ffd25c]">Finance · fund</span>}>
+        <p className="text-[40px] text-muted">Portfolio revealed at the awards.</p>
+      </CardFrame>
+    );
+  }
   const { row, sector } = card;
-  const style = sectorStyle(sector);
+  const style = sectorStyle(sector ?? "");
+  return (
+    <CardFrame
+      card={card}
+      border={style.border}
+      eyebrow={
+        <span className={style.text}>
+          {sector ? (
+            <>
+              <Glyph e={style.icon} /> {sector} ·{" "}
+            </>
+          ) : null}
+          {TRACK_LABEL.PRODUCT}
+        </span>
+      }
+    >
+      {row ? <CompanyFacts row={row} big={!card.code} /> : <p className="text-[40px] text-muted">Company listed from the Reading phase.</p>}
+    </CardFrame>
+  );
+}
+
+function CompanyFacts({ row, big }: { row: SectorRow; big: boolean }) {
   const tone = toneOf(row.changeBp);
   return (
-    <section className={`guide-metric guide-tile sector-spotlight-card flex w-full max-w-[1500px] flex-col gap-8 border-l-8 px-14 py-10 ${style.border}`} data-testid={`spotlight-${row.ticker}`}>
-      <div className="flex items-baseline justify-between gap-8">
-        <span className={`text-[34px] font-bold tracking-wide uppercase ${style.text}`}>
-          <Glyph e={style.icon} /> {sector} · Product
-        </span>
-        {row.move ? <span className={`text-[64px] leading-none ${TONE[MOVE_TONE[row.move]]}`}>{MOVE_ARROWS[row.move]}</span> : null}
-      </div>
+    <>
       <div className="flex min-w-0 items-baseline gap-10">
-        <span className="shrink-0 text-[150px] leading-none font-black tracking-tight glow">{row.ticker}</span>
-        <span className="min-w-0 truncate text-[56px] text-[#9db1a1]">{row.name}</span>
+        <span className={`shrink-0 leading-none font-black tracking-tight ${big ? "text-[150px] glow" : "text-[72px] text-phosphor"}`}>{row.ticker}</span>
+        <span className={`min-w-0 truncate text-[#9db1a1] ${big ? "text-[56px]" : "text-[44px]"}`}>{row.name}</span>
+        {row.move ? <span className={`ml-auto shrink-0 text-[64px] leading-none ${TONE[MOVE_TONE[row.move]]}`}>{MOVE_ARROWS[row.move]}</span> : null}
       </div>
       {row.price === null ? (
         <p className="text-[56px] font-semibold text-muted">IPO price pending</p>
       ) : (
         <div className="flex items-baseline gap-12 tabular-nums">
-          <span className="text-[110px] leading-none font-bold">{money(row.price)}</span>
+          <span className="text-[100px] leading-none font-bold">{money(row.price)}</span>
           <span className={`text-[72px] leading-none font-bold ${TONE[tone]}`}>{bp(row.changeBp)}</span>
           <span className="text-[30px] text-muted">{row.closing ? "closing price · since IPO" : "since IPO"}</span>
         </div>
@@ -347,6 +424,6 @@ function SpotlightCard({ card }: { card: SpotlightEntry }) {
           <span className="text-muted">No update yet</span>
         )}
       </p>
-    </section>
+    </>
   );
 }

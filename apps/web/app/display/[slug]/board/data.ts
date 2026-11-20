@@ -4,7 +4,7 @@
 
 import { supabaseServer } from "@/lib/supabase/server";
 import type { BoardCompany, BoardMoveRow } from "@/lib/display/board";
-import type { UpdateHire, UpdateMove } from "@/lib/display/rotation";
+import { parseDisplayTeams, type DisplayTeam, type UpdateHire, type UpdateMove } from "@/lib/display/rotation";
 
 export interface BoardRound {
   number: number;
@@ -80,6 +80,13 @@ export async function loadSectorBoard(eventId: string): Promise<SectorBoardData 
         })),
     hires: hires.error ? [] : ((hires.data ?? []) as UpdateHire[]),
   };
+}
+
+/** The Teams spotlight's list (public.display_teams, migration 092); null on an older database or a failed read. */
+export async function loadDisplayTeams(eventId: string): Promise<DisplayTeam[] | null> {
+  const sb = await supabaseServer();
+  const { data, error } = await sb.rpc("display_teams", { p_event: eventId });
+  return error ? null : parseDisplayTeams(data);
 }
 
 /** When READING is planned to start (phases.starts_at; it moves with a pause or an extension). */
