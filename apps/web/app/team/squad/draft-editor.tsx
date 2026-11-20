@@ -11,7 +11,7 @@
 
 import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { TEMPLATES, type SubmissionType } from "@msim/engine";
+import { RULES, TEMPLATES, type SubmissionType } from "@msim/engine";
 import { clock, countdown } from "@/lib/format";
 import { useServerNow } from "@/lib/live/clock";
 import { useFeature } from "@/lib/team/features";
@@ -232,6 +232,9 @@ export function DraftEditor(props: DraftEditorProps) {
   const fields = closed ? closed.fields : state.fields;
   const version = closed ? closed.shown : state.base;
   const stats = wordStats(type, fields);
+  // The running total under every box (organisers, 20 Nov): the total, what is left, and the minimum where there is one.
+  const minWords = type.startsWith("ADVICE_") ? RULES.ADVICE_MIN_WORDS : type === "THESIS" ? RULES.THESIS_MIN_WORDS : 0;
+  const short = Math.max(0, minWords - stats.total);
   const problem = submitProblem(type, fields);
   const isSubmitted = !!props.submitted && sameFields(type, fieldsOf(type, props.submitted.content), fields);
   const ticker = fields.ticker ?? "";
@@ -484,7 +487,15 @@ export function DraftEditor(props: DraftEditorProps) {
                 <span id={`${id}-words`} data-testid={`words-${f.key}`}>
                   {words(n)}
                 </span>{" "}
-                in this section
+                in this section ·{" "}
+                <b data-testid={`words-total-${f.key}`} className={stats.over > 0 ? "text-danger-soft" : short > 0 ? "text-warn" : "text-paper"}>
+                  total {stats.total.toLocaleString("en-US")} / {stats.limit.toLocaleString("en-US")}
+                </b>{" "}
+                {stats.over > 0
+                  ? `(${words(stats.over)} over)`
+                  : short > 0
+                    ? `(${words(short)} more needed, minimum ${minWords})`
+                    : `(${words(stats.limit - stats.total)} left)`}
               </span>
               <span className="guide-status uppercase">{!live ? "● Closed" : dirty ? "● Draft in progress" : version.version > 0 ? "● Draft saved" : "● Not saved yet"}</span>
             </div>
