@@ -38,6 +38,7 @@ import {
   type DraftSnapshot,
   type EditorNotice,
   type Fields,
+  refreshAfterSave,
 } from "@/lib/team/editor";
 import { SUBMISSION_LABELS, deadlinePassed, otherSaver, roleOf, whoLabel, type SquadTeams } from "@/lib/team/squad";
 import { useCarryOver } from "@/lib/live/feedback";
@@ -185,7 +186,7 @@ export function DraftEditor(props: DraftEditorProps) {
         deliver(r);
         setSaveResult(r);
       }
-      router.refresh();
+      if (refreshAfterSave(auto, r)) router.refresh();
     });
   };
 

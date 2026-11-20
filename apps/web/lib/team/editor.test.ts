@@ -3,6 +3,7 @@ import { submissionWords } from "@msim/engine";
 import {
   MAX_CONTENT_CHARS,
   afterResult,
+  refreshAfterSave,
   backupKey,
   backupOf,
   closedView,
@@ -395,5 +396,16 @@ describe("results of the game functions", () => {
     expect(toSubmitted({ content: { answer: "A" }, submitted_at: "t", word_count: 1 })).toEqual({ content: { answer: "A" }, submittedAt: "t", words: 1 });
     expect(toSubmitted({ submitted_at: "t" })).toBeNull();
     expect(toSubmitted(null)).toBeNull();
+  });
+});
+
+describe("refreshAfterSave", () => {
+  const draft = { version: 3, content: {}, updatedAt: "2026-11-20T21:30:00Z", updatedBy: null };
+  test("an automatic save that worked does not re-read the page; a click, a refusal or a conflict does", () => {
+    expect(refreshAfterSave(true, { ok: true, draft })).toBe(false);
+    expect(refreshAfterSave(false, { ok: true, draft })).toBe(true);
+    expect(refreshAfterSave(true, { ok: false, draft })).toBe(true);
+    expect(refreshAfterSave(true, { ok: true })).toBe(true);
+    expect(refreshAfterSave(true, { ok: false })).toBe(true);
   });
 });
