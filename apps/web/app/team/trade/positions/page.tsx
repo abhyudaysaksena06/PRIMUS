@@ -106,9 +106,15 @@ export default async function PositionsPage() {
             <DeskPanel
               title="Your fund's value after each step"
               sub="Equity curve · cash + long − short"
-              actions={<span className="font-mono text-sm font-semibold text-[color:var(--desk-accent)] tabular-nums">{money(totals.value)}</span>}
+              actions={<span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">{series.length} steps</span>}
               className="grow"
             >
+              <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="font-mono text-xl font-semibold text-[#F2F5F3] tabular-nums">{money(totals.value)}</span>
+                <span className={`font-mono text-xs tabular-nums ${totals.gain > 0 ? "text-[#00D68F]" : totals.gain < 0 ? "text-[#FF5364]" : "text-[#87948D]"}`}>
+                  {bp(totals.returnBp)} vs start ({money(totals.start)})
+                </span>
+              </div>
               <div className="rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
                 <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
               </div>
