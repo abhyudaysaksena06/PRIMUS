@@ -115,11 +115,16 @@ settlement.
 
 ## 6. Snapshots and resets (tonight)
 
-- **Snapshots (migration 075, switch `snapshots`, SCALE, on by default).** `app.snapshots` keeps a copy of every
-  event-scoped table as JSON at every phase change, after every trading round clears and after every score release,
-  plus a **Back up now** button; each snapshot can be downloaded from Exports.
-- **Restore (W16).** `public.restore_snapshot(id)` puts an event back to a snapshot: only while paused, with a
-  second organiser's approval, in one transaction, logged. "Reset to base" restores the first snapshot; "reset a
+- **Snapshots (migration 075, switch `snapshots`, SCALE, on by default).** A backup is every row of every
+  event-scoped table as JSON, with a fingerprint (row counts, team cash and collateral, the exchange's cash, shares
+  per lot, the exchange's inventory, the sum of prices). Requested when the event leaves `SETUP` ("Base"), a phase
+  starts, a round clears, scores are released, or an organiser presses **Back up now**; the game's transaction only
+  queues the request and a separate pg_cron job (`msim-snapshot`, every 10 seconds) takes it in one statement, at most
+  one per event every 5 seconds; the last 200 are kept (Base always). Downloadable from Exports.
+- **Restore (W16, migration 075).** An organiser asks with a reason and a different organiser or the fairness
+  officer approves, only while the event is paused. In one transaction the job backs up the present state, writes the
+  backup's rows back, checks the fingerprint (or undoes everything) and logs it; logins, attendance, the logs and the
+  switches are kept as they are. The event stays paused; Resume moves every later time by the gap. "Reset to base" restores the first snapshot; "reset a
   round" restores that round's. The test plays a night, restores every snapshot and compares fingerprints. It must be
   rehearsed once before it is used on the night.
 - Before tonight's catch-up migrations, the live database is snapshotted first (the plan's ground rule 2).

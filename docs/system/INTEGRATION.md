@@ -67,10 +67,12 @@ Notes on the rules behind the flows:
 
 **Tonight (W9, migration 071, switches `hire_base_rate` and `hire_min_bid`, RULE, off by default).** Each firm's
 base rate is 2% + 0.04% × (ZestUp score − 50), between 1% and 4% of the company (1,000 to 4,000 shares). It is the
-firm's minimum bid: an offer worth less is refused (`BELOW_MIN_BID`). When hiring closes, a company with no firm is
-given a **random** checked-in firm with room (drawn from the lottery seed and the crisis number, so it can be checked
-afterwards) and pays that firm's base rate in shares held in escrow, or their cash value if the 40,000-share floor
-blocks the shares; the ledger writes both sides. This replaces flow 7 while the switch is on. Both sides see
+firm's minimum bid: an offer worth less (cash + shares × market price, against the base-rate shares × market price)
+is refused (`BELOW_MIN_BID`). When hiring closes (crises 1–4 and Round 3), the companies with no firm and the firms
+with room are shuffled by the lottery's generator (root SHA-256(seed + dice), stream `hire:k`, `app.hire_draw`); in
+that order each company takes the least busy firm. It pays that firm's base rate in shares, held in escrow like an
+accepted share offer (they move at the due time if the memo is in), or their cash value at the market price if the
+40,000-share floor blocks the shares, never more than its cash; the ledger writes both sides. This replaces flow 7 while the switch is on. Both sides see
 "assigned by the draw".
 
 > **Found while writing this (built code, settlement).** `app.pay_consultant_bonuses` is the classic night's

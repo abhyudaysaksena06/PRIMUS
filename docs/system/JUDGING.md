@@ -59,8 +59,10 @@ over the word limit, and a PRD without a company name (1–60 characters) or a f
 pressed Submit keeps its last submitted version: a later draft is not submitted for it.
 
 **Tonight (073, switch `judge_auto`, off by default, a RULE switch).** After each writing deadline and the
-auto-submit, the heartbeat calls `start_judging` itself, and when every run of the type has finished it seals the
-missing scores. Release stays one organiser click, because release moves prices. With the switch off, an organiser
+auto-submit, the heartbeat queues runs 1–3 for every current submission without runs (the same statement as
+`start_judging`, so nothing is queued twice; a draft auto-submitted a tick late is queued on that tick), and once no
+run of the type is queued or running it seals the missing scores, once. Both steps are logged; an error goes to
+`error_log` and the next tick tries again. Release stays one organiser click, because release moves prices. With the switch off, an organiser
 presses *Start judging* on the Judge page as before.
 
 **Plans before memos.** Workers take runs in queue order (`created_at`, then submission, then run number). After a
@@ -219,8 +221,10 @@ checked by `public.tick`), so no one trades on stale prices. Every release broad
 - **After release** the new score waits as a READY appeal; an organiser applies it (`public.apply_appeal`) or
   dismisses it with a reason (`public.dismiss_appeal`). The `APPEALS` phase cannot end while an appeal is open.
 - **PRIMUS gap (built today):** `apply_appeal` re-applies the classic `PLAN_TIER` price row and raises "no plan tier
-  is recorded" for a PRIMUS company, so an appeal of a released crisis plan or solution cannot be applied yet. The
-  plan's W14 fixes it tonight. Until then, prefer re-runs before release.
+  is recorded" for a PRIMUS company, so an appeal of a released crisis plan or solution cannot be applied yet.
+  Tonight's migration 073 fixes it: the price moves by the change in the tier (the Round 3 leveller included), and an
+  advice memo's appeal pays or takes back the change in the firm's bonus. Until it is merged, prefer re-runs before
+  release.
 
 ## 9. Lines aimed at the judge
 

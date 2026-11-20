@@ -162,7 +162,9 @@ a round. A company whose last cleared round moved the full ±10% takes no orders
 ## 12. Hiring base rate (tonight, migration 071)
 
 Switches `hire_base_rate` and `hire_min_bid` (RULE, off by default). A firm's base rate is a share of the client
-company: 2% + 0.04% × (ZestUp score − 50), never below 1% or above 4% of the company's 100,000 shares.
+company: 2% + 0.04% × (ZestUp score − 50), never below 1% or above 4% of the company's 100,000 shares; in basis points
+clamp(200 + 4 × (score − 50), 100, 400) (`app.firm_base_rate`, migration 071). The score is the released ZestUp score
+of the firm's own squad company; a firm without one has 2%.
 
 | ZestUp score | Base rate | Shares |
 | --- | --- | --- |
@@ -171,27 +173,27 @@ company: 2% + 0.04% × (ZestUp score − 50), never below 1% or above 4% of the 
 | 75 | 3% | 3,000 |
 | 100 | 4% | 4,000 |
 
-It is the firm's **minimum bid** (an offer worth less is refused, `BELOW_MIN_BID`) and the fee a company pays when
-hiring closes with no firm and it is given a random one. Today's code (without the switches) charges an unhired
+It is the firm's **minimum bid**: an offer (or counter, or accept) worth less than the base-rate shares × the market
+price, counting cash + shares × market price, is refused with `BELOW_MIN_BID`. It is also the fee a company pays, in
+shares, when hiring closes (crises 1–4 and Round 3) with no firm and the seeded draw gives it one; if the 40,000-share
+floor blocks those shares, their cash value at the market price, never more than the company's cash. Today's code (without the switches) charges an unhired
 company $22,500, or 10% of its cash in Round 3 (`app.assign_default_firms`, migrations 061, 065 and 066), and a Round 3
 fee must be worth 5–20% of the company's cash (`app.offer_problem`).
 
-## 13. The PRIMUS Rating on the live leaderboard (tonight, W14)
+## 13. The PRIMUS Rating on the live leaderboard (tonight, migration 073)
 
-Switch `leaderboard` (DISPLAY, on by default). A company's rating:
+Switch `leaderboard` (DISPLAY, on by default; staff always see it). `public.leaderboard` in migration 073. A company's rating:
 
 - starts at **1,000**;
 - for each released PRD, crisis plan and solution (6 "rounds"), adds **50 × z**, where z is the company's standard
-  score among the companies of its sector for that round: z = (score − sector mean) ÷ sector standard deviation; a
-  standard deviation of 0 gives z = 0;
-- each round's change is clipped to **±100** (so |z| above 2 counts as 2);
+  score among the companies of its sector for that round: z = (score − sector mean) ÷ the sector's population
+  standard deviation; a standard deviation of 0 (a sector of one, or equal scores) gives z = 0;
+- each round's change is round(50 × z), halves away from zero, clipped to **±100** (so |z| above 2 counts as 2);
 - the ▲▼ change shown is the latest round's change.
 
 Example: a sector's five crisis plans score 50, 60, 70, 80 and 90. The mean is 70 and the standard deviation is
-14.14, so the changes are −70.7, −35.4, 0, +35.4 and +70.7. A sector of 40, 55, 60, 62 and 88 (mean 61, standard
-deviation 15.54) gives −67.6, −19.3, −3.2, +3.2 and +86.9. The rating is a display only: it moves no price and no
-money. Two details to confirm against the migration once merged: whether the standard deviation is the population one
-(used in these examples) and how the change is rounded.
+14.14, so the changes are −71, −35, 0, +35 and +71. A sector of 40, 55, 60, 62 and 88 (mean 61, standard deviation
+15.54) gives −68, −19, −3, +3 and +87. Ties share a rank. The rating is a display only: it moves no price and no money.
 
 ## 14. Final values and tie-breaks
 
@@ -213,4 +215,5 @@ Rankings use competition ranking (1, 2, 2, 4): `rankBy` in `packages/engine/src/
 `20261113000032_primus_rounds.sql`, `20261113000033_marketplace.sql`, `20261113000034_saturation.sql`,
 `20261124000058_practice_market.sql`, `20261127000061_assign_firms.sql`, `20261130000064_catch_up.sql`,
 `20261201000065_night_fixes.sql`, `20261204000068_close_counts_the_end.sql`, `20261205000069_anti_saturation.sql`,
-`20261206000070_switches.sql`; the plan for tonight's items (071 hiring, W14 rating).
+`20261206000070_switches.sql`; tonight's in-progress migrations 071 (hiring) and 073 (rating), read on their builders'
+branches before merge.

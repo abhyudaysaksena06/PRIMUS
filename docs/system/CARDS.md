@@ -136,10 +136,11 @@ With one queue, 200 companies take 200 × 20 s ≈ 67 minutes.
 
 **Tonight (077, switches `draft_by_sector`, SCALE, and `draft_random_fallback`, RULE, both on by default).**
 
-- **Three sector queues at once**, each lowest score so far first: 67 companies × 20 s ≈ 22 minutes. Round 3 moves
-  later by the time the draft runs over its planned 15 minutes.
-- A missed pick gets a **seeded random** statement of the company's sector that still has room, instead of the least
-  crowded one (drawn from the lottery seed, so it can be checked once the seed is published).
+- **Three sector queues at once**, each lowest score so far first: 67 companies take 22 min 40 s. Round 3 moves
+  later by the time the longest queue runs over the planned 15 minutes.
+- A missed pick gets the first statement with room in the company's own seeded order of its sector's statements
+  (the lottery generator, stream `draft:<company id>`), instead of the least crowded one, so anyone with the published
+  seed can replay every default pick.
 - Picks no longer go to every screen: staff and the projector hear them; draft screens re-read every 3 seconds. The
   "Your pick!" alert is back for the company on the clock.
 
