@@ -66,10 +66,19 @@ export interface PriceMove {
   market_after: number;
 }
 
-/** One recorded move per company (CRISIS, PLAN_TIER or FLASH_TIER: each happens once). */
-export async function loadPriceMoves(eventId: string, kind: "CRISIS" | "PLAN_TIER" | "FLASH_TIER"): Promise<Map<string, PriceMove>> {
+/**
+ * One recorded move per company: CRISIS, PLAN_TIER or FLASH_TIER (each happens once), or a PRIMUS sub-round's
+ * SUB_SHOCK (the reveal's −5%) or SUB_TIER (its plans' or solutions' release), one per company and sub-round.
+ */
+export async function loadPriceMoves(
+  eventId: string,
+  kind: "CRISIS" | "PLAN_TIER" | "FLASH_TIER" | "SUB_SHOCK" | "SUB_TIER",
+  subround?: number,
+): Promise<Map<string, PriceMove>> {
   const sb = await supabaseServer();
-  const r = await sb.from("round_prices").select("company_id, market_before, market_after").eq("event_id", eventId).eq("kind", kind);
+  let query = sb.from("round_prices").select("company_id, market_before, market_after").eq("event_id", eventId).eq("kind", kind);
+  if (subround !== undefined) query = query.eq("subround", subround);
+  const r = await query;
   const rows = (must(r, "the price moves") ?? []) as (PriceMove & { company_id: string })[];
   return new Map(rows.map((x) => [x.company_id, x]));
 }

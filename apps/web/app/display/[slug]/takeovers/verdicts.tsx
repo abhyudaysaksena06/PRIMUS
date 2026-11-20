@@ -3,7 +3,7 @@
 // company's tier (the top five risers and fallers with score, tier and price before → after). Released scores and
 // company names are public; no team appears.
 
-import { VERDICT_TITLES, TAKEOVER_TITLES, type VerdictType } from "@/lib/display/takeover";
+import { VERDICT_TITLES, TAKEOVER_TITLES, verdictSubround, type VerdictType } from "@/lib/display/takeover";
 import { competitionRanks, pitchSummary, verdictMovers, type PitchRow, type VerdictRow } from "@/lib/display/takeovers";
 import { bp, count, money } from "@/lib/format";
 import type { TakeoverProps } from "./index";
@@ -83,12 +83,15 @@ async function PitchVerdicts({ eventId }: { eventId: string }) {
   );
 }
 
-async function TierVerdicts({ eventId, type }: { eventId: string; type: "PLAN" | "FLASH" }) {
-  const [companies, scores, moves] = await Promise.all([
-    loadCompanies(eventId),
-    loadReleasedScores(eventId, type),
-    loadPriceMoves(eventId, type === "PLAN" ? "PLAN_TIER" : "FLASH_TIER"),
-  ]);
+/** Where a release's price moves are stored: PRIMUS plans and solutions as their sub-round's SUB_TIER rows. */
+function tierMoves(eventId: string, type: Exclude<VerdictType, "PITCH">) {
+  const k = verdictSubround(type);
+  if (k !== null) return loadPriceMoves(eventId, "SUB_TIER", k);
+  return loadPriceMoves(eventId, type === "PLAN" ? "PLAN_TIER" : "FLASH_TIER");
+}
+
+async function TierVerdicts({ eventId, type }: { eventId: string; type: Exclude<VerdictType, "PITCH"> }) {
+  const [companies, scores, moves] = await Promise.all([loadCompanies(eventId), loadReleasedScores(eventId, type), tierMoves(eventId, type)]);
   const score = new Map(scores.map((s) => [s.company_id, s]));
   const rows: (VerdictRow & { id: string })[] = companies.flatMap((c) => {
     const s = score.get(c.id);
