@@ -733,9 +733,9 @@ export function homePlan(f: HomeFacts): HomePlan {
   }
 
   if (f.track === "CONSULTING") {
-    if (windowOpen(f, "CALL_1")) add("CALL_1", callTask(f, 1));
-    if (windowOpen(f, "CALL_2")) add("CALL_2", callTask(f, 2));
-    if (windowOpen(f, "CALL_3")) add("CALL_3", callTask(f, 3));
+    // Calls removed by the organisers (20 Nov): no CALL_1 task.
+    // Calls removed by the organisers (20 Nov): no CALL_2 task.
+    // Calls removed by the organisers (20 Nov): no CALL_3 task.
   }
 
   if (f.track === "FINANCE") {

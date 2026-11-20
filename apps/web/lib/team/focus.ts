@@ -145,9 +145,9 @@ const ROUND_PATHS: Record<Track, Record<Stage, readonly string[]>> = {
   },
   CONSULTING: {
     BEFORE: ["", "/bulletins", "/judging"],
-    ROUND_1: ["", "/squad", "/calls", "/chat", "/qa", "/market", "/bulletins"],
-    ROUND_2: ["", "/rescue", "/squad", "/calls", "/earnings", "/chat", "/qa", "/market", "/bulletins"],
-    ROUND_3: ["", "/squad", "/calls", "/earnings", "/chat", "/qa", "/market", "/bulletins"],
+    ROUND_1: ["", "/squad", "/chat", "/qa", "/market", "/bulletins"],
+    ROUND_2: ["", "/rescue", "/squad", "/earnings", "/chat", "/qa", "/market", "/bulletins"],
+    ROUND_3: ["", "/squad", "/earnings", "/chat", "/qa", "/market", "/bulletins"],
     RESULTS: [],
   },
   FINANCE: {

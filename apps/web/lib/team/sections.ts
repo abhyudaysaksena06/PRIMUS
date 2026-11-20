@@ -39,7 +39,7 @@ export const TEAM_SECTIONS: Record<Track, readonly TeamSection[]> = {
     HIRE_CHAT,
     RESCUE,
     CHAT,
-    { path: "/calls", label: "Calls" },
+    // Calls removed by the organisers (20 Nov).
     { path: "/earnings", label: "Earnings" },
     ...COMMON,
   ],
