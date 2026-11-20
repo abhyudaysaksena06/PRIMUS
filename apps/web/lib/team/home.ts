@@ -65,7 +65,8 @@ export interface PrimusFacts {
   /** Writing for crisis k is open (the plan, the firm's memo, the Round 3 solution). */
   workOpen: boolean;
   /** Product: the firm hired for crisis k. */
-  engagement?: { firm: string; cash: number; shares: number; escrow: "HELD" | "RELEASED" | "REFUNDED" } | null;
+  /** `assigned`: given by the draw (no hire made in time), not hired by the team. */
+  engagement?: { firm: string; cash: number; shares: number; escrow: "HELD" | "RELEASED" | "REFUNDED"; assigned?: boolean } | null;
   /** Open offers waiting for this team's answer, and for the other side's. */
   offersMyTurn?: number;
   offersWaiting?: number;
@@ -109,6 +110,8 @@ export interface HomeFacts {
   openRound: { number: number; closes_at: string } | null;
   nextRound: { number: number; opens_at: string } | null;
   progress: HomeProgress;
+  /** Switch submit_last_5 (migration 072): Submit opens only 5 minutes before a writing deadline. */
+  submitLast5?: boolean;
 }
 
 /** todo: this team has something to do; waiting: it has done its part, a partner has not; done; info: nothing to press. */
@@ -178,6 +181,18 @@ export function deadlinePassed(f: Pick<HomeFacts, "deadlines" | "paused" | "paus
   const t = new Date(at).getTime();
   if (f.paused && f.pausedAt && t > new Date(f.pausedAt).getTime()) return false;
   return f.nowMs > t;
+}
+
+/**
+ * With the switch submit_last_5 on, before Submit opens: when it opens, and that the saved draft is submitted at the
+ * deadline anyway. Empty otherwise.
+ */
+export function submitOpensNote(f: Pick<HomeFacts, "submitLast5" | "deadlines" | "nowMs" | "paused" | "pausedAt">, code: DeadlineCode): string {
+  const at = f.submitLast5 ? deadlineAt(f, code) : null;
+  if (!at) return "";
+  const opens = new Date(at).getTime() - 5 * 60_000;
+  const now = f.paused && f.pausedAt ? new Date(f.pausedAt).getTime() : f.nowMs;
+  return now < opens ? ` Submit opens at ${clock(new Date(opens).toISOString())}; your last saved draft is submitted for you at ${clock(at)}.` : "";
 }
 
 /** A PRIMUS event's sub-round deadlines of these kinds (k = 1–5; there is no REVEAL_5). */
@@ -404,7 +419,7 @@ function submissionTask(f: HomeFacts, type: "PITCH" | "PLAN" | "FLASH"): HomeTas
     detail = `Your Product partner writes and submits it by ${at}; you can read the draft in the squad workspace.`;
   } else {
     state = "todo";
-    detail = `${about[type]} Due ${at}.`;
+    detail = `${about[type]} Due ${at}.${submitOpensNote(f, type)}`;
   }
   return task(f, type, { key: type, title: titles[type], detail, href: FORM[type], state });
 }
@@ -418,7 +433,7 @@ function memoTask(f: HomeFacts): HomeTask {
     title: "Write and submit your crisis memo",
     detail: submitted
       ? `Submitted. You can resubmit until ${at}; the last version on time is judged.`
-      : `Read the case and recommend one way out, in six sections and up to 500 words. Its score sets your firm's reputation bonus. Due ${at}.`,
+      : `Read the case and recommend one way out, in six sections and up to 500 words. Its score sets your firm's reputation bonus. Due ${at}.${submitOpensNote(f, "PITCH")}`,
     href: MEMO,
     state: submitted ? "done" : "todo",
   });
@@ -508,7 +523,7 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
         add(hire, {
           key: "HIRE",
           title: "Hire a consulting firm",
-          detail: `You hired ${e.firm} for ${feeText(e.cash, e.shares)}. The fee is kept safe until the due time: the firm gets it only if it sends its memo.`,
+          detail: `${e.assigned ? `Assigned by the draw: ${e.firm}, for` : `You hired ${e.firm} for`} ${feeText(e.cash, e.shares)}. The fee is kept safe until the due time: the firm gets it only if it sends its memo.`,
           href: CRISIS_ROOM,
           state: "done",
         });
@@ -550,8 +565,8 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
         detail: sent
           ? `Submitted. You can send a better version until ${at}; the last one on time is judged.`
           : k === 5
-            ? `Up to 600 words: how you solve your problem statement. Your hired firm can write it with you. Due ${at}.`
-            : `Up to 500 words: how your company gets through this crisis. Due ${at}. No plan scores 0 and your price falls.`,
+            ? `Up to 600 words: how you solve your problem statement. Your hired firm can write it with you. Due ${at}.${submitOpensNote(f, due)}`
+            : `Up to 500 words: how your company gets through this crisis. Due ${at}. No plan scores 0 and your price falls.${submitOpensNote(f, due)}`,
         href: CRISIS_ROOM,
         linkLabel: k === 5 ? "Write the solution" : "Write the plan",
         state: sent ? "done" : "todo",
@@ -620,7 +635,7 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
           title: `Write your advice memo for ${who}`,
           detail: c.submitted
             ? `Sent. You can send a better version until ${at}.`
-            : `Up to 500 words of advice for your client's ${k === 5 ? "problem statement" : "crisis"}. Your fee is paid only if the memo is in by ${at}.${k === 5 ? " You can also edit the solution with your client." : ""}`,
+            : `Up to 500 words of advice for your client's ${k === 5 ? "problem statement" : "crisis"}. Your fee is paid only if the memo is in by ${at}.${k === 5 ? " You can also edit the solution with your client." : ""}${submitOpensNote(f, due)}`,
           href: `${CRISIS_ROOM}#client-${c.companyId}`,
           linkLabel: "Write the memo",
           state: c.submitted ? "done" : "todo",
@@ -809,6 +824,58 @@ export function homePlan(f: HomeFacts): HomePlan {
   next.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
 
   return { now, next: next.slice(0, 5), idle: idleText(f) };
+}
+
+// ───────────────────────────── My timeline ─────────────────────────────
+
+export interface TimelineItem {
+  key: string;
+  title: string;
+  at: string;
+  href: string | null;
+  /** past: passed (or closed early); next: the first still to come; later: after it. */
+  state: "past" | "next" | "later";
+}
+
+/** A deadline's name on the team's timeline. */
+function timelineTitle(track: Track, code: DeadlineCode, format: HomeFacts["format"]): string {
+  if (code === "PITCH" && track === "CONSULTING") return format === "PRIMUS" ? "Crisis memo due (with the PRDs)" : "Pitch due";
+  if (code.startsWith("REVEAL_") && track === "FINANCE") return `${UPCOMING_TITLES[code]}: prices fall 5%, trading halts 5 min`;
+  return UPCOMING_TITLES[code];
+}
+
+/**
+ * Every deadline of the night that concerns this team, in time order, each passed, next or later (by the server
+ * clock; while paused a deadline after the pause has not passed). The squad draw opens it.
+ */
+export function teamTimeline(f: HomeFacts): TimelineItem[] {
+  const items: Omit<TimelineItem, "state">[] = [];
+  const passed = new Set<string>();
+  if (f.phaseStarts.SQUAD_DRAW) {
+    items.push({ key: "SQUAD_DRAW", title: "Squad draw: your squad and company", at: f.phaseStarts.SQUAD_DRAW, href: null });
+    if (f.drawn || f.nowMs >= new Date(f.phaseStarts.SQUAD_DRAW).getTime()) passed.add("SQUAD_DRAW");
+  }
+  for (const code of TRACK_DEADLINES[f.track]) {
+    const at = deadlineAt(f, code);
+    if (!at) continue;
+    if (code === "PROBLEM_PICK" && f.progress.oneCase) continue; // one case for every squad: no pick
+    items.push({ key: code, title: timelineTitle(f.track, code, f.format), at, href: hrefFor(f.track, code) });
+    if (deadlinePassed(f, code) || closedEarly(f, code)) passed.add(code);
+  }
+  items.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime() || a.key.localeCompare(b.key));
+  let seenNext = false;
+  return items.map((i) => {
+    const past = passed.has(i.key);
+    const state: TimelineItem["state"] = past ? "past" : seenNext ? "later" : "next";
+    if (!past) seenNext = true;
+    return { ...i, state };
+  });
+}
+
+/** The team's next deadline (for the header on every page), or null when none is left. */
+export function nextDeadline(f: HomeFacts): { title: string; at: string } | null {
+  const n = teamTimeline(f).find((i) => i.state === "next");
+  return n ? { title: n.title, at: n.at } : null;
 }
 
 /** What the night holds when nothing needs doing now. */

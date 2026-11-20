@@ -19,6 +19,12 @@ test.beforeAll(async () => {
   ev = await seedE2eEvent({ slug: "e2e-primus-guidance", prefix: "", format: "PRIMUS" });
 });
 
+/** The crisis pop-up, if one is up (the reveal shows for its first two minutes only): close it. */
+const closeSplashIfShown = async (page: Page) => {
+  const splash = page.getByTestId("crisis-splash");
+  if (await splash.isVisible().catch(() => false)) await splash.getByRole("button", { name: "Got it" }).click();
+};
+
 const step = (page: Page, key: string) => page.getByTestId("crisis-steps").first().locator(`[data-step=${key}]`);
 
 test("Round 2: the banner, the tasks and the crisis room lead each track through a crisis", async ({ page }) => {
@@ -31,11 +37,14 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   await n.ok(n.lead, "tick", n.eventId);
   await n.ok(n.team(a!.c_code), "save_firm_profile", "Food and campus operations", ["operations", "food safety"], "From $500 per crisis", 50000, "");
 
-  // ── Product: the crisis is revealed with the company's card full-screen; "Got it" closes it for good.
+  // ── Product: the reveal pop-up (switch crisis_popup): the crisis, the 5% fall and the halt, and that the card
+  // opens when hiring closes (it is sealed until then); "Got it" closes it for good.
   await loginAsTeam(page, ev, a!.p_code);
   const splash = page.getByTestId("crisis-splash");
+  await expect(splash).toHaveAttribute("data-kind", "reveal");
   await expect(splash).toContainText("Crisis 1 of 4");
-  await expect(splash).toContainText("This is your company's card.");
+  await expect(splash).toContainText("Every price fell 5% and trading is halted for 5 minutes");
+  await expect(splash).toContainText("Your company's card opens when hiring closes at");
   await shot(page, "00-crisis-reveal");
   await splash.getByRole("button", { name: "Got it" }).click();
   await expect(splash).toHaveCount(0);
@@ -81,7 +90,7 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   // ── Consulting: an offer to answer; accepting makes the memo the task.
   await page.context().clearCookies();
   await loginAsTeam(page, ev, a!.c_code);
-  await page.getByTestId("crisis-splash").getByRole("button", { name: "Got it" }).click();
+  await closeSplashIfShown(page); // the reveal, if still in its first two minutes
   await expect(page.getByTestId("your-job")).toContainText("In each crisis: win clients, then write an advice memo for each one.");
   await expect(step(page, "HIRE")).toContainText("Win clients");
   await expect(page.getByTestId("task-OFFERS")).toContainText("Answer 1 offer");
@@ -111,6 +120,10 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   await n.deadlinePassed("DUE_1");
   await n.ok(n.lead, "tick", n.eventId);
   await page.goto("/team");
+  // Hiring has closed: the card pop-up, once.
+  await expect(page.getByTestId("crisis-splash")).toHaveAttribute("data-kind", "card");
+  await expect(page.getByTestId("crisis-splash")).toContainText("This is your company's card. Hiring has closed");
+  await page.getByTestId("crisis-splash").getByRole("button", { name: "Got it" }).click();
   await expect(step(page, "RATE")).toHaveAttribute("data-state", "now");
   await expect(page.getByTestId("task-RATE_1")).toContainText("Rate your firm for crisis 1");
   await shot(page, "07-product-home-rate");
@@ -142,6 +155,7 @@ test("Round 2: the banner, the tasks and the crisis room lead each track through
   // ── Finance: reads the cards and trades.
   await page.context().clearCookies();
   await loginAsTeam(page, ev, a!.f_code);
+  await expect(page.getByTestId("crisis-splash")).toHaveAttribute("data-kind", "card");
   await expect(page.getByTestId("crisis-splash")).toContainText("This is your squad's company's card.");
   await page.getByTestId("crisis-splash").getByRole("button", { name: "Got it" }).click();
   await expect(page.getByTestId("your-job")).toContainText("Read each crisis, then trade");

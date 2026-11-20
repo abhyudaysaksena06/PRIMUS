@@ -19,17 +19,22 @@ import { TeamNav } from "./nav";
 import { ActionBar } from "./action-bar";
 import { Alerts, SoundToggle } from "./alerts";
 import { loadPlanFacts } from "@/lib/team/home-data";
-import { homePlan } from "@/lib/team/home";
+import { homePlan, nextDeadline } from "@/lib/team/home";
 import { crisisSteps } from "@/lib/team/crisis-steps";
 import { alertTasks, nextAction } from "@/lib/team/alerts";
 import { RoundBanner } from "./round-banner";
 import { FocusGate } from "./focus-gate";
-import { focusSections } from "@/lib/team/focus";
+import { focusSections, withLeaderboard } from "@/lib/team/focus";
+import { featureOn } from "@/lib/event-status";
+import { TeamFeatures } from "@/lib/team/features";
+import { loadCrisisPopups } from "@/lib/team/crisis-popup-data";
+import { withAssigned } from "@/lib/team/assigned-data";
+import { badgeText, leaderboardOpen, loadLeaderboard } from "@/lib/team/leaderboard";
 import { BootSequence } from "@/components/ui/matrix/boot-sequence";
 import { Glyph } from "@/components/ui/matrix/glyph";
 import "./team.css";
 import { sectorStyle } from "@/lib/team/sectors";
-import { CrisisSplash, type SplashCard } from "./crisis-splash";
+import { CrisisSplash, type CrisisPopups, type SplashCard } from "./crisis-splash";
 
 const TRACK_EMOJI: Record<Track, string> = { PRODUCT: "🏢", CONSULTING: "🧠", FINANCE: "💼" };
 
@@ -58,10 +63,13 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   }
   // The bar and the alerts are guidance: if the plan cannot be read (say, the database is older than the app), every
   // page still works, without them.
-  const facts = await loadPlanFacts(ctx).catch((err: unknown) => {
+  const loaded = await loadPlanFacts(ctx).catch((err: unknown) => {
     console.error("team layout: no plan for the bar and alerts:", err);
     return null;
   });
+  // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
+  const facts = loaded ? await withAssigned({ ...loaded, submitLast5: featureOn(status, "submit_last_5") }, ctx.company?.id ?? null) : null;
+  const upNext = facts ? nextDeadline(facts) : null;
   const plan = facts ? homePlan(facts) : null;
   const next = plan ? nextAction(plan) : null;
   // A PRIMUS event's Rounds 2 and 3: the crisis under way and its steps, for the banner's "you are here" row.
@@ -86,9 +94,18 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     .limit(1)
     .maybeSingle<{ id: string; kind: string; title: string; published_at: string }>();
   const finance = team.track === "FINANCE";
-  // PRIMUS Round 2: the latest crisis card dealt to the squad's company, for the reveal moment.
+  // PRIMUS Round 2: the crisis pop-ups (switch crisis_popup: the reveal for everyone, then the card once hiring has
+  // closed), or, with the switch off, the latest crisis card dealt to the squad's company, for the reveal moment.
   let splash: SplashCard | null = null;
-  if (event.format === "PRIMUS" && status.phase === "PRESSURE" && ctx.company) {
+  let popups: CrisisPopups | null = null;
+  if (event.format === "PRIMUS" && status.phase === "PRESSURE" && featureOn(status, "crisis_popup")) {
+    const p = await loadCrisisPopups(ctx, facts?.deadlines ?? null).catch((err: unknown) => {
+      console.error("team layout: no crisis pop-ups:", err);
+      return null;
+    });
+    splash = p?.card ?? null;
+    popups = p?.popups ?? null;
+  } else if (event.format === "PRIMUS" && status.phase === "PRESSURE" && ctx.company) {
     const { data: dealt } = await sb
       .from("subround_crises")
       .select("k, crisis_cards(category, title, body)")
@@ -103,15 +120,24 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     }
   }
   const taskHref = next?.href ?? null;
-  const sections = focusSections(team.track, status.phase, taskHref);
+  // The live leaderboard (switch leaderboard): a tab for every track, and the Product team's own badge in the header.
+  const leaderboardOn = featureOn(status, "leaderboard");
+  const sections = withLeaderboard(focusSections(team.track, status.phase, taskHref), leaderboardOn);
+  const myRow =
+    leaderboardOn && team.track === "PRODUCT" && ctx.company
+      ? await loadLeaderboard(sb, event.id).then((rows) => (rows && leaderboardOpen(rows) ? (rows.find((r) => r.company_id === ctx.company!.id) ?? null) : null))
+      : null;
+  // Product and Consulting teams do not trade, but the halt after a crisis reveal concerns them too.
+  const halted = event.format === "PRIMUS" && team.track !== "FINANCE" && (status.phase === "PRESSURE" || status.phase === "SATURATION") && status.trading !== "OPEN";
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
+      <TeamFeatures features={status.features}>
       <EventChannel eventId={event.id} teamId={team.id} spreadMs={1200}>
         <SquadChannel squadId={ctx.squad?.id ?? null}>
         <FeedbackProvider>
         <Heartbeat eventId={event.id} area="team" />
         <BootSequence who={team.code} />
-        <CrisisSplash card={splash} own={team.track === "PRODUCT"} />
+        <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
         <div className="terminal-theme-scope term min-h-screen">
           <header className="border-b border-line bg-ink">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--term-amber-dim)] px-4 py-1.5">
@@ -134,10 +160,22 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                 ) : null}
                 <span className="hidden truncate text-sm uppercase text-muted sm:inline">{team.name}</span>
                 {event.is_rehearsal ? <Badge tone="violet">Rehearsal ×{event.clock_speed}</Badge> : null}
+                {myRow ? (
+                  <Link href="/team/leaderboard" className="rounded border border-phosphor px-2 py-0.5 font-mono text-xs font-bold text-phosphor" data-testid="rating-badge">
+                    {badgeText(myRow)}
+                  </Link>
+                ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <RealtimeDot />
                 <SoundToggle />
+                {upNext ? (
+                  // The team's own next deadline, on every page.
+                  <span className="text-xs text-paper" data-testid="next-deadline">
+                    Next: <span className="text-[var(--term-amber)]">{upNext.title}</span> {clock(upNext.at)} ·{" "}
+                    <Countdown to={upNext.at} passed="now" className="font-semibold text-[var(--term-amber)]" />
+                  </span>
+                ) : null}
                 <ServerClock className="font-semibold text-[var(--term-amber)]" />
                 <span className="text-xs text-muted">IST</span>
                 <SignOutButton />
@@ -180,6 +218,17 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                       : ctx.company
                         ? <span className="font-sans text-sm text-muted">Named on the PRD</span>
                         : <span className="font-sans text-sm text-muted">After the squad draw</span>}
+                    {halted ? (
+                      <span className="ml-2 font-sans text-xs text-warn" data-testid="trading-halted">
+                        Trading halted
+                        {status.next_round ? (
+                          <>
+                            {" "}
+                            · round {status.next_round.number} opens {clock(status.next_round.opens_at)} (<Countdown to={status.next_round.opens_at} passed="now" />)
+                          </>
+                        ) : null}
+                      </span>
+                    ) : null}
                   </dd>
                 </div>
               )}
@@ -232,6 +281,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
       </FeedbackProvider>
         </SquadChannel>
       </EventChannel>
+      </TeamFeatures>
     </ClockProvider>
   );
 }

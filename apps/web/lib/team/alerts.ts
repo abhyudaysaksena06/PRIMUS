@@ -78,7 +78,12 @@ export function eventToast(kind: string, payload: Record<string, unknown>, track
       if (payload.step === "reveal") {
         return { text: `Crisis ${k ?? ""}! Every company has a new crisis card and every price fell 5%.`.replace("  ", " "), tone: "warn", href: "/team/crisis", loud: true };
       }
-      if (payload.step === "hiring_closed") return track === "FINANCE" ? null : { text: `Hiring for ${what} is closed.`, tone: "info", href: "/team/crisis", loud: false };
+      if (payload.step === "hiring_closed") {
+        if (track === "FINANCE") return null;
+        // The crisis cards are sealed until hiring closes (migration 063): now they can be read.
+        const open = k === 5 ? "" : track === "PRODUCT" ? ": your crisis card is open" : ": your clients' crisis cards are open";
+        return { text: `Hiring for ${what} is closed${open}.`, tone: "info", href: "/team/crisis", loud: k !== 5 };
+      }
       if (payload.step === "due") {
         return track === "PRODUCT"
           ? { text: `Time is up for ${what}. Now rate your firm.`, tone: "info", href: "/team/crisis", loud: true }
