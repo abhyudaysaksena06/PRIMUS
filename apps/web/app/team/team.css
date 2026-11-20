@@ -358,3 +358,12 @@ li:last-child > .guide-news-story {
   font-size: clamp(13px, 1.05vw, 17px);
   overflow-wrap: anywhere;
 }
+
+/* How judging works: the prompts markdown (app/team/judging/markdown.tsx) on the demo dark panel. */
+.guide-app .guide-panel code {
+  background: rgba(255, 255, 255, 0.07);
+  color: inherit;
+}
+.guide-app .guide-panel table thead {
+  background: rgba(255, 255, 255, 0.04);
+}
