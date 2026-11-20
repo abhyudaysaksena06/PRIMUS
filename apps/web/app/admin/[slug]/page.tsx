@@ -4,7 +4,7 @@ import { currentViewer } from "@/lib/auth/viewer";
 import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, inputClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, inputClass } from "@/app/admin/guide-ui";
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
 import { advancePhase, extendEvent, extendEventForm, pauseEvent, resumeEvent, setAutoAdvance, setPhaseEndForm } from "./actions";
@@ -100,7 +100,7 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
         ) : null}
         <Panel title="To do now">
           {todos.length === 0 ? (
-            <p className="text-sm text-muted" data-testid="todo-empty">
+            <p className="guide-muted" data-testid="todo-empty">
               Nothing is waiting on you. The night runs itself until the next step above.
             </p>
           ) : (
@@ -109,7 +109,7 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
                 <li key={t.text}>
                   <Link
                     href={`/admin/${slug}${t.path}`}
-                    className={`adm-row ${
+                    className={`guide-row ${
                       t.tone === "red"
                         ? "red"
                         : t.tone === "amber"
@@ -118,7 +118,7 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
                     }`}
                   >
                     <span>{t.text}</span>
-                    <span className="adm-arrow" aria-hidden>→</span>
+                    <span className="guide-row-arrow" aria-hidden>→</span>
                   </Link>
                 </li>
               ))}
@@ -178,7 +178,7 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
                 ))}
                 <ActionForm action={extendEventForm.bind(null, event.id)} submit="Extend" confirm="Click again to extend by {minutes} min" className="flex items-end gap-2">
                   <label className="block">
-                    <span className="text-xs font-medium text-paper">Minutes (1–120)</span>
+                    <span className="guide-label">Minutes (1–120)</span>
                     <input name="minutes" type="number" min={1} max={120} required className={`${inputClass} w-28`} />
                   </label>
                 </ActionForm>
@@ -199,7 +199,7 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
                   className="flex items-end gap-2"
                 >
                   <label className="block">
-                    <span className="text-xs font-medium text-paper">New end</span>
+                    <span className="guide-label">New end</span>
                     <input name="endsAt" type="datetime-local" required className={`${inputClass} w-60`} />
                   </label>
                 </ActionForm>
@@ -214,13 +214,13 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
       <div className="min-w-0 space-y-6">
         <Panel title="Next deadlines" actions={<Link href={`/admin/${slug}/schedule`} className="text-sm underline">Full schedule</Link>}>
           {(deadlines.data ?? []).length === 0 ? (
-            <p className="text-sm text-muted">No deadline left.</p>
+            <p className="guide-muted">No deadline left.</p>
           ) : (
             <ul className="space-y-1 text-sm">
               {((deadlines.data ?? []) as { code: DeadlineCode; at: string }[]).map((d) => (
                 <li key={d.code} className="flex justify-between gap-2 border-b border-[#252a33] py-1.5 last:border-0">
                   <span>{DEADLINE_LABELS[d.code]}</span>
-                  <span className="adm-time">
+                  <span className="guide-time">
                     {clock(d.at)} · <Countdown to={d.at} passed="closed" />
                   </span>
                 </li>
@@ -231,23 +231,23 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
         <Panel title="Big screens">
           <ul className="space-y-2 text-sm">
             <li>
-              <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer" className="adm-row">
+              <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer" className="guide-row">
                 <span>
                   <b>Live wall</b> <span className="text-[#9ba2ad]">· everything at a glance, for your own screen</span>
                 </span>
-                <span className="adm-arrow" aria-hidden>↗</span>
+                <span className="guide-row-arrow" aria-hidden>↗</span>
               </a>
             </li>
             <li>
-              <a href={`/display/${slug}`} target="_blank" rel="noreferrer" className="adm-row">
+              <a href={`/display/${slug}`} target="_blank" rel="noreferrer" className="guide-row">
                 <span>
                   <b>Projector</b> <span className="text-[#9ba2ad]">· the price board and the moments</span>
                 </span>
-                <span className="adm-arrow" aria-hidden>↗</span>
+                <span className="guide-row-arrow" aria-hidden>↗</span>
               </a>
             </li>
           </ul>
-          <p className="mt-2 text-xs text-muted">Open on the screen&apos;s laptop signed in as the display account, then press F11 for full screen.</p>
+          <p className="guide-muted mt-2">Open on the screen&apos;s laptop signed in as the display account, then press F11 for full screen.</p>
         </Panel>
         <Panel title="Tracks">
           <ul className="space-y-2 text-sm">
@@ -257,11 +257,11 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
               ["finance", "Finance", "Practice market, IPO bids, cash and orders"],
             ].map(([path, label, what]) => (
               <li key={path}>
-                <Link href={`/admin/${slug}/${path}`} className="adm-row">
+                <Link href={`/admin/${slug}/${path}`} className="guide-row">
                   <span>
                     <b>{label}</b> <span className="text-[#9ba2ad]">· {what}</span>
                   </span>
-                  <span className="adm-arrow" aria-hidden>→</span>
+                  <span className="guide-row-arrow" aria-hidden>→</span>
                 </Link>
               </li>
             ))}

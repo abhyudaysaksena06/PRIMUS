@@ -8,7 +8,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
 import type { ActionResult } from "@/lib/rpc";
-import { Badge, buttonClass, inputClass } from "@/components/ui/ui";
+import { Badge, buttonClass, inputClass } from "@/app/admin/guide-ui";
 import { ResultMessage } from "@/components/ui/result-message";
 import { safely } from "@/components/ui/action-helpers";
 import { admitTeam, checkOut, saveTeam, type DeskMember } from "./actions";
@@ -151,21 +151,21 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
   return (
     <div className="space-y-6">
       {handed ? (
-        <p className="rounded-md border border-phosphor px-4 py-3 text-lg" data-testid="desk-handed">
+        <p className="guide-alert text-lg" data-testid="desk-handed">
           Give them login card <b className="font-mono text-2xl">{handed}</b>
         </p>
       ) : null}
       <ResultMessage result={result} />
 
       {editable && draft ? (
-        <form onSubmit={submit} className="space-y-3 rounded-lg border border-phosphor p-4" data-testid="desk-form">
+        <form onSubmit={submit} className="guide-panel space-y-3 p-4" data-testid="desk-form">
           <h3 className="font-semibold">
             {draft.card ? `Edit ${draft.card}` : draft.number !== null ? `Admit team #${draft.number}` : "Admit a walk-in team"}
           </h3>
           {draft.card ? null : (
             <div className="flex flex-wrap gap-3">
               <label className="text-sm">
-                <span className="block">Track</span>
+                <span className="guide-label">Track</span>
                 <select value={draft.track} onChange={(e) => setDraft({ ...draft, track: e.target.value as Track })} className={`${inputClass} w-44`} data-testid="desk-track">
                   {TRACKS.map((t) => (
                     <option key={t} value={t}>
@@ -175,7 +175,7 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
                 </select>
               </label>
               <label className="text-sm">
-                <span className="block">Card code (optional)</span>
+                <span className="guide-label">Card code (optional)</span>
                 <input
                   value={draft.pick}
                   onChange={(e) => setDraft({ ...draft, pick: e.target.value.toUpperCase() })}
@@ -189,19 +189,19 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm">
-              <span>Team name</span>
+              <span className="guide-label">Team name</span>
               <input value={draft.name} required maxLength={80} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputClass} data-testid="desk-name" />
             </label>
             <label className="block text-sm">
-              <span>College</span>
+              <span className="guide-label">College</span>
               <input value={draft.college} maxLength={160} onChange={(e) => setDraft({ ...draft, college: e.target.value })} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span>Email</span>
+              <span className="guide-label">Email</span>
               <input value={draft.email} maxLength={160} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className={inputClass} />
             </label>
             <label className="block text-sm">
-              <span>Phone</span>
+              <span className="guide-label">Phone</span>
               <input value={draft.phone} maxLength={40} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className={inputClass} />
             </label>
           </div>
@@ -264,8 +264,8 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
         </form>
       ) : null}
 
-      <section className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <section className="guide-panel">
+        <div className="guide-panel-head flex-wrap">
           <h3 className="font-semibold">
             Team list ({list.length}, {admittedCount} admitted)
           </h3>
@@ -292,9 +292,9 @@ export function Desk({ eventId, list, editable, canCheckOut }: { eventId: string
             ) : null}
           </div>
         </div>
-        <div className="overflow-x-auto rounded-lg border border-phosphor-dim">
-          <table className="w-full text-left text-sm" data-testid="desk-table">
-            <thead className="text-xs uppercase">
+        <div className="guide-panel-body overflow-x-auto">
+          <table className="guide-table" data-testid="desk-table">
+            <thead>
               <tr>
                 <th className="px-3 py-2">#</th>
                 <th className="px-3 py-2">Team</th>

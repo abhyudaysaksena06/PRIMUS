@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/rpc";
 import { ResultMessage } from "@/components/ui/action";
 import { CONFIRM_DELAY_MS, safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass, inputClass } from "@/app/admin/guide-ui";
 
 type Choice = "approve" | "reject";
 
@@ -51,7 +51,7 @@ export function DecideCorrection({ decide, label }: { decide: (approve: boolean,
   return (
     <div className="mt-3 border-t border-line pt-3">
       <label className="block max-w-xl">
-        <span className="text-xs font-medium text-paper">Note (optional)</span>
+        <span className="guide-label">Note (optional)</span>
         <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} aria-label={`Note on ${label}`} className={inputClass} />
       </label>
       <div className="mt-2 flex flex-wrap gap-2">

@@ -92,7 +92,7 @@ export async function CrisisTakeover({ event, takeover }: TakeoverProps) {
           />
         </div>
 
-        <section aria-label="Seed reveal" className="shrink-0 dsp-panel px-7 py-4" data-testid="crisis-seed">
+        <section aria-label="Seed reveal" className="shrink-0 guide-panel px-7 py-4" data-testid="crisis-seed">
           {seed ? (
             <dl className="grid grid-cols-[15rem_minmax(0,1fr)] items-baseline gap-x-6 gap-y-1">
               <dt className="text-[28px] font-semibold text-muted">Seed (revealed)</dt>

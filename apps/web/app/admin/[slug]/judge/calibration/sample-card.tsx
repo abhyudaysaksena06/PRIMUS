@@ -5,7 +5,7 @@
 
 import { breakdownLines, latency } from "@/lib/admin/judge";
 import { bandText, leakedLines, runIssue, type CalibrationRunRow, type SampleView } from "@/lib/admin/calibration";
-import { Badge } from "@/components/ui/ui";
+import { Badge } from "@/app/admin/guide-ui";
 
 const RUN_STYLE: Record<CalibrationRunRow["status"], string> = {
   QUEUED: "border-dashed border-line bg-raised text-paper",
@@ -55,7 +55,7 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
           <p className="text-sm font-semibold text-phosphor">
             <span className="font-mono">#{v.sampleNo}</span> {v.title}
           </p>
-          <p className="text-xs text-muted">
+          <p className="guide-muted">
             Expected {bandText(v.expected)}
             {v.words !== null ? ` · ${v.words} words` : ""} · {v.companyName} ({v.ticker})
           </p>
@@ -71,17 +71,17 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
         </ol>
         <dl className="flex flex-wrap items-end gap-x-5 gap-y-1 text-sm">
           <div>
-            <dt className="text-xs text-muted">Median</dt>
+            <dt className="guide-muted">Median</dt>
             <dd className="font-mono text-lg font-semibold tabular-nums" data-testid="calibration-median">
               {v.median ?? "—"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-muted">Spread</dt>
+            <dt className="guide-muted">Spread</dt>
             <dd className={`font-mono text-lg tabular-nums ${v.spread !== null && v.spread > 10 ? "font-semibold text-warn" : ""}`}>{v.spread ?? "—"}</dd>
           </div>
           <div>
-            <dt className="text-xs text-muted">Verdict</dt>
+            <dt className="guide-muted">Verdict</dt>
             <dd className="pb-1" data-testid="calibration-verdict">
               {v.verdict ? <Badge tone={v.verdict.tone}>{v.verdict.label}</Badge> : <span className="text-muted">—</span>}
             </dd>
@@ -89,7 +89,7 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
         </dl>
       </div>
 
-      {v.extraRuns ? <p className="mt-1 text-xs text-muted">Runs 4 and 5 were added: the first 3 spread more than 10 points.</p> : null}
+      {v.extraRuns ? <p className="guide-muted mt-1">Runs 4 and 5 were added: the first 3 spread more than 10 points.</p> : null}
       {issues.map((x) => (
         <p key={x.runNo} className={`mt-1 text-xs ${ISSUE_TONE[x.tone]}`}>
           {x.text}
@@ -99,14 +99,14 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
       <div className="mt-2 space-y-1 border-t border-line pt-2">
         <details>
           <summary className={summaryClass}>Sample text</summary>
-          {v.text !== null ? <pre className={`${preClass} font-sans`}>{v.text}</pre> : <p className="text-sm text-muted">Not stored.</p>}
+          {v.text !== null ? <pre className={`${preClass} font-sans`}>{v.text}</pre> : <p className="guide-muted">Not stored.</p>}
         </details>
 
         <details data-testid="calibration-median-run">
           <summary className={summaryClass}>Median run: breakdown and rationale</summary>
           {m ? (
             <div className="mt-1 max-w-xl space-y-2">
-              <p className="text-xs text-muted">
+              <p className="guide-muted">
                 Run {m.run_no}, the first whose total equals the median · {m.model ?? "—"} · {latency(m.latency_ms)}
               </p>
               <ul className="space-y-0.5 text-xs">
@@ -127,7 +127,7 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
               <p className="text-sm text-paper">{m.rationale}</p>
             </div>
           ) : (
-            <p className="text-sm text-muted">Shown once the runs are complete.</p>
+            <p className="guide-muted">Shown once the runs are complete.</p>
           )}
         </details>
 
@@ -140,7 +140,7 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
                 <ul className="list-disc pl-5 text-paper">
                   {v.removed.map((h) => (
                     <li key={h.lineNumber}>
-                      Line {h.lineNumber}: “{h.line}” <span className="text-xs text-muted">({h.pattern})</span>
+                      Line {h.lineNumber}: “{h.line}” <span className="guide-muted">({h.pattern})</span>
                     </li>
                   ))}
                 </ul>
@@ -159,14 +159,14 @@ export function SampleCard({ v, request }: { v: SampleView; request: string | nu
             ) : null}
             {request !== null ? (
               <>
-                <p className="text-xs text-muted">
+                <p className="guide-muted">
                   The user message of run {v.runs.find((r) => r.id === v.requestRunId)?.run_no ?? "—"}, exactly as sent (every run of a sample gets the same
                   one); the system prompt is prompts/PITCH.md.
                 </p>
                 <pre className={`${preClass} font-mono`}>{request}</pre>
               </>
             ) : (
-              <p className="text-sm text-muted">Shown once a run has reported.</p>
+              <p className="guide-muted">Shown once a run has reported.</p>
             )}
           </div>
         </details>

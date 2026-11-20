@@ -2,7 +2,7 @@
 // A flag never blocks a save; the fairness officer decides what it means.
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { Panel, Table, Td } from "@/components/ui/ui";
+import { Panel, Table, Td } from "@/app/admin/guide-ui";
 import { clock } from "@/lib/format";
 
 interface Row {
@@ -32,7 +32,7 @@ export async function WritingFlags({ eventId }: { eventId: string }) {
         never blocks the save.
       </p>
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">None so far.</p>
+        <p className="guide-muted">None so far.</p>
       ) : (
         <Table label="Writing flags" head={["Time", "Team", "Company", "Text", "Words", "Seconds"]}>
           {rows.map((r, i) => (

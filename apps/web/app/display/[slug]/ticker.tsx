@@ -5,16 +5,9 @@ import { phaseReached, type DeadlineCode } from "@msim/engine";
 import { featureOn, type EventStatus } from "@/lib/event-status";
 import type { DisplayEvent } from "@/lib/display/frame";
 import { parseLeaderboard } from "@/lib/display/leaderboard";
-import { primusStep, tickerItems, type TickerItem } from "@/lib/display/ticker";
+import { primusStep, tickerItems } from "@/lib/display/ticker";
 import { clock } from "@/lib/format";
 import { supabaseServer } from "@/lib/supabase/server";
-
-const TONE: Record<TickerItem["tone"], string> = {
-  up: "bg-phosphor text-ink",
-  down: "bg-danger text-ink",
-  news: "bg-warn text-ink",
-  info: "border-2 border-[rgba(91,139,100,.5)] bg-[rgba(57,255,136,.08)] text-[#39ff88]",
-};
 
 export async function NewsTicker({ event, status }: { event: DisplayEvent; status: EventStatus }) {
   if (!phaseReached(status.phase, "READING") || phaseReached(status.phase, "AWARDS")) return null;
@@ -67,25 +60,26 @@ export async function NewsTicker({ event, status }: { event: DisplayEvent; statu
     clock: (iso) => clock(iso),
   });
   if (items.length === 0) return null;
-  const strip = items.map((it) => (
-    <span key={it.key} className="mr-16 inline-flex items-center gap-4 whitespace-nowrap">
-      <span className={`px-3 py-0.5 font-mono text-[24px] font-black tracking-wider ${TONE[it.tone]}`}>{it.tag}</span>
-      <span>{it.text}</span>
-    </span>
-  ));
   const seconds = Math.max(30, Math.round(items.reduce((n, it) => n + it.tag.length + it.text.length, 0) / 6));
+  // The demo's event-news belt (app/demo/event-news-ticker.tsx): a label, then two copies of the headlines looping.
   return (
-    <div className="dsp-strip flex h-[72px] shrink-0 overflow-hidden" role="marquee" aria-label="News ticker" data-testid="news-ticker">
-      <span className="dsp-news-label shrink-0" aria-hidden>
-        EVENT NEWS
+    <div className="event-news-ticker shrink-0" role="marquee" aria-label="News ticker" data-testid="news-ticker">
+      <span className="event-news-label" aria-hidden>
+        Event news
       </span>
-      <div className="min-w-0 flex-1 overflow-hidden">
-        <div className="msim-ticker-track flex h-full w-max items-center text-[32px] font-semibold text-[#e9f5eb]" style={{ ["--ticker-seconds" as string]: `${seconds}s` }}>
-          <div className="flex min-w-[1920px] items-center pl-12">{strip}</div>
-          <div className="flex min-w-[1920px] items-center pl-12" aria-hidden>
-            {strip}
-          </div>
-        </div>
+      <div className="event-news-window">
+        <span className="event-news-belt" style={{ animationDuration: `${seconds}s` }}>
+          {[0, 1].map((copy) => (
+            <span className="event-news-set" key={copy} aria-hidden={copy === 1 ? true : undefined}>
+              {items.map((it) => (
+                <span className="event-news-headline" key={it.key} data-tone={it.tone}>
+                  <strong>{it.tag}</strong>
+                  <span>{it.text}</span>
+                </span>
+              ))}
+            </span>
+          ))}
+        </span>
       </div>
     </div>
   );

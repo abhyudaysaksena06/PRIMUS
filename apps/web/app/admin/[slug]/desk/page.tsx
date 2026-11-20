@@ -7,7 +7,7 @@ import { loadAdminEvent } from "@/lib/admin/event";
 import { MAX_LIST_BYTES } from "@/lib/admin/team-list";
 import { supabaseServer } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/fetch-all";
-import { Notice, Panel, Stat, inputClass } from "@/components/ui/ui";
+import { Notice, Panel, Stat, inputClass } from "@/app/admin/guide-ui";
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Desk, type ListTeam } from "./desk";
 import { DrawPreview } from "./draw-preview";

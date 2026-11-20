@@ -2,7 +2,7 @@
 // the night without a deploy. Off means the game behaves exactly as it did before that change.
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { Badge, Panel } from "@/components/ui/ui";
+import { Badge, Panel } from "@/app/admin/guide-ui";
 import { ActionButton } from "@/components/ui/action";
 import { setFeature } from "./actions";
 
@@ -27,34 +27,50 @@ export async function SwitchesPanel({ eventId, organiser }: { eventId: string; o
   const rows = (data ?? []) as Switch[];
   if (rows.length === 0) return null;
   return (
-    <Panel title="Switches">
-      <p className="mb-3 max-w-3xl text-sm text-muted">
+    <Panel title="Switches" tag="ORGANISER ONLY">
+      <p className="guide-muted mb-3 max-w-3xl">
         Each change made for tonight can be turned off here at once, without a deploy; off means the game works exactly as it did
         before it. <strong>Rule</strong> switches change how the game plays: turn them on only after their rehearsal check passed.
       </p>
-      <ul className="grid gap-2 xl:grid-cols-2" data-testid="switches">
-        {rows.map((s) => (
-          <li key={s.key} className="adm-row flex-wrap" data-testid={`switch-${s.key}`}>
-            <span className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-[#e6e8ed]">
-              <Badge tone={KIND[s.kind].tone}>{KIND[s.kind].text}</Badge>
-              <span>{s.label}</span>
-              {s.is_on !== s.on_by_default ? <span className="font-mono text-xs text-[#ffd84d]">(changed from its default)</span> : null}
-            </span>
-            <span className="flex items-center gap-2">
-              <Badge tone={s.is_on ? "green" : "slate"}>{s.is_on ? "On" : "Off"}</Badge>
-              {organiser ? (
-                <ActionButton
-                  action={setFeature.bind(null, eventId, s.key, !s.is_on)}
-                  confirm={s.is_on ? "Click again: turn it off" : "Click again: turn it on"}
-                  variant={s.is_on ? "secondary" : "primary"}
-                >
-                  {s.is_on ? "Turn off" : "Turn on"}
-                </ActionButton>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="guide-scroll-box table-8">
+        <table className="guide-table">
+          <thead>
+            <tr>
+              <th>KIND</th>
+              <th>SWITCH</th>
+              <th>STATE</th>
+              {organiser ? <th>ACTION</th> : null}
+            </tr>
+          </thead>
+          <tbody data-testid="switches">
+            {rows.map((s) => (
+              <tr key={s.key} data-testid={`switch-${s.key}`}>
+                <td>
+                  <Badge tone={KIND[s.kind].tone}>{KIND[s.kind].text}</Badge>
+                </td>
+                <td>
+                  <strong>{s.label}</strong>
+                  {s.is_on !== s.on_by_default ? <span className="guide-status ml-2">(changed from its default)</span> : null}
+                </td>
+                <td>
+                  <Badge tone={s.is_on ? "green" : "slate"}>{s.is_on ? "On" : "Off"}</Badge>
+                </td>
+                {organiser ? (
+                  <td>
+                    <ActionButton
+                      action={setFeature.bind(null, eventId, s.key, !s.is_on)}
+                      confirm={s.is_on ? "Click again: turn it off" : "Click again: turn it on"}
+                      variant={s.is_on ? "secondary" : "primary"}
+                    >
+                      {s.is_on ? "Turn off" : "Turn on"}
+                    </ActionButton>
+                  </td>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </Panel>
   );
 }

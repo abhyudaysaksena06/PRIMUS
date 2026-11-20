@@ -82,7 +82,7 @@ function SectorDraftBoard({ data }: { data: DraftBoardData }) {
           {data.heads.map((h) => {
             const statements = data.statements.filter((s) => sameSector(s.sector, h.sector));
             return (
-              <section key={h.sector} className="flex min-h-0 flex-col gap-3" data-testid={`display-draft-sector-${h.sector}`}>
+              <section key={h.sector} className="guide-panel flex min-h-0 flex-col gap-3 p-4" data-testid={`display-draft-sector-${h.sector}`}>
                 <p className="truncate text-[30px] font-bold uppercase tracking-widest text-warn">{h.sector}</p>
                 <div className="flex items-end justify-between gap-4 border-b-4 border-phosphor-dim pb-2">
                   <p className="text-[72px] font-black leading-none text-phosphor">{h.ticker}</p>
@@ -148,7 +148,7 @@ function QueueDraftBoard({ data }: { data: DraftBoardData }) {
             const on = data.picks.filter((p) => p.statement_id === s.id);
             const full = on.length >= s.cap;
             return (
-              <li key={s.id} className={`border-2 px-4 py-2.5 ${full ? "border-danger" : "border-line"}`} data-testid={`display-statement-${s.number}`}>
+              <li key={s.id} className={`guide-panel px-4 py-2.5 ${full ? "!border-danger" : ""}`} data-testid={`display-statement-${s.number}`}>
                 <p className="flex items-baseline gap-4 text-[30px] font-bold leading-tight">
                   <span className="font-mono text-warn">#{s.number}</span>
                   <span className="min-w-0 flex-1 truncate text-paper">{s.title}</span>

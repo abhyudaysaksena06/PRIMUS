@@ -97,7 +97,7 @@ export function PracticeWall({
 
   return (
     <div className="flex min-h-0 flex-col gap-4" data-testid="live-practice">
-      <section className="dsp-panel px-5 py-3">
+      <section className="guide-panel px-5 py-3">
         <div className="flex items-baseline justify-between">
           <h2 className="font-mono text-[24px] font-bold tracking-wide text-phosphor-mid">PRACTICE MARKET · LIVE</h2>
           <p className="font-mono text-[30px] font-bold text-paper">
@@ -110,7 +110,7 @@ export function PracticeWall({
         {tickers.map((t) => {
           const ch = change(t.id);
           return (
-            <div key={t.id} className={`dsp-tile px-2 py-1 ${t.id === focus ? "ring-2 ring-phosphor" : ""}`}>
+            <div key={t.id} className={`guide-metric guide-tile px-2 py-1 ${t.id === focus ? "ring-2 ring-phosphor" : ""}`}>
               <p className="font-mono text-[18px] leading-none font-bold text-paper">{t.code}</p>
               <p className="font-mono text-[17px] leading-tight tabular-nums text-phosphor">{latest[t.id] ? money(latest[t.id]!) : "—"}</p>
               <p className={`font-mono text-[15px] leading-none font-bold tabular-nums ${ch > 0 ? "text-phosphor" : ch < 0 ? "text-danger-soft" : "text-muted"}`}>

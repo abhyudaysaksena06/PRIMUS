@@ -8,7 +8,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { featureOn, type EventStatus } from "@/lib/event-status";
 import { TYPE_TITLES, type TypeSummary } from "@/lib/admin/judge";
 import { clock } from "@/lib/format";
-import { Badge, Panel, Table, Td } from "@/components/ui/ui";
+import { Badge, Panel, Table, Td } from "@/app/admin/guide-ui";
 
 /** The types the clock judges, in the order of the night. */
 export const AUTO_JUDGE_TYPES: readonly SubmissionType[] = [

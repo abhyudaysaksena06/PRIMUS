@@ -19,7 +19,7 @@ import {
   type JudgeRunRow,
 } from "@/lib/admin/judge";
 import { bp, clock, dateTime } from "@/lib/format";
-import { Badge, inputClass } from "@/components/ui/ui";
+import { Badge, inputClass } from "@/app/admin/guide-ui";
 import { ConfirmForm } from "@/components/ui/action";
 import { rerunJudging } from "./actions";
 
@@ -140,7 +140,7 @@ export function CompanyRow({
         </td>
         <td className={cell}>
           <RunTotals runs={v.runs} />
-          {v.generation !== null && v.generation > 1 ? <span className="text-xs text-muted"> (re-run {v.generation})</span> : null}
+          {v.generation !== null && v.generation > 1 ? <span className="guide-muted"> (re-run {v.generation})</span> : null}
           <RunNotes runs={v.runs} />
         </td>
         <td className={`${num} ${v.spread !== null && v.spread > 10 ? "font-semibold text-warn" : ""}`}>{v.spread ?? "—"}</td>
@@ -211,7 +211,7 @@ function Detail({
     <div className="space-y-4" role="region" aria-label={`Runs of ${label}`}>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">Judged submission</h4>
+          <h4 className="guide-label">Judged submission</h4>
           {v.submission ? (
             <>
               <p className="text-sm text-paper">
@@ -226,12 +226,12 @@ function Detail({
           )}
         </div>
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">Published breakdown and rationale</h4>
+          <h4 className="guide-label">Published breakdown and rationale</h4>
           {s && s.breakdown ? (
             <div className="mt-1 max-w-md">
               <Breakdown type={type} breakdown={s.breakdown} />
               <p className="mt-2 text-sm text-paper">{s.rationale}</p>
-              <p className="mt-1 text-xs text-muted">From the first run whose total equals the median ({s.median}).</p>
+              <p className="guide-muted mt-1">From the first run whose total equals the median ({s.median}).</p>
             </div>
           ) : (
             <p className="text-sm text-paper">{s?.rationale ?? "Shown once the score is sealed."}</p>
@@ -264,7 +264,7 @@ function Detail({
                 <td className={`${cell} font-mono text-xs`}>{r.model ?? "—"}</td>
                 <td className={cell}>
                   <Badge tone={RUN_TONE[r.status]}>{r.status}</Badge>
-                  {r.attempts > 1 ? <span className="text-xs text-muted"> {r.attempts} attempts</span> : null}
+                  {r.attempts > 1 ? <span className="guide-muted"> {r.attempts} attempts</span> : null}
                 </td>
                 <td className={`${num} font-semibold`}>{r.total ?? "—"}</td>
                 <td className="min-w-56 px-2 py-1.5">
@@ -291,7 +291,7 @@ function Rerun({ type, view: v, label, organiser, blocked }: { type: SubmissionT
   const name = TYPE_NAMES[type];
   return (
     <div className="border-t border-line pt-3" data-testid="rerun">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">Re-run for a technical appeal</h4>
+      <h4 className="guide-label">Re-run for a technical appeal</h4>
       {!organiser ? (
         <p className="mt-1 text-sm text-paper">Organisers re-run a submission.</p>
       ) : blocked ? (
@@ -312,7 +312,7 @@ function Rerun({ type, view: v, label, organiser, blocked }: { type: SubmissionT
               : "3 new runs are judged. The score goes back to judging and is sealed again from the new runs."}
           </p>
           <label className="mt-2 block">
-            <span className="text-xs font-medium text-paper">Reason (at least 5 characters; logged)</span>
+            <span className="guide-label">Reason (at least 5 characters; logged)</span>
             <textarea name="reason" required minLength={5} maxLength={1000} rows={2} className={inputClass} />
           </label>
         </ConfirmForm>

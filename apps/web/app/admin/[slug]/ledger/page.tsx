@@ -17,7 +17,7 @@ import {
 } from "@/lib/admin/ledger";
 import { loadBooks, loadLedgerBase, loadLedgerPage, type BooksStatus } from "@/lib/admin/ledger-data";
 import { clock, count } from "@/lib/format";
-import { Notice, Panel, Table, Td, buttonClass, inputClass } from "@/components/ui/ui";
+import { Notice, Panel, Table, Td, buttonClass } from "@/app/admin/guide-ui";
 import { LedgerTabs } from "./tabs";
 
 export const metadata: Metadata = { title: "Ledger" };
@@ -57,10 +57,10 @@ export default async function LedgerPage({
       <BooksCheck books={books} />
 
       <Panel title="Ledger">
-        <Form action={path} className="flex flex-wrap items-end gap-2">
+        <Form action={path} className="guide-filter-bar grid grid-cols-1 items-end gap-2.5 sm:grid-cols-[1fr_1.4fr_1fr_auto_auto]">
           <label className="block">
-            <span className="text-xs font-medium text-paper">Team</span>
-            <select name="team" defaultValue={q.team ?? ""} className={`${inputClass} w-36`}>
+            <span className="guide-label">Team</span>
+            <select name="team" defaultValue={q.team ?? ""} className="guide-select guide-filter-control font-mono">
               <option value="">All</option>
               <option value={EXCHANGE}>Exchange</option>
               {base.teams.map((t) => (
@@ -71,8 +71,8 @@ export default async function LedgerPage({
             </select>
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-paper">Kind</span>
-            <select name="kind" defaultValue={q.kind ?? ""} className={`${inputClass} w-44`}>
+            <span className="guide-label">Kind</span>
+            <select name="kind" defaultValue={q.kind ?? ""} className="guide-select guide-filter-control font-mono">
               <option value="">All</option>
               {LEDGER_KINDS.map((k) => (
                 <option key={k} value={k}>
@@ -82,8 +82,8 @@ export default async function LedgerPage({
             </select>
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-paper">Ticker</span>
-            <select name="ticker" defaultValue={q.ticker ?? ""} className={`${inputClass} w-32`}>
+            <span className="guide-label">Ticker</span>
+            <select name="ticker" defaultValue={q.ticker ?? ""} className="guide-select guide-filter-control font-mono">
               <option value="">All</option>
               {tickers.map((t) => (
                 <option key={t} value={t}>

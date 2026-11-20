@@ -4,7 +4,7 @@ import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { featureOn } from "@/lib/event-status";
 import { supabaseServer } from "@/lib/supabase/server";
 import { changeText, leaderboardMissing, parseLeaderboard, ratingText } from "@/lib/display/leaderboard";
-import { Badge, Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 
 export const metadata: Metadata = { title: "Leaderboard" };
 

@@ -31,7 +31,7 @@ import { loadPrompt } from "@/lib/judge/prompts";
 import { FAKE_MODEL } from "@/lib/judge/fake";
 import { fakeJudgeRefusal } from "@/lib/judge";
 import { clock, dateTime } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 import { ActionButton } from "@/components/ui/action";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { JudgeRunner } from "../runner";
@@ -139,7 +139,7 @@ export default async function CalibrationPage({
                 </ActionButton>
               </div>
             ) : (
-              <p className="text-sm text-muted">Organisers start calibration and run the judge.</p>
+              <p className="guide-muted">Organisers start calibration and run the judge.</p>
             )}
             {organiser && inFlight ? (
               <p className="text-sm text-paper">
@@ -170,7 +170,7 @@ export default async function CalibrationPage({
           title={`Batch ${batch}`}
           actions={
             <>
-              <span className="text-sm text-muted">Started {dateTime(summary.startedAt)}</span>
+              <span className="guide-muted">Started {dateTime(summary.startedAt)}</span>
               {batches.length > 1 ? (
                 <a href="#batches" className="text-sm font-semibold text-paper underline hover:text-phosphor">
                   Other batches
@@ -218,7 +218,7 @@ export default async function CalibrationPage({
         </Panel>
       ) : (
         <Panel title="Results">
-          <p className="text-sm text-muted" data-testid="calibration-empty">
+          <p className="guide-muted" data-testid="calibration-empty">
             No calibration yet: Start calibration queues 3 runs of each sample pitch, then run the judge.
           </p>
         </Panel>
@@ -255,7 +255,7 @@ function Summary({ s }: { s: BatchSummary }) {
         <Stat label="Judging time" value={duration(s.elapsedMs)} hint={timeHint} />
       </div>
       {s.firstClaimAt ? (
-        <p className="text-xs text-muted">
+        <p className="guide-muted">
           First claim about {clock(s.firstClaimAt, true)} (a finished run keeps no claim time: its finish less the model&apos;s answer time)
           {s.settled && s.lastFinishedAt ? ` · last finish ${clock(s.lastFinishedAt, true)}` : ""}.
         </p>
@@ -304,7 +304,7 @@ function Versions({
       {promptError ? <Notice tone="red">The current PITCH prompt cannot be read: {promptError}</Notice> : null}
       {pc ? <CheckLine check={pc} testId="calibration-prompt-check" /> : null}
       {mc ? <CheckLine check={mc} testId="calibration-model-check" /> : null}
-      {!pc && !mc && !promptError ? <p className="text-sm text-muted">The prompt and model are checked once a run has reported.</p> : null}
+      {!pc && !mc && !promptError ? <p className="guide-muted">The prompt and model are checked once a run has reported.</p> : null}
     </section>
   );
 }
@@ -312,7 +312,7 @@ function Versions({
 function BatchesPanel({ slug, list, shown }: { slug: string; list: BatchInfo[]; shown: number | null }) {
   return (
     <div id="batches" className="scroll-mt-4">
-      <Panel title="Batches" actions={<span className="text-sm text-muted">{`${list.length} ${list.length === 1 ? "batch" : "batches"}`}</span>}>
+      <Panel title="Batches" actions={<span className="guide-muted">{`${list.length} ${list.length === 1 ? "batch" : "batches"}`}</span>}>
         <div data-testid="calibration-batches">
           <Table head={["Batch", "Started", "Result"]} label="Calibration batches">
             {list.map((b) => (

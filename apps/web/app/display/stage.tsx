@@ -25,7 +25,7 @@ export function Stage({ children }: { children: ReactNode }) {
     <div className="fixed inset-0 overflow-hidden bg-ink">
       <div
         data-testid="stage"
-        className="mx-stage dsp-stage absolute flex flex-col overflow-hidden bg-ink text-phosphor antialiased"
+        className="mx-stage demo-stage-screen guide-stage absolute flex flex-col overflow-hidden bg-[#030805] text-[#e9f5eb] antialiased"
         style={{
           width: STAGE_W,
           height: STAGE_H,
@@ -38,7 +38,7 @@ export function Stage({ children }: { children: ReactNode }) {
       >
         {/* The backdrop: rain and a CRT layer. Every block of the screen above them is opaque, so the rain only
             shows in the gaps (between tiles, in empty slots), never under words. */}
-        <MatrixRain opacity={0.28} size={22} className="-z-10" />
+        <MatrixRain opacity={0.34} size={22} className="-z-10" />
         <div aria-hidden className="mx-crt -z-10" />
         {children}
       </div>

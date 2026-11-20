@@ -7,7 +7,7 @@ import { loadAdminEvent } from "@/lib/admin/event";
 import { CSV_FORMATS, MAX_CSV_BYTES, contentLocks, minProblemCards, type CsvKind } from "@/lib/admin/content";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock } from "@/lib/format";
-import { Badge, Notice, Panel, Table, Td, inputClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Table, Td, inputClass } from "@/app/admin/guide-ui";
 import { ActionForm } from "@/components/ui/action";
 import { prepareFlashBulletin, uploadCrisisDeck, uploadProblemDeck, uploadStatements } from "./actions";
 import type { ActionResult } from "@/lib/rpc";
@@ -134,7 +134,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
               <p className="mt-1 whitespace-pre-wrap text-paper">{flash.body}</p>
             </div>
           ) : (
-            <p className="text-sm text-muted">No flash bulletin prepared yet.</p>
+            <p className="guide-muted">No flash bulletin prepared yet.</p>
           )}
         </div>
       </Panel>
@@ -180,7 +180,7 @@ function Upload({
       ) : organiser ? (
         <ActionForm action={action} submit={label} className="mt-2" maxFileBytes={MAX_CSV_BYTES} resetOnSuccess>
           <label className="block max-w-md">
-            <span className="text-xs font-medium text-paper">CSV file (up to {MAX_CSV_BYTES / 1024} KB)</span>
+            <span className="guide-label">CSV file (up to {MAX_CSV_BYTES / 1024} KB)</span>
             <input name="file" type="file" accept=".csv,text/csv" required className={inputClass} />
           </label>
         </ActionForm>

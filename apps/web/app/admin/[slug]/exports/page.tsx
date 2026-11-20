@@ -4,7 +4,7 @@ import { EXPORT_KINDS, EXPORTS, exportFileName } from "@/lib/admin/export";
 import { exportCounts } from "@/lib/admin/export-data";
 import { supabaseServer } from "@/lib/supabase/server";
 import { count } from "@/lib/format";
-import { Panel } from "@/components/ui/ui";
+import { Panel } from "@/app/admin/guide-ui";
 
 export const metadata: Metadata = { title: "Exports" };
 

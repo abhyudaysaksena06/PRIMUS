@@ -5,7 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { toResult } from "@/lib/rpc";
 import { clock, count, money } from "@/lib/format";
 import { ActionButton, ActionForm } from "@/components/ui/action";
-import { Badge, Notice, Panel, Table, Td, inputClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Table, Td, inputClass } from "@/app/admin/guide-ui";
 import { askRestore, backUpNow, decideRestore } from "./actions";
 import {
   KIND_LABEL,
@@ -106,7 +106,7 @@ export default async function BackupsPage({ params }: { params: Promise<{ slug: 
               <Td mono>{b.id}</Td>
               <Td className="whitespace-normal">
                 <div className="max-w-md text-paper">{b.label}</div>
-                <div className="text-xs text-muted">
+                <div className="guide-muted">
                   {KIND_LABEL[b.kind]}
                   {b.by ? ` · ${b.by}` : ""}
                 </div>
@@ -123,7 +123,7 @@ export default async function BackupsPage({ params }: { params: Promise<{ slug: 
                     <Badge tone="green">= now</Badge>
                   </>
                 ) : null}
-                <div className="text-xs text-muted">
+                <div className="guide-muted">
                   Cash {money(b.fingerprint.cash_cents)} · shares {count(sharesHeld(b.fingerprint))} · exchange{" "}
                   {money(b.fingerprint.exchange_cash_cents)}
                 </div>

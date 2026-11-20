@@ -1,21 +1,15 @@
-/* The projector in the look of the /demo projector page (app/demo/display, .guide-* in app/demo/demo.css): a near
-   black green canvas, squared panels with a soft green gradient and a thin green-grey border, monospace eyebrows in
-   bright green, white monospace figures. Sized for the 1920×1080 stage (stage.tsx). Every class is prefixed dsp- so it
-   cannot touch another area once loaded. */
+/* The projector is drawn with the /demo projector page's own parts (app/demo/display/page.tsx with demo.css and the
+   demo's event-news belt, event-news-ticker.css): its page head, .guide-metric tiles, .guide-panel boxes, .guide-tabs,
+   .guide-table, the alert box and the closing banner, on the demo's near-black green canvas with the rain. The demo
+   draws them for a laptop; this file only sizes them for the 1920×1080 stage (stage.tsx), so they read from the back
+   of the hall. Every rule is scoped to .guide-stage (or the event picker, .guide-display-index). */
 
-.dsp-stage {
-  --dsp-bg: #030805;
-  --dsp-green: #39ff88;
-  --dsp-line: rgba(91, 139, 100, 0.32);
-  --dsp-line-soft: rgba(91, 139, 100, 0.2);
-  --dsp-label: #819c87;
-  --dsp-text: #e9f5eb;
-  --dsp-white: #f0fff3;
-  --dsp-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  background: var(--dsp-bg) !important;
-  color: var(--dsp-text);
+.guide-stage {
+  --stage-green: #39ff88;
+  --stage-line: rgba(91, 139, 100, 0.32);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
 }
-.dsp-stage::before {
+.guide-stage::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -25,94 +19,302 @@
     repeating-linear-gradient(0deg, rgba(70, 240, 151, 0.02) 0 1px, transparent 1px 4px);
 }
 
-/* A panel: the demo's .guide-panel. */
-.dsp-panel {
-  border: 2px solid var(--dsp-line);
-  background: linear-gradient(145deg, rgba(13, 24, 16, 0.97), rgba(6, 13, 8, 0.98));
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.25);
+/* The page head: eyebrow, title (the phase or the takeover) and line. */
+.guide-stage .guide-page-head {
+  margin: 0;
 }
-/* A metric tile: the demo's .guide-metric. */
-.dsp-metric {
-  border: 2px solid var(--dsp-line-soft);
-  background: rgba(10, 20, 13, 0.94);
+.guide-stage .guide-page-head small {
+  font-size: 22px;
+  letter-spacing: 0.19em;
 }
-.dsp-eyebrow {
-  color: var(--dsp-green);
-  font: 700 20px/1.2 var(--dsp-mono);
-  letter-spacing: 0.24em;
+.guide-stage .guide-page-head h1,
+.guide-stage .guide-page-head .guide-page-title {
+  margin: 8px 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 64px;
+  font-weight: 750;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: #f0fff3;
 }
-.dsp-label {
-  color: var(--dsp-label);
-  font-family: var(--dsp-mono);
-  letter-spacing: 0.06em;
+.guide-stage .guide-page-head p:not(.guide-page-title) {
+  max-width: none;
+  font-size: 26px;
 }
-.dsp-figure {
-  color: var(--dsp-white);
-  font-family: var(--dsp-mono);
+.guide-stage .guide-phase {
+  padding: 4px 10px;
+  border-width: 2px;
+  font-size: 18px;
+}
+
+/* The header's metric tiles: the demo's .guide-metric, large. */
+.guide-stage .guide-stage-head {
+  border-bottom: 2px solid var(--stage-line);
+  background: rgba(3, 10, 6, 0.88);
+}
+.guide-stage .guide-metric {
+  border-width: 2px;
+}
+.guide-stage .guide-stage-metric {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 118px;
+  padding: 12px 26px;
+}
+.guide-stage .guide-stage-metric small {
+  font-size: 20px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.guide-stage .guide-stage-metric b {
+  margin: 8px 0 0;
+  font-size: 56px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.dsp-green {
-  color: var(--dsp-green);
+.guide-stage .guide-stage-metric b span {
+  font: inherit;
+  color: inherit;
 }
-
-/* The header strip. */
-.dsp-header {
-  border-bottom: 2px solid var(--dsp-line);
-  background: linear-gradient(180deg, rgba(9, 21, 13, 0.98), rgba(4, 10, 6, 0.98));
+.guide-stage .guide-stage-metric .guide-warn {
+  color: #ffbd66;
 }
-.dsp-phase {
-  color: var(--dsp-green);
-  font-family: var(--dsp-mono);
-  letter-spacing: -0.04em;
-  text-shadow: 0 0 18px rgba(57, 255, 136, 0.25);
+.guide-stage .guide-trading-state[data-state="OPEN"] {
+  color: #39ff88;
 }
-.dsp-chip {
-  border: 2px solid var(--dsp-line);
+.guide-stage .guide-trading-state[data-state="PAUSED"] {
+  color: #ffbd66;
+}
+.guide-stage .guide-trading-state[data-state="HALTED"] {
   color: #9fc6a8;
-  font: 700 22px/1 var(--dsp-mono);
-  letter-spacing: 0.08em;
+}
+.guide-stage .guide-stage-live,
+.guide-stage .guide-stage-live span {
+  margin-top: 6px;
+  font: 700 16px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.guide-stage .guide-stage-live > span {
+  justify-content: flex-end;
+}
+.guide-stage .guide-stage-live span span {
+  margin: 0;
+}
+.guide-stage .guide-phase-timer,
+.guide-stage .guide-phase-timer p {
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.guide-stage .guide-phase-timer p:first-child {
+  font-size: 20px !important;
+  color: #819c87;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.guide-stage .guide-phase-timer p:last-child {
+  font-size: 56px !important;
+  color: #f0fff3;
 }
 
-/* Board tiles. */
-.dsp-tile {
-  border: 2px solid var(--dsp-line-soft);
-  background: linear-gradient(145deg, rgba(13, 24, 16, 0.97), rgba(6, 13, 8, 0.98));
+/* Every other metric tile and panel on the stage keeps the type its own markup sets (the demo's small/b/span rules
+   are for its 8 px labels): the tile keeps the demo's box only. */
+.guide-stage .guide-metric:not(.guide-stage-metric) :is(small, b, span),
+.guide-stage .guide-tile :is(small, b, span, p) {
+  margin: revert-layer;
+  font: revert-layer;
+  color: revert-layer;
+  display: revert-layer;
 }
-.dsp-tile [data-testid="tile-ticker"] {
-  color: var(--dsp-green);
-  font-family: var(--dsp-mono);
+.guide-stage .guide-tile,
+.guide-stage .guide-metric:not(.guide-stage-metric) {
+  padding: revert-layer;
+}
+.guide-stage .guide-tile [data-testid="tile-ticker"] {
+  color: var(--stage-green);
+  font-family: var(--font-mono, ui-monospace, monospace);
   letter-spacing: -0.03em;
 }
-.dsp-tile [data-testid="tile-price"] {
-  color: var(--dsp-white);
-  font-family: var(--dsp-mono);
+.guide-stage .guide-tile [data-testid="tile-price"] {
+  color: #f0fff3;
+  font-family: var(--font-mono, ui-monospace, monospace);
 }
-.dsp-tile [data-testid="tile-change"] {
-  font-family: var(--dsp-mono);
+.guide-stage .guide-tile [data-testid="tile-change"] {
+  font-family: var(--font-mono, ui-monospace, monospace);
 }
 
-/* The bottom strips: the board's legend and the news ticker (the demo's event news belt). */
-.dsp-strip {
-  border-top: 2px solid var(--dsp-line);
+/* Panels: the demo's .guide-panel with its head (h2 + tag) and body. */
+.guide-stage .guide-panel {
+  border-width: 2px;
+  border-color: var(--stage-line);
+}
+.guide-stage .guide-panel-head {
+  padding: 14px 22px;
+  border-bottom-width: 2px;
+}
+.guide-stage .guide-panel-head h2 {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 26px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f0fff3;
+}
+.guide-stage .guide-panel-head span {
+  font-size: 18px;
+  letter-spacing: 0.12em;
+}
+.guide-stage .guide-panel-body {
+  padding: 16px 22px;
+}
+.guide-stage .guide-stage-row {
+  border-color: rgba(91, 139, 100, 0.22);
+}
+.guide-stage .guide-stage-strip {
+  border-color: rgba(91, 139, 100, 0.22);
+}
+
+/* Labels, status lines, chips. */
+.guide-stage .guide-label {
+  margin: 0;
+  display: revert-layer;
+  font: revert-layer;
+  color: #819c87;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  letter-spacing: 0.06em;
+}
+.guide-stage .guide-status {
+  font-size: 24px;
+  letter-spacing: 0.2em;
+}
+.guide-stage .guide-chip {
+  padding: 6px 14px;
+  border-width: 2px;
+  font-size: 24px;
+  letter-spacing: 0.1em;
+}
+.guide-stage .guide-chip[data-kind="CRISIS"] {
+  border-color: #ff5f5f;
+  color: #ff8a8a;
+}
+.guide-stage .guide-chip[data-kind="FLASH"] {
+  border-color: #ffbd66;
+  color: #ffbd66;
+}
+.guide-stage .guide-chip[data-kind="GENERAL"],
+.guide-stage .guide-chip[data-kind="SYSTEM"],
+.guide-stage .guide-chip[data-kind="FAIRNESS"] {
+  border-color: rgba(57, 255, 136, 0.45);
+  color: #39ff88;
+}
+
+/* The bulletin: the demo's alert box. */
+.guide-stage .guide-stage-banner {
+  margin-top: 8px;
+  padding: 8px 26px;
+  border-left-width: 6px;
+  border-left-color: #39ff88;
+  background: rgba(10, 30, 16, 0.94);
+  color: #e9f5eb;
+}
+.guide-stage .guide-stage-banner.guide-warning {
+  border-left-color: #ffb85d;
+  background: rgba(40, 24, 6, 0.94);
+}
+.guide-stage .guide-stage-banner[data-kind="CRISIS"] {
+  border-left-color: #ff5f5f;
+}
+.guide-stage .guide-stage-time {
+  color: #ffbd66;
+  font: 700 30px ui-monospace, monospace;
+}
+
+/* The board's legend: the demo's footer line. */
+.guide-stage .guide-stage-legend {
+  padding: 0 32px;
+  border-top-width: 2px;
+  background: rgba(3, 10, 6, 0.92);
+  color: #819c87;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+
+/* Takeover bodies sit on the canvas. */
+.guide-stage .guide-stage-body {
+  background: linear-gradient(180deg, rgba(5, 12, 7, 0.96), rgba(3, 8, 5, 0.98));
+}
+
+/* The demo projector's closing banner. */
+.guide-stage .guide-stage-tagline {
+  border: 2px solid #245233;
   background: #07120b;
+  padding: 28px;
+  text-align: center;
 }
-.dsp-news-label {
-  display: grid;
-  place-content: center;
-  padding-inline: 28px;
-  border-right: 2px solid var(--dsp-line);
-  background: rgba(57, 255, 136, 0.08);
-  color: var(--dsp-green);
-  font: 800 22px/1 var(--dsp-mono);
-  letter-spacing: 0.16em;
-  white-space: nowrap;
+.guide-stage .guide-stage-tagline div {
+  color: #75ff9e;
+  font: 700 20px ui-monospace, monospace;
+  letter-spacing: 0.3em;
+}
+.guide-stage .guide-stage-tagline p {
+  margin-top: 10px;
+  font-size: 56px;
+  font-weight: 600;
+}
+.guide-stage .guide-stage-tagline em {
+  color: #39ff88;
+  font-style: normal;
 }
 
-/* Takeovers: the demo's closing banner look for the strip and a framed body. */
-.dsp-takeover-body {
-  background: linear-gradient(180deg, rgba(5, 12, 7, 0.98), rgba(3, 8, 5, 1));
+/* The news belt: the demo's event-news ticker, sized for the stage. */
+.guide-stage .event-news-ticker {
+  min-height: 72px;
+  border-top: 2px solid var(--stage-line);
+  background: #07120b;
+  color: #e9f5eb;
+  font: 600 32px/1.3 var(--font-sans, ui-sans-serif, system-ui, sans-serif);
 }
-.dsp-mover-row {
-  border: 2px solid var(--dsp-line-soft);
-  background: linear-gradient(145deg, rgba(13, 24, 16, 0.97), rgba(6, 13, 8, 0.98));
+.guide-stage .event-news-label {
+  padding-inline: 28px;
+  border-right: 2px solid var(--stage-line);
+  background: rgba(57, 255, 136, 0.08);
+  color: #39ff88;
+  font: 800 22px/1 ui-monospace, monospace;
+  letter-spacing: 0.16em;
+}
+.guide-stage .event-news-headline {
+  gap: 18px;
+  padding-inline: 32px;
+}
+.guide-stage .event-news-headline::after {
+  width: 8px;
+  height: 8px;
+  margin-left: 32px;
+  background: #3a5940;
+}
+.guide-stage .event-news-headline strong {
+  padding: 2px 12px;
+  border: 2px solid rgba(57, 255, 136, 0.45);
+  color: #39ff88;
+  font: 800 22px/1.3 ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+.guide-stage .event-news-headline[data-tone="down"] strong {
+  border-color: #ff5f5f;
+  color: #ff8a8a;
+}
+.guide-stage .event-news-headline[data-tone="news"] strong {
+  border-color: #ffbd66;
+  color: #ffbd66;
+}
+/* A belt shorter than the screen still loops from the right edge. */
+.guide-stage .event-news-set {
+  min-width: 1700px;
+}
+
+/* The event picker (/display). */
+.guide-display-index .guide-metric {
+  text-decoration: none;
+}
+.guide-display-index .guide-metric:hover {
+  border-color: rgba(57, 255, 136, 0.45);
 }

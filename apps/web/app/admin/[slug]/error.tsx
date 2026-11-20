@@ -5,7 +5,7 @@
 
 import { useRouter } from "next/navigation";
 import { startTransition } from "react";
-import { Notice, Panel, buttonClass } from "@/components/ui/ui";
+import { Notice, Panel, buttonClass } from "@/app/admin/guide-ui";
 
 export default function SectionError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const router = useRouter();

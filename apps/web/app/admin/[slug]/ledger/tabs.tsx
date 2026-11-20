@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/ui";
+import { Badge } from "@/app/admin/guide-ui";
 
 // The two views of the Ledger section: the ledger itself and the corrections (with the number waiting for a decision).
 export function LedgerTabs({ slug, current, pending }: { slug: string; current: "ledger" | "corrections"; pending: number }) {
@@ -7,15 +7,13 @@ export function LedgerTabs({ slug, current, pending }: { slug: string; current: 
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium ${
-        active ? "bg-phosphor-deep text-phosphor" : "bg-panel text-paper ring-1 ring-inset ring-line hover:bg-raised"
-      }`}
+      className={`inline-flex items-center gap-2 ${active ? "active" : ""}`}
     >
       {label}
     </Link>
   );
   return (
-    <nav className="adm-tabs" aria-label="Ledger views">
+    <nav className="guide-tabs" aria-label="Ledger views">
       {tab(`/admin/${slug}/ledger`, current === "ledger", "Ledger")}
       {tab(
         `/admin/${slug}/ledger/corrections`,

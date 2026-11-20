@@ -22,9 +22,12 @@ const toneText = (bp: number | null) => (bp === null || bp === 0 ? "text-muted" 
 
 function Box({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`dsp-panel flex min-h-0 flex-col px-5 py-3 ${className}`}>
-      <h2 className="dsp-eyebrow mb-2 !text-[22px]">{title}</h2>
-      {children}
+    <section className={`guide-panel flex min-h-0 flex-col ${className}`}>
+      <div className="guide-panel-head">
+        <h2>{title}</h2>
+        <span aria-hidden>LIVE</span>
+      </div>
+      <div className="guide-panel-body flex min-h-0 flex-1 flex-col">{children}</div>
     </section>
   );
 }
@@ -37,7 +40,7 @@ export async function WelcomeWall({ event, status }: { event: DisplayEvent; stat
   const phases = ((data ?? []) as { code: PhaseCode; starts_at: string }[]).filter((p) => !["SETUP", "SETTLEMENT", "APPEALS"].includes(p.code));
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[1fr_760px] gap-8 px-12 py-8">
-      <div className="dsp-panel flex flex-col justify-center px-16">
+      <div className="guide-panel flex flex-col justify-center px-16">
         <p className="text-[34px] text-muted">Welcome to</p>
         <p className="text-[96px] leading-none font-black glow">{event.name}</p>
         <p className="mt-8 text-[38px] leading-snug text-paper">
@@ -69,7 +72,7 @@ export async function PracticeWallSection({ event }: { event: DisplayEvent; stat
       {market ? (
         <PracticeWall eventId={event.id} tickers={tickers.map((t) => ({ id: t.id, code: t.code }))} startsAt={market.startsAt} tickSeconds={market.tickSeconds} steps={market.steps} />
       ) : (
-        <div className="dsp-panel flex items-center justify-center px-16 text-center">
+        <div className="guide-panel flex items-center justify-center px-16 text-center">
           <p className="text-[48px] leading-tight font-bold">The practice market opens as soon as the first Finance team starts trading.</p>
         </div>
       )}
@@ -151,14 +154,14 @@ export async function MarketWall({ event, status }: { event: DisplayEvent; statu
       {/* Every company. */}
       <section className="grid min-h-0 content-start gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }} data-testid="live-prices">
         {listed.length === 0 ? (
-          <p className="dsp-panel col-span-full px-12 py-10 text-[44px] font-bold">The companies are listed at the IPO.</p>
+          <p className="guide-panel col-span-full px-12 py-10 text-[44px] font-bold">The companies are listed at the IPO.</p>
         ) : (
           listed.map((c) => {
             const p = priceNow(c.id, c.closing_price ?? c.market_price);
             const bp = bpOf(c.ipo_price, p);
             const steps = candlesOf(c.id, c.market_price).map((k) => k.close);
             return (
-              <div key={c.id} className="dsp-panel flex items-center justify-between gap-3 px-3 py-1.5" data-testid={`live-tile-${c.ticker}`}>
+              <div key={c.id} className="guide-panel flex items-center justify-between gap-3 px-3 py-1.5" data-testid={`live-tile-${c.ticker}`}>
                 <div className="min-w-0">
                   <p className="font-mono text-[24px] leading-none font-bold text-paper">{c.ticker}</p>
                   <p className="font-mono text-[22px] leading-tight tabular-nums text-phosphor">{p ? money(p) : "—"}</p>

@@ -4,7 +4,7 @@ import { loadAdminEvent } from "@/lib/admin/event";
 import { ERROR_ROWS, loadHealthData } from "@/lib/admin/health-data";
 import { cronState, seenAgo, teamScreens } from "@/lib/admin/health";
 import { clock, count } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { ConsoleStatus } from "./console-status";
 
@@ -79,7 +79,7 @@ export default async function HealthPage({ params }: PageProps<"/admin/[slug]/he
 
         <Panel title={`No screen in the last 60 seconds (${silent.length})`}>
           {silent.length === 0 ? (
-            <p className="text-sm text-muted">Every team has a screen connected.</p>
+            <p className="guide-muted">Every team has a screen connected.</p>
           ) : (
             <div className="space-y-3">
               {TRACKS.map((track) => {
@@ -87,7 +87,7 @@ export default async function HealthPage({ params }: PageProps<"/admin/[slug]/he
                 if (list.length === 0) return null;
                 return (
                   <div key={track}>
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    <h3 className="guide-label">
                       {TRACK_LABELS[track]} · {list.length}
                     </h3>
                     <ul className="mt-1 flex flex-wrap gap-1.5" aria-label={`${TRACK_LABELS[track]} teams with no screen`}>
