@@ -12,7 +12,8 @@ import { Notice, Panel, Stat, inputClass } from "@/app/admin/guide-ui";
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Desk, type ListTeam } from "./desk";
 import { DrawPreview } from "./draw-preview";
-import { importTeamList, setDeskRule, setRegistration } from "./actions";
+import { RemoveUnadmittedForm } from "./remove-unadmitted";
+import { importTeamList, removeUnadmitted, setDeskRule, setRegistration } from "./actions";
 
 export const metadata: Metadata = { title: "Registration desk" };
 
@@ -45,10 +46,11 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
   const { slug } = await params;
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
   const organiser = can(viewer!.role as Role, "desk"); // organisers and the registration desk (migration 074)
+  const lead = can(viewer!.role as Role, "organiser"); // organisers only (not the registration desk)
   const sb = await supabaseServer();
   const host = (await headers()).get("host") ?? "primus.mrdev4u.com";
   const registerUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}/register`;
-  const [teams, roster, rule, reg, memberRows] = await Promise.all([
+  const [teams, roster, rule, reg, memberRows, removal] = await Promise.all([
     // Paged: PostgREST returns at most 1,000 rows a read (600 cards at 200 a track; the list can be longer).
     fetchAll<TeamRow>((from, to) => sb.from("teams").select("id, code, track, checked_in_at, disqualified").eq("event_id", event.id).order("code").order("id").range(from, to)).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     fetchAll<RosterRow>((from, to) =>
@@ -67,6 +69,8 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
       (data) => data,
       () => [] as { team_id: string }[],
     ),
+    // Migration 101: when the cards nobody admitted were removed (null before that migration: the read then fails).
+    sb.from("events").select("unadmitted_removed_at").eq("id", event.id).maybeSingle<{ unadmitted_removed_at: string | null }>(),
   ]);
   if (teams.error || roster.error || rule.error) {
     return (
@@ -106,6 +110,8 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
   const regReady = !reg.error;
   const regOpen = reg.data?.registration_open ?? false;
   const online = list.filter((t) => t.source === "ONLINE").length;
+  const cardsRemoved = !removal.error && removal.data?.unadmitted_removed_at != null;
+  const unadmitted = cards.filter((t) => !t.checked_in_at).length;
 
   return (
     <div className="space-y-6">
@@ -205,8 +211,19 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
         </Panel>
       ) : null}
 
+      {lead && open && !removal.error ? (
+        <Panel title="After registration: remove teams not admitted">
+          {on ? (
+            <RemoveUnadmittedForm slug={slug} unadmitted={unadmitted} action={removeUnadmitted.bind(null, event.id)} />
+          ) : (
+            <Notice tone="amber">Turn desk check-in on first: only then are the admitted teams the ones kept.</Notice>
+          )}
+          {cardsRemoved ? <p className="mt-2 text-sm text-muted">The unused cards were removed: walk-ins can no longer get a card.</p> : null}
+        </Panel>
+      ) : null}
+
       <DrawPreview eventId={event.id} />
-      <Desk eventId={event.id} list={list} nextFree={nextFree} editable={organiser} canCheckOut={organiser && open} />
+      <Desk eventId={event.id} list={list} nextFree={nextFree} editable={organiser} canCheckOut={organiser && open} cardsRemoved={cardsRemoved} />
     </div>
   );
 }

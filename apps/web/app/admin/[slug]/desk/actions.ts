@@ -4,6 +4,7 @@
 // to it, or check it out again. Each is one game function run as the signed-in organiser.
 
 import type { Track } from "@msim/engine";
+import { revalidatePath } from "next/cache";
 import { rpc, type ActionResult } from "@/lib/rpc";
 import { readTeamList } from "@/lib/admin/team-list";
 
@@ -77,4 +78,18 @@ export async function saveTeam(input: { rosterId: string; track: Track; name: st
 export async function setRegistration(eventId: string, on: boolean): Promise<ActionResult> {
   const r = await rpc("set_registration_open", { p_event: eventId, p_on: on });
   return r.ok ? { ...r, message: on ? "Online registration is open." : "Online registration is closed." } : r;
+}
+
+/**
+ * After registration (migration 101): remove every card the desk did not admit, with its login. Organisers only (the
+ * database refuses everyone else); typing REMOVE <slug> is the confirmation.
+ */
+export async function removeUnadmitted(eventId: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const r = await rpc("remove_unadmitted", { p_event: eventId, p_confirm: String(form.get("confirm") ?? "").trim() });
+  if (!r.ok) return r;
+  revalidatePath("/admin", "layout");
+  return {
+    ...r,
+    message: `Removed ${String(r.data?.teams ?? 0)} teams not admitted and ${String(r.data?.logins ?? 0)} logins. The admitted teams are untouched.`,
+  };
 }

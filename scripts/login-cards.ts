@@ -3,6 +3,9 @@
 //
 //   CARD_SECRET=… TEAM_EMAIL_DOMAIN=… APP_URL=https://… \
 //     pnpm cards --slug live-2026 --date 2026-11-14 [--teams seed/teams.csv] [--only P07,F12]
+//
+// The cards come from the seed plan, not the database: after "remove teams not admitted" (migration 101) a removed
+// card has no login any more, so reprint only admitted cards (--only).
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { parseArgs } from "./lib/args";
