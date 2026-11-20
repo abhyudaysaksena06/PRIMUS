@@ -62,7 +62,7 @@ describe("display_teams", () => {
     expect(cards).toHaveLength(9);
   });
 
-  test("the schema version is 092", async () => {
-    expect((await db.pool.query("select public.schema_version() v")).rows[0].v).toBe("20261228000092");
+  test("the schema version is 092 or later", async () => {
+    expect((await db.pool.query("select public.schema_version() v")).rows[0].v >= "20261228000092").toBe(true);
   });
 });

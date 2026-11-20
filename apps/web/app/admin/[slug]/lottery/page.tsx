@@ -9,6 +9,7 @@ import { clock, dateTime } from "@/lib/format";
 import { Badge, Notice, Panel, Stat, Table, Td, inputClass } from "@/app/admin/guide-ui";
 import { ActionForm, ConfirmForm } from "@/components/ui/action";
 import { runLottery, setSeedCommitment } from "./actions";
+import { DiceInput } from "./dice-input";
 
 export const metadata: Metadata = { title: "Lottery" };
 
@@ -100,8 +101,8 @@ function DrawPanel({ eventId, phase, commitment, organiser }: { eventId: string;
               <input name="seed" type="password" required autoComplete="off" spellCheck={false} className={`${inputClass} font-mono`} />
             </label>
             <label className="block">
-              <span className="guide-label">Dice roll</span>
-              <input name="dice" required inputMode="numeric" pattern="[0-9]{1,6}" maxLength={6} autoComplete="off" className={`${inputClass} w-40 font-mono`} />
+              <span className="guide-label">Dice roll (type the dice rolled in the hall, or press Roll dice)</span>
+              <DiceInput className={`${inputClass} w-40 font-mono`} />
             </label>
           </ConfirmForm>
         </>

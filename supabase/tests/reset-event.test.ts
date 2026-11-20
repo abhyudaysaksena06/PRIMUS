@@ -54,7 +54,8 @@ describe("reset the live event to new", () => {
     const r = await n.ok(n.lead, "reset_event", n.eventId, slug);
     const id = r.event_id as string;
     const ev = await n.one("select slug, is_rehearsal, current_phase, seed_commitment, desk_check_in, features from events where id = $1", [id]);
-    expect(ev).toMatchObject({ slug, is_rehearsal: false, current_phase: "SETUP", seed_commitment: null, desk_check_in: true });
+    // 093: the published seed commitment survives every reset.
+    expect(ev).toMatchObject({ slug, is_rehearsal: false, current_phase: "SETUP", seed_commitment: sha256Hex(seed), desk_check_in: true });
     expect(ev.features).toMatchObject({ submit_last_5: true });
     expect((await n.one("select count(*)::int as c from events where slug = $1", [slug])).c).toBe(1);
     // Same logins; play gone; planned times kept for a live event.
@@ -82,6 +83,8 @@ describe("reset the live event to new", () => {
     await n.q("update events set is_rehearsal = false where id = $1", [n.eventId]);
     await n.q("update app.seed_payloads set payload = jsonb_set(payload, '{event,is_rehearsal}', 'false') where slug = $1", [slug]);
     await n.ok(n.lead, "set_desk_check_in", n.eventId, true);
+    const commitment = sha256Hex(sha256Hex("final-reset"));
+    await n.org("set_seed_commitment", n.eventId, commitment);
     const codes = (await n.q("select code from teams where event_id = $1 order by code", [n.eventId])).map((r) => r.code as string);
     const [real, ...tests] = codes;
     for (const code of tests) {
@@ -96,6 +99,8 @@ describe("reset the live event to new", () => {
     r = await n.ok(n.lead, "reset_event", id, `FINAL ${slug}`, true);
     id = r.event_id as string;
     expect([...(r.test_teams_unregistered as string[])].sort()).toEqual([...tests].sort());
+    // 093: neither the test reset nor the final reset removes the seed commitment.
+    expect((await n.one("select seed_commitment from events where id = $1", [id])).seed_commitment).toBe(commitment);
     const checked = (await n.q("select code, name from teams where event_id = $1 and checked_in_at is not null", [id]));
     expect(checked).toEqual([{ code: real, name: "Real Team" }]);
     expect((await n.q("select roll_number from members where event_id = $1", [id])).map((m) => m.roll_number)).toEqual(["R100"]);
