@@ -53,7 +53,7 @@ describe("route access by role", () => {
 describe("desk roles in the control panel", () => {
   const SECTIONS = ["", "/run", "/schedule", "/product", "/consulting", "/finance", "/desk", "/lottery", "/rounds", "/judge",
     "/judge/calibration", "/bulletins", "/content", "/ledger", "/ledger/corrections", "/fairness", "/chats", "/exports",
-    "/health", "/leaderboard", "/backups"];
+    "/health", "/leaderboard", "/backups", "/activity"];
   const opens = (role: Role) => SECTIONS.filter((s) => canOpenSection(role, s));
 
   test("each desk opens only its own sections (and nothing added later)", () => {
@@ -61,9 +61,18 @@ describe("desk roles in the control panel", () => {
     expect(opens("JUDGE")).toEqual(["/judge", "/judge/calibration"]);
     expect(opens("CRISIS")).toEqual(["/content"]);
     expect(opens("ORGANISER")).toEqual(SECTIONS);
-    expect(opens("FAIRNESS")).toEqual(SECTIONS);
+    expect(opens("FAIRNESS")).toEqual(SECTIONS.filter((s) => s !== "/activity"));
     expect(opens("DISPLAY")).toEqual([]);
     expect(opens("TEAM")).toEqual([]);
+  });
+
+  test("the Activity page is for organisers only", () => {
+    expect(canOpenSection("ORGANISER", "/activity")).toBe(true);
+    for (const role of ["FAIRNESS", "REGISTRATION", "JUDGE", "CRISIS", "DISPLAY", "TEAM"] as const) {
+      expect(canOpenSection(role, "/activity")).toBe(false);
+      expect(canAccess("/admin/night/activity", role)).toBe(false);
+    }
+    expect(canAccess("/admin/night/activity", "ORGANISER")).toBe(true);
   });
 
   test("section matching is by path segment", () => {

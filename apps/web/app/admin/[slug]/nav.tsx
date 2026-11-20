@@ -7,7 +7,7 @@ import { canOpenSection, landingFor, type Role } from "@/lib/auth/routes";
 
 // The control panel's tabs. Organisers and the fairness officer see them all; a desk role (registration, judging,
 // crisis) sees only the sections lib/auth/routes.ts (DESK_SECTIONS) gives it, so a line added here is for
-// organisers and the fairness officer unless routes.ts says otherwise.
+// organisers and the fairness officer unless routes.ts says otherwise (ORGANISER_SECTIONS: organisers only).
 export const SECTIONS = [
   { path: "/run", label: "Run event", hint: "Start and end each round, crisis and step; timers; event log" },
   { path: "", label: "Overview", hint: "Phase, gates, draft and auto-advance" },
@@ -28,6 +28,7 @@ export const SECTIONS = [
   { path: "/exports", label: "Downloads", hint: "CSV files of the ledger, prices, scores, results and the event log" },
   { path: "/backups", label: "Backups", hint: "Backups after every round; download or restore one" },
   { path: "/health", label: "System health", hint: "Connections, errors and the clock" },
+  { path: "/activity", label: "Activity", hint: "What every staff account did, when and to what" },
 ] as const;
 
 const RoleContext = createContext<Role | null>(null);
