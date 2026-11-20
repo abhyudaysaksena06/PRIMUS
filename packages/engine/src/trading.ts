@@ -5,7 +5,8 @@
 //   • Its short position is the SHORT lot (max 2,000 per company); short proceeds are credited to cash.
 //   • Collateral = Σ 150% × short qty × current price. It is a lock on cash, recalculated whenever prices change.
 //   • Available cash = cash − collateral − reserves of pending orders.
-//     A BUY reserves qty × price × 1.10; a SHORT reserves qty × price × 1.5 × 1.10.
+//     A BUY reserves qty × price × 1.10 (and never less than the most it can cost: qty × the price after a full +10%
+//     round, rounded per share); a SHORT reserves qty × price × 1.5 × 1.10.
 //     SELL and COVER reserve nothing (covering releases more collateral than it costs) and are always allowed.
 //   • If cash < collateral (a collateral deficit), new BUY and SHORT orders are blocked until it is fixed.
 
@@ -85,9 +86,16 @@ export const ORDER_MESSAGES: Record<OrderRejection, string> = {
 
 const reject = (code: OrderRejection): OrderCheck => ({ ok: false, code, message: ORDER_MESSAGES[code] });
 
-/** Cash held back for a pending BUY: qty × price × 1.10. */
+/**
+ * Cash held back for a pending BUY: qty × price × 1.10, or qty × the highest price the order can fill at (the price
+ * after a full +10% round, rounded half-up to the cent) when that is more. The clearing rounds the price per share, so
+ * at a price ending in 5–9 cents the most a buy can cost is up to 0.5¢ a share above qty × price × 1.10 (migration
+ * 079): with the larger of the two a buy never costs more than it reserved.
+ */
 export function buyReserve(qty: number, price: number): number {
-  return mulRate(mul(qty, price), RULES.RESERVE_PCT, 100);
+  const reserve = mulRate(mul(qty, price), RULES.RESERVE_PCT, 100);
+  const worstCost = mul(qty, clearingPrice(price, RULES.NET_CAP));
+  return worstCost > reserve ? worstCost : reserve;
 }
 
 /** Collateral held back for a pending SHORT: qty × price × 150% × 1.10 (rounded after each step). */
