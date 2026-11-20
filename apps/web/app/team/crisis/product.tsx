@@ -374,7 +374,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 <p>Your hired firm writes its advice memo separately. Use its advice in your plan: that is part of the score.</p>
               </>
             )}
-            <p>Only the last version submitted on time is judged. A saved draft that is not submitted is not judged.</p>
+            <p>Only the last version submitted on time is judged. If you never submit, your last saved draft is submitted for you at the deadline.</p>
           </HowItWorks>
           <div className="mt-3">
             <SubmissionEditor ctx={ctx} ws={ws} type={planType} win={win} />

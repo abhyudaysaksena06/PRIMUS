@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { can, type Role } from "@/lib/auth/routes";
 import Link from "next/link";
 import type { DeadlineCode, SubmissionType } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
@@ -87,6 +88,7 @@ export default async function JudgePage({
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
   const [status, data] = await Promise.all([loadEventStatus(event.id), loadJudgeData(event.id)]);
   const organiser = viewer!.role === "ORGANISER";
+  const judgeOps = can(viewer!.role as Role, "judge"); // the judge desk runs the worker (migration 074)
   const now = Date.parse(status.server_time);
   const pausedAt = status.paused ? status.paused_at : null;
   const settings = readSettings();
@@ -116,7 +118,7 @@ export default async function JudgePage({
       {/* When the type's deadline passes, re-read: Start judging (and sealing) opens. */}
       <RefreshAt at={closed ? null : closesAt} />
 
-      <JudgeControls eventId={event.id} slug={slug} organiser={organiser} settings={settings} slot={data.modelSlot} rehearsal={event.is_rehearsal} />
+      <JudgeControls eventId={event.id} slug={slug} organiser={organiser} judgeOps={judgeOps} settings={settings} slot={data.modelSlot} rehearsal={event.is_rehearsal} />
 
       {event.format === "PRIMUS" ? <AutoJudgePanel eventId={event.id} slug={slug} status={status} summaries={summaries} /> : null}
 
@@ -237,6 +239,7 @@ function JudgeControls({
   eventId,
   slug,
   organiser,
+  judgeOps,
   settings,
   slot,
   rehearsal,
@@ -244,13 +247,14 @@ function JudgeControls({
   eventId: string;
   slug: string;
   organiser: boolean;
+  judgeOps: boolean;
   settings: ReturnType<typeof readSettings>;
   slot: JudgeSlot;
   rehearsal: boolean;
 }) {
   const config = settings.ok ? settings.config : null;
   const refusal = config ? fakeJudgeRefusal(config, { is_rehearsal: rehearsal }) : null;
-  const runner = organiser && config !== null && refusal === null;
+  const runner = (organiser || judgeOps) && config !== null && refusal === null;
   const models = config?.models ?? null;
   const sw = modelSwitch(slot, models);
   return (
@@ -281,7 +285,7 @@ function JudgeControls({
             <Notice tone="red">{refusal}</Notice>
           ) : null}
           {runner ? (
-            <JudgeRunner eventId={eventId} fake={config.fake} canRun={organiser} />
+            <JudgeRunner eventId={eventId} fake={config.fake} canRun={organiser || judgeOps} />
           ) : organiser ? null : (
             <p className="text-sm text-muted">Organisers run the judge.</p>
           )}

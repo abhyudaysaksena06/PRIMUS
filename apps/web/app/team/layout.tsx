@@ -35,6 +35,7 @@ import { Glyph } from "@/components/ui/matrix/glyph";
 import "./team.css";
 import { sectorStyle } from "@/lib/team/sectors";
 import { CrisisSplash, type CrisisPopups, type SplashCard } from "./crisis-splash";
+import { DraftWatch } from "./crisis/draft-watch";
 
 const TRACK_EMOJI: Record<Track, string> = { PRODUCT: "🏢", CONSULTING: "🧠", FINANCE: "💼" };
 
@@ -138,6 +139,8 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
         <Heartbeat eventId={event.id} area="team" />
         <BootSequence who={team.code} />
         <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
+        {/* "Your pick!" on every page during a by-sector Round 3 draft (it stops by itself when the draft ends). */}
+        <DraftWatch eventId={event.id} companyId={ctx.company?.id ?? null} active={event.format === "PRIMUS" && team.track === "PRODUCT" && status.phase === "SATURATION" && featureOn(status, "draft_by_sector", true)} />
         <div className="terminal-theme-scope term min-h-screen">
           <header className="border-b border-line bg-ink">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--term-amber-dim)] px-4 py-1.5">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { can, type Role } from "@/lib/auth/routes";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { currentViewer } from "@/lib/auth/viewer";
@@ -21,6 +22,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
   const organiser = viewer!.role === "ORGANISER";
+  const decks = can(viewer!.role as Role, "content"); // organisers and the crisis desk (migration 074)
   const sb = await supabaseServer();
   const [problems, crises, flashes, products, statements, picks] = await Promise.all([
     sb.from("problem_cards").select("number, sector, title, body").eq("event_id", event.id).order("number").limit(1000),
@@ -42,7 +44,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="space-y-6">
-      {!organiser ? <Notice>The fairness officer can read the content here; only organisers upload it.</Notice> : null}
+      {!decks ? <Notice>You can read the content here; only organisers and the crisis desk upload it.</Notice> : null}
 
       <Panel title="Problem deck" actions={<LockBadge lock={locks.problem} />}>
         <Summary>
@@ -50,7 +52,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
           one card to give every squad the same case, or 2 to 6 cards (one per sector) to split the squads equally between the sectors by lottery.
           Otherwise the draw deals 3 distinct cards to each squad and uses no card more than 3 times, so the deck needs at least {needed} (squads + 2).
         </Summary>
-        <Upload kind="problem" lock={locks.problem} organiser={organiser} action={uploadProblemDeck.bind(null, event.id)} label="Upload the problem deck" />
+        <Upload kind="problem" lock={locks.problem} organiser={decks} action={uploadProblemDeck.bind(null, event.id)} label="Upload the problem deck" />
         <Table head={["#", "Sector", "Title", "Body"]} empty="No problem cards yet." className="mt-4">
           {problemRows.map((c) => (
             <tr key={c.number}>
@@ -70,7 +72,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
           {crisisRows.length} cards in {categories} categories. With a sector on a card, every company of that sector gets it in the crisis its
           number names (1 to 4). Cards without a sector are dealt round the categories by the lottery (10 categories × 5 companies for 50 squads).
         </Summary>
-        <Upload kind="crisis" lock={locks.crisis} organiser={organiser} action={uploadCrisisDeck.bind(null, event.id)} label="Upload the crisis deck" />
+        <Upload kind="crisis" lock={locks.crisis} organiser={decks} action={uploadCrisisDeck.bind(null, event.id)} label="Upload the crisis deck" />
         <Table head={["Sector", "Category", "#", "Title", "Body"]} empty="No crisis cards yet." className="mt-4">
           {crisisRows.map((c) => (
             <tr key={`${c.sector ?? ""}${c.category}#${c.number}`}>
@@ -94,7 +96,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
             starts with Round 3, or the moment they are uploaded if Round 3 has already started. They lock at the first pick. With a sector on each
             statement, a company drafts only its own sector&apos;s statements, and each sector needs room for its companies.
           </Summary>
-          <Upload kind="statements" lock={statementLock} organiser={organiser} action={uploadStatements.bind(null, event.id)} label="Upload the statements" />
+          <Upload kind="statements" lock={statementLock} organiser={decks} action={uploadStatements.bind(null, event.id)} label="Upload the statements" />
           <Table head={["#", "Sector", "Title", "Cap", "Body"]} empty="No problem statements yet." className="mt-4">
             {(statements.data ?? []).map((st) => (
               <tr key={st.number}>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { WritingFlags } from "./writing-flags";
 import Link from "next/link";
 import Form from "next/form";
 import { PHASE_CODES, PHASE_LABELS, TRACK_LABELS, type PhaseCode } from "@msim/engine";
@@ -67,6 +68,7 @@ export default async function FairnessPage({
 
   return (
     <div className="space-y-6">
+      <WritingFlags eventId={event.id} />
       <Panel title="Collusion flags">
         <p className="text-sm text-paper">
           Raised at settlement. Clear a flag, or disqualify the teams involved (they are excluded from the awards); every decision is logged with its

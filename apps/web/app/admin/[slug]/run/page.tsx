@@ -13,6 +13,7 @@ import { pauseEvent, resumeEvent } from "../actions";
 import { closeRound } from "../rounds/actions";
 import { delayStep, openRoundNow, resetRehearsal, setHoldSteps, setManual, startNextPhase, startStepNow } from "./actions";
 import { SwitchesPanel } from "./switches";
+import { PracticeMarketPanel } from "./practice-market";
 
 export const metadata: Metadata = { title: "Run the event" };
 
@@ -216,6 +217,7 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
 
       {/* ── Tonight's switches (migration 070) ── */}
       <SwitchesPanel eventId={event.id} organiser={organiser} />
+      <PracticeMarketPanel eventId={event.id} organiser={organiser} />
 
       {/* ── Manual mode ── */}
       <Panel title="Who starts things">

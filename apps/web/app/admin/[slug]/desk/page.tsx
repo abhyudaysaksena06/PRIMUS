@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { can, type Role } from "@/lib/auth/routes";
 import { headers } from "next/headers";
 import { TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
@@ -9,6 +10,7 @@ import { fetchAll } from "@/lib/fetch-all";
 import { Notice, Panel, Stat, inputClass } from "@/components/ui/ui";
 import { ActionButton, ActionForm } from "@/components/ui/action";
 import { Desk, type ListTeam } from "./desk";
+import { DrawPreview } from "./draw-preview";
 import { importTeamList, setDeskRule, setRegistration } from "./actions";
 
 export const metadata: Metadata = { title: "Registration desk" };
@@ -40,7 +42,7 @@ interface RosterRow {
 export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk">) {
   const { slug } = await params;
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
-  const organiser = viewer!.role === "ORGANISER";
+  const organiser = can(viewer!.role as Role, "desk"); // organisers and the registration desk (migration 074)
   const sb = await supabaseServer();
   const host = (await headers()).get("host") ?? "primus.mrdev4u.com";
   const registerUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}/register`;
@@ -181,6 +183,7 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
         </Panel>
       ) : null}
 
+      <DrawPreview eventId={event.id} />
       <Desk eventId={event.id} list={list} editable={organiser} canCheckOut={organiser && open} />
     </div>
   );

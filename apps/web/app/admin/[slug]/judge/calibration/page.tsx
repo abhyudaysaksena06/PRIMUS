@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { can, type Role } from "@/lib/auth/routes";
 import Link from "next/link";
 import { wordCount } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
@@ -76,7 +77,7 @@ export default async function CalibrationPage({
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
   const [status, rows] = await Promise.all([loadEventStatus(event.id), loadCalibrationRows(event.id)]);
-  const organiser = viewer!.role === "ORGANISER";
+  const organiser = can(viewer!.role as Role, "judge"); // organisers and the judge desk (migration 074)
   const now = Date.parse(status.server_time);
 
   const settings = read(() => judgeConfig());
