@@ -5,8 +5,9 @@ import { sectionAllowed } from "@/lib/team/sections";
 import { judgingSteps, promptAnchor, publishedPrompts, tierRows, type PublishedPrompt } from "@/lib/team/judging";
 import { parseMarkdown } from "@/lib/team/markdown";
 import { bp, money } from "@/lib/format";
-import { Badge, Notice, Panel, Table, Td, buttonClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Table, Td } from "@/components/ui/ui";
 import { Markdown } from "./markdown";
+import { GuidePageTitle } from "@/components/guide/guide";
 
 export const metadata: Metadata = { title: "Judging" };
 
@@ -70,7 +71,15 @@ export default async function TeamJudgingPage() {
   }
   const prompts = publishedPrompts();
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* The demo's judging page (app/demo/judging): the page head, then the steps beside the score tiers. */}
+      <GuidePageTitle
+        as="p"
+        eyebrow="REFERENCE / AI JUDGING"
+        title="How judging works."
+        sub="The steps, the score tiers and the three prompts the judge is given, word for word. The judge sees only the ticker, never team, member or company names."
+      />
+      <div className="guide-grid two">
       <Panel title="How the judge scores">
         <p className="text-sm text-paper">
           An AI judge scores every PRD, rescue plan and flash answer out of 100 against a published rubric. This is what happens to a
@@ -85,7 +94,7 @@ export default async function TeamJudgingPage() {
         </ol>
         <nav aria-label="The prompts" className="mt-4 flex flex-wrap gap-2">
           {prompts.map((p) => (
-            <a key={p.type} href={`#${promptAnchor(p.type)}`} className={buttonClass.secondary}>
+            <a key={p.type} href={`#${promptAnchor(p.type)}`} className="guide-chip">
               {p.label} prompt
             </a>
           ))}
@@ -113,6 +122,7 @@ export default async function TeamJudgingPage() {
           price.
         </p>
       </Panel>
+      </div>
 
       {prompts.map((p) => (
         <PromptPanel key={p.type} p={p} />

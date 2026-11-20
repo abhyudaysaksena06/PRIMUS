@@ -408,10 +408,39 @@ li:last-child > .guide-news-story {
 .guide-score-now b {
   font-size: clamp(24px, 3vw, 34px);
 }
-.guide-chip-down {
+.guide-app[data-track] .guide-chip.guide-chip-down {
   border-color: rgba(255, 93, 108, 0.5) !important;
   color: #ff8a95 !important;
   background: rgba(128, 22, 34, 0.2) !important;
+}
+
+/* ── Q&A threads and the leaderboard's own row (the demo's feed rows and table) ── */
+.guide-qa-card {
+  padding: 12px 13px;
+  border: 1px solid var(--line-neutral, #294832);
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 12px;
+}
+.guide-qa-card.is-hot {
+  border-color: var(--track-line);
+  background: var(--track-soft);
+}
+.guide-qa-card p {
+  color: #e2e5ec;
+}
+.guide-app[data-track] .guide-chip.guide-chip-warn {
+  border-color: rgba(255, 184, 93, 0.5) !important;
+  color: #ffb85d !important;
+}
+.guide-table .guide-row-mine td {
+  background: var(--track-soft);
+}
+.guide-table .guide-row-mine td:first-child {
+  box-shadow: inset 3px 0 0 var(--track-accent);
+}
+.guide-app .guide-textarea,
+.guide-app textarea.guide-input {
+  min-height: 84px;
 }
 
 /* Home's "Do this now" pill (kept for its big task card). */

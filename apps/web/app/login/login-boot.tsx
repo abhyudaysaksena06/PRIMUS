@@ -27,7 +27,7 @@ export function LoginBoot({ track }: { track: string | null }) {
         </div>
         <div className="demo-glitch-rule" />
         <p>
-          PRIMUS <span>///</span> {track ? `${track} ACCESS NODE` : "ACCESS NODE"}
+          PRIMUS <span>{"///"}</span> {track ? `${track} ACCESS NODE` : "ACCESS NODE"}
         </p>
         <div className="demo-glitch-lines">
           <span>
