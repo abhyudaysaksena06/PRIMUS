@@ -75,4 +75,30 @@ describe("reset the live event to new", () => {
     const again = await n.one("select app.team_admitted(id) as ok from teams where event_id = $1 and code = $2", [id, codes[0]]);
     expect(again.ok).toBe(true);
   });
+
+  test("final reset: test teams (TEST- roll numbers) are unregistered, real registrations stay; needs FINAL <slug>", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    const slug = (await n.one("select slug from events where id = $1", [n.eventId])).slug as string;
+    await n.q("update events set is_rehearsal = false where id = $1", [n.eventId]);
+    await n.q("update app.seed_payloads set payload = jsonb_set(payload, '{event,is_rehearsal}', 'false') where slug = $1", [slug]);
+    await n.ok(n.lead, "set_desk_check_in", n.eventId, true);
+    const codes = (await n.q("select code from teams where event_id = $1 order by code", [n.eventId])).map((r) => r.code as string);
+    const [real, ...tests] = codes;
+    for (const code of tests) {
+      await n.ok(n.lead, "desk_check_in", n.eventId, null, code, `Test ${code}`, JSON.stringify([{ full_name: `Tester ${code}`, roll_number: `TEST-${code}` }]));
+    }
+    await n.ok(n.lead, "desk_check_in", n.eventId, null, real, "Real Team", JSON.stringify([{ full_name: "Asha", roll_number: "R100" }]));
+    // A test reset keeps the test teams; the final reset needs "FINAL <slug>".
+    let r = await n.ok(n.lead, "reset_event", n.eventId, slug);
+    let id = r.event_id as string;
+    expect((await n.one("select count(*)::int as c from teams where event_id = $1 and checked_in_at is not null", [id])).c).toBe(codes.length);
+    expect((await n.call(n.lead, "reset_event", id, slug, true)).code).toBe("CONFIRM");
+    r = await n.ok(n.lead, "reset_event", id, `FINAL ${slug}`, true);
+    id = r.event_id as string;
+    expect([...(r.test_teams_unregistered as string[])].sort()).toEqual([...tests].sort());
+    const checked = (await n.q("select code, name from teams where event_id = $1 and checked_in_at is not null", [id]));
+    expect(checked).toEqual([{ code: real, name: "Real Team" }]);
+    expect((await n.q("select roll_number from members where event_id = $1", [id])).map((m) => m.roll_number)).toEqual(["R100"]);
+    expect((await n.q("select what from event_log where event_id = $1", [id])).map((x) => x.what).join(" ")).toMatch(/Final reset: .* test teams unregistered/);
+  });
 });

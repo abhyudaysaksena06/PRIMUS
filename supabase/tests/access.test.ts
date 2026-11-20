@@ -123,6 +123,7 @@ describe("grants", () => {
       "request_snapshot",
       "rerun_judging",
       "reset_event",
+      "reset_event",
       "reset_rehearsal",
       "respond_offer",
       "resume_event",

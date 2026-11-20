@@ -370,9 +370,14 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
 
       {/* ── Reset to new (any event, organisers; migration 085) ── */}
       {organiser ? (
-        <Panel title="Reset to new">
-          <ResetEventForm slug={slug} action={resetEvent.bind(null, event.id, slug)} />
-        </Panel>
+        <>
+          <Panel title="Test reset (keeps the test teams)">
+            <ResetEventForm slug={slug} action={resetEvent.bind(null, event.id, slug, false)} />
+          </Panel>
+          <Panel title="Final reset (before the event)">
+            <ResetEventForm slug={slug} final action={resetEvent.bind(null, event.id, slug, true)} />
+          </Panel>
+        </>
       ) : null}
 
       {/* ── Reset (rehearsals only) ── */}

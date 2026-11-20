@@ -59,12 +59,23 @@ export async function resetRehearsal(eventId: string, slug: string): Promise<Act
  * Reset to new (migration 085): wipe everything played on this event and build it again from its creation, keeping the
  * registration desk's work (names, members, check-ins, team list) and the switches. The slug must be typed to confirm.
  */
-export async function resetEvent(eventId: string, slug: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const r = await rpc("reset_event", { p_event: eventId, p_confirm: String(form.get("confirm") ?? "").trim() });
+export async function resetEvent(
+  eventId: string,
+  slug: string,
+  final: boolean,
+  _prev: ActionResult | null,
+  form: FormData,
+): Promise<ActionResult> {
+  const r = await rpc("reset_event", { p_event: eventId, p_confirm: String(form.get("confirm") ?? "").trim(), p_final: final });
   if (r.ok) revalidatePath("/admin", "layout");
-  return r.ok
-    ? { ...r, message: "Reset to new: the event is back at Setup. Registered teams stay checked in and sign in with the same cards." }
-    : r;
+  if (!r.ok) return r;
+  const dropped = (r.data?.test_teams_unregistered as string[] | undefined) ?? [];
+  return {
+    ...r,
+    message: final
+      ? `Final reset done: the event is back at Setup and ${dropped.length} test teams (${dropped.join(", ") || "none"}) are unregistered. Real registrations stay.`
+      : "Test reset done: the event is back at Setup. Every registered team, test teams included, stays checked in.",
+  };
 }
 
 /** Turn one of tonight's switches on or off (migration 070). */
