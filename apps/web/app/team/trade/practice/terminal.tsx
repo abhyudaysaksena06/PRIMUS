@@ -16,6 +16,7 @@ import { supabaseBrowser } from "@/lib/supabase/browser";
 import { count, money } from "@/lib/format";
 import { TradingChart } from "@/components/ui/trading-chart";
 import type { PracticeTicker } from "@/lib/team/practice";
+import { DeskKpi, DeskStatus } from "../desk-ui";
 
 const WINDOW_CANDLES = 60;
 
@@ -221,7 +222,18 @@ export function PracticeTerminal({
 
   return (
     // Laptop screens: the desk frame (the trading layout) already uses the window's width. A phone stacks the panels.
-    <div className="min-w-0 space-y-3" data-testid="practice-terminal">
+    <div className="min-w-0 space-y-4" data-testid="practice-terminal">
+      <DeskStatus live={!paused && left > 0}>
+        Practice trading <span aria-hidden>·</span> {left > 0 ? `${count(left)} prices left` : "closed"} <span aria-hidden>·</span> {tickers.length} companies{" "}
+        <span aria-hidden>·</span> practice money only
+      </DeskStatus>
+      {/* The demo's KPI strip. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <DeskKpi label="Practice fund value" tag={<span className="text-[#00D68F]">LIVE</span>} value={money(equity)} foot={`Started at ${money(PRACTICE.startCents)}`} />
+        <DeskKpi label="Profit" tag="NET" tone={profit > 0 ? "up" : profit < 0 ? "down" : "plain"} value={`${profit >= 0 ? "+" : "−"}${money(Math.abs(profit))}`} foot={`${trades.length} trades`} />
+        <DeskKpi label="Cash" value={money(cash)} foot="Practice money" />
+        <DeskKpi label="Prize" tag={`TOP ${PRACTICE.winners}`} tone="accent" value={money(PRACTICE.prizeCents)} foot="Real cash before the IPO" />
+      </div>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-base font-semibold text-[#F2F5F3]">Practice market · Round 1</h1>
         <p className="text-xs text-[#BACBB9]">
@@ -233,7 +245,13 @@ export function PracticeTerminal({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_300px]">
         {/* Tickers */}
-        <section className="flex max-h-[320px] min-w-0 flex-col overflow-hidden rounded-lg border border-white/[0.07] bg-[#171610] md:max-h-[720px]">
+        <section className="flex max-h-[360px] min-w-0 flex-col overflow-hidden rounded-lg border border-white/[0.07] bg-[#171610] md:max-h-[720px]">
+          <div className="border-b border-[#2d2a1d] px-3 py-3">
+            <h2 className="text-sm font-semibold text-[#F2F5F3]">Market screener</h2>
+            <p className="mt-0.5 font-mono text-[11px] text-[#87948D]" role="status">
+              {shown.length} of {tickers.length} companies
+            </p>
+          </div>
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -275,8 +293,8 @@ export function PracticeTerminal({
         </section>
 
         {/* Chart */}
-        <section className="min-w-0 rounded-lg border border-white/10 bg-[#171610] p-3 sm:p-4">
-          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <section aria-label="Instrument analysis" className="min-w-0 rounded-lg border border-white/10 bg-[#171610] p-4">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-mono text-base font-semibold text-paper">
               {sel?.code} <span className="text-sm font-normal text-muted">{sel?.name}</span>
             </h2>
@@ -291,10 +309,14 @@ export function PracticeTerminal({
 
         {/* Order panel and account */}
         <section className="min-w-0 space-y-3 md:col-span-2 xl:col-span-1">
-          <div className="rounded-lg border border-white/[0.07] bg-[#171610] p-4">
-            <h2 className="mb-2 text-sm font-semibold text-paper">
-              Trade {sel?.code} <span className="font-normal text-muted">· you hold {pos > 0 ? `${count(pos)} long` : pos < 0 ? `${count(-pos)} short` : "none"}</span>
-            </h2>
+          <div className="rounded-lg border border-white/[0.07] bg-[#171610] p-5 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[#F2F5F3]">Order ticket · {sel?.code}</h2>
+              <span className="font-mono text-[11px] text-[#87948D] tabular-nums">
+                you hold {pos > 0 ? `${count(pos)} long` : pos < 0 ? `${count(-pos)} short` : "none"}
+              </span>
+            </div>
+            <div>
             <label className="block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]" htmlFor="practice-qty">
               Shares
             </label>
@@ -305,6 +327,7 @@ export function PracticeTerminal({
               inputMode="numeric"
               className="mt-1 h-9 w-full rounded border px-3 font-mono text-[13px]"
             />
+            </div>
             <div className="mt-2 flex gap-1 text-xs">
               {[100, 500, 1000, 2000].map((v) => (
                 <button key={v} type="button" onClick={() => setQty(String(v))} className="rounded-sm border border-[#2d2a1d] bg-[#11110d] px-2 py-1 font-mono text-[#BACBB9] hover:border-[color:var(--desk-accent-line)] hover:text-[#F2F5F3]">
