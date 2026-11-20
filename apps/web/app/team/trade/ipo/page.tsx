@@ -36,13 +36,15 @@ export default async function IpoPage() {
 
   if (win === "NOT_YET") {
     return (
-      <DeskPanel title="IPO">
-        <p className="text-sm text-[#BACBB9]" data-testid="ipo-state">
-          IPO bids open with the IPO{data.phaseStarts.IPO ? ` at ${clock(data.phaseStarts.IPO)}` : ""}
-          {deadline ? ` and close at ${clock(deadline)}` : ""}, once the pitch scores have set every company&apos;s IPO price ($10.00 × (1 + pitch tier)).
-        </p>
-        <p className="mt-2 text-sm text-paper">{RULES_TEXT}</p>
-      </DeskPanel>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <DeskPanel title="IPO" sub="IPO book · opens with the IPO" className="xl:col-span-7">
+          <p className="text-sm text-[#BACBB9]" data-testid="ipo-state">
+            IPO bids open with the IPO{data.phaseStarts.IPO ? ` at ${clock(data.phaseStarts.IPO)}` : ""}
+            {deadline ? ` and close at ${clock(deadline)}` : ""}, once the pitch scores have set every company&apos;s IPO price ($10.00 × (1 + pitch tier)).
+          </p>
+        </DeskPanel>
+        <IpoRules className="xl:col-span-5" cash={team.cash} ownTicker={own?.ticker ?? null} />
+      </div>
     );
   }
 
@@ -61,7 +63,8 @@ export default async function IpoPage() {
             <DeskKpi label="Cash paid" tag="IPO PRICES" value={<span data-testid="ipo-paid">{money(results.paid)}</span>} foot={`Cash now ${money(team.cash)}`} />
           </div>
         ) : null}
-        <DeskPanel title="IPO allocation" sub="Shares received at each IPO price" bodyClassName="p-0">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <DeskPanel title="IPO allocation" sub="Shares received at each IPO price" bodyClassName="p-0" className="xl:col-span-7">
           <p className="px-4 pt-3 text-sm text-[#BACBB9]" data-testid="ipo-state">
             The IPO was allocated at {clock(data.ipoAllocatedAt)}. Unallocated shares stay with the exchange.
           </p>
@@ -77,6 +80,8 @@ export default async function IpoPage() {
             </div>
           )}
         </DeskPanel>
+        <IpoRules className="xl:col-span-5" cash={team.cash} ownTicker={own?.ticker ?? null} />
+        </div>
       </div>
     );
   }
@@ -128,7 +133,14 @@ export default async function IpoPage() {
         />
       </div>
 
-      <DeskPanel title="Companies" sub="IPO book · one bid per company" bodyClassName="px-4 pb-4">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <DeskPanel
+        title="Companies"
+        sub="IPO book · one bid per company"
+        bodyClassName="px-4 pb-4"
+        className="xl:col-span-7"
+        actions={<span className="font-mono text-xs text-[#00D68F] whitespace-nowrap">{items.length} {items.length === 1 ? "Company" : "Companies"} Offered</span>}
+      >
         {items.length === 0 ? (
           <p className="p-8 text-center font-mono text-xs text-[#87948D]">No company has an IPO price yet.</p>
         ) : win === "OPEN" ? (
@@ -154,12 +166,41 @@ export default async function IpoPage() {
           </DeskTable>
           </div>
         )}
-        {own?.ticker ? (
-          <p className="mt-3 text-xs text-[#87948D]">Your squad&apos;s company, {own.ticker}, is not offered to you: a fund never bids for or trades its own squad&apos;s company.</p>
-        ) : null}
-        <p className="mt-2 text-xs text-[#87948D]">{RULES_TEXT}</p>
       </DeskPanel>
+      <IpoRules className="xl:col-span-5" cash={team.cash} ownTicker={own?.ticker ?? null} />
+      </div>
     </div>
+  );
+}
+
+/** The arena's detail column (the demo's PitchArenaScreen): how the IPO works, in its captioned sections. */
+function IpoRules({ className = "", cash, ownTicker }: { className?: string; cash: number; ownTicker: string | null }) {
+  const caption = "font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D] mb-1";
+  return (
+    <section className={`min-w-0 bg-[#171610] border border-white/[0.07] rounded-lg p-5 flex flex-col gap-4 ${className}`}>
+      <div className="flex items-start justify-between gap-3 pb-3 border-b border-[#2d2a1d]">
+        <div>
+          <div className="font-mono text-[11px] text-[#87948D]">IPO · {count(RULES.IPO_SHARES)} shares per company</div>
+          <h2 className="text-lg font-semibold text-[#F2F5F3] mt-1">How the IPO allocates</h2>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="font-mono text-[10px] uppercase tracking-[0.08em] text-[#87948D]">Cash</div>
+          <div className="font-mono text-lg font-semibold text-[color:var(--desk-accent)] tabular-nums">{money(cash)}</div>
+        </div>
+      </div>
+      <div className="space-y-3 text-[13px] leading-relaxed">
+        <div>
+          <h3 className={caption}>The rules</h3>
+          <p className="text-[#F2F5F3]">{RULES_TEXT}</p>
+        </div>
+        {ownTicker ? (
+          <div className="pt-2 border-t border-[#2d2a1d]">
+            <h3 className={caption}>Your squad&apos;s company</h3>
+            <p className="text-[#FF5364]">Your squad&apos;s company, {ownTicker}, is not offered to you: a fund never bids for or trades its own squad&apos;s company.</p>
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 

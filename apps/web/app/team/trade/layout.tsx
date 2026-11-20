@@ -1,6 +1,7 @@
 import { loadTeamContext } from "@/lib/team/context";
 import { TradeTabs } from "./tabs";
 import { tradeGate } from "./gate";
+import "../../demo/finance/finance.css";
 import "./finance-desk.css";
 
 // The fund's trading area: orders (the ticket and the open round's orders), positions, history and the IPO. A
@@ -11,7 +12,7 @@ export default async function TradeLayout({ children }: LayoutProps<"/team/trade
   const gate = tradeGate(ctx);
   if (gate) return gate;
   return (
-    <div className="fin-desk fin-bleed min-w-0 rounded-lg border border-white/10 bg-[#070909] text-[#F2F5F3]">
+    <div className="finance-desk fin-desk fin-bleed min-w-0 rounded-lg border border-white/10 bg-[#070909] text-[#F2F5F3]">
       <TradeTabs fund={ctx.team.code} />
       <div className="p-3 sm:p-4">
         <div className="max-w-[1440px] mx-auto">{children}</div>

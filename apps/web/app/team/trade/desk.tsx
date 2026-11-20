@@ -15,9 +15,11 @@ import { bp, money } from "@/lib/format";
 import { TradingChart } from "@/components/ui/trading-chart";
 import { Countdown } from "@/components/ui/countdown";
 import { LayoutGrid, List, Search } from "lucide-react";
+import { fundSummary } from "@/lib/team/trade";
 import { OrderTicket } from "./ticket";
 import { DeskFact, Sparkline } from "./desk-ui";
-import "./finance-desk.css";
+import "@/components/ui/market-board.css";
+import "../../demo/finance/finance.css";
 
 /** How often an open round's price ranges are re-read (each desk adds ±1 s of its own). */
 const RANGE_POLL_MS = 5000;
@@ -58,6 +60,7 @@ export function TradeDesk({
   const [picked, setPicked] = useState(companies[0]?.id ?? "");
   const [view, setView] = useState<"heatmap" | "table">("heatmap");
   const [query, setQuery] = useState("");
+  const [moveFilter, setMoveFilter] = useState<(typeof MOVES)[number]>("ALL");
   const [snapshot, setSnapshot] = useState<{ roundId: string; ranges: RangeRow[] }>();
   const roundId = openRound?.id ?? null;
   const ranges = roundId && snapshot?.roundId === roundId
@@ -136,7 +139,12 @@ export function TradeDesk({
     return prev ? Math.round(((c.price - prev) / prev) * 10000) : null;
   };
   const needle = query.trim().toLowerCase();
-  const listed = companies.filter((c) => !needle || `${c.ticker} ${c.name ?? ""}`.toLowerCase().includes(needle));
+  const moveOk = (c: DeskCompany) => {
+    if (moveFilter === "ALL") return true;
+    const m = moveBp(c) ?? 0;
+    return moveFilter === "Rising" ? m > 0 : moveFilter === "Falling" ? m < 0 : m === 0;
+  };
+  const listed = companies.filter((c) => moveOk(c) && (!needle || `${c.ticker} ${c.name ?? ""}`.toLowerCase().includes(needle)));
   const last = shown.at(-1) ?? null;
   const high = last ? (last.high ?? Math.max(last.open, last.close)) : now;
   const low = last ? (last.low ?? Math.min(last.open, last.close)) : now;
@@ -175,14 +183,24 @@ export function TradeDesk({
               })}
             </div>
           </div>
-          {openRound ? (
-            <span className="inline-flex items-center gap-1.5 rounded border border-[#2d2a1d] bg-[#11110d] px-3 py-1.5 font-mono text-xs text-[#00D68F]">
-              <span className="fin-live-dot inline-block size-1.5 rounded-full bg-[#00D68F]" aria-hidden />
-              LIVE · ROUND {openRound.number}
-            </span>
-          ) : (
-            <span className="rounded border border-[#2d2a1d] bg-[#11110d] px-3 py-1.5 font-mono text-xs text-[#87948D]">CLOSED</span>
-          )}
+          {/* The demo's sector filter, here by the move: all, rising, flat or falling. */}
+          <div className="flex flex-wrap items-center gap-1 bg-[#11110d] border border-[#2d2a1d] p-0.5 rounded" role="group" aria-label="Filter by move">
+            {MOVES.map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={moveFilter === m}
+                onClick={() => setMoveFilter(m)}
+                className={`px-3 py-1.5 rounded-sm font-mono text-xs transition-colors whitespace-nowrap shrink-0 ${
+                  moveFilter === m
+                    ? "bg-[#201e14] text-[color:var(--desk-accent)] border border-[color:var(--desk-accent-line)]"
+                    : "text-[#87948D] hover:text-[#F2F5F3]"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
           <div className="relative w-full sm:w-64">
             <Search className="w-3.5 h-3.5 text-[#87948D] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
             <input
@@ -199,17 +217,22 @@ export function TradeDesk({
         <div className="overflow-x-auto">
           {listed.length === 0 ? (
             <div className="p-8 text-center space-y-2">
-              <p className="font-mono text-xs text-[#87948D]">No company matches &ldquo;{query}&rdquo;.</p>
+              <p className="font-mono text-xs text-[#87948D]">
+                No company matches &ldquo;{query}&rdquo; in {moveFilter}.
+              </p>
               <button
                 type="button"
-                onClick={() => setQuery("")}
+                onClick={() => {
+                  setQuery("");
+                  setMoveFilter("ALL");
+                }}
                 className="px-3 py-1.5 bg-[#11110d] border border-[#2d2a1d] hover:border-[color:var(--desk-accent-line)] rounded font-mono text-xs text-[color:var(--desk-accent)]"
               >
-                Reset search
+                Reset Market Filters
               </button>
             </div>
           ) : view === "heatmap" ? (
-            <div className="p-3 @container space-y-3">
+            <div className="p-3 market-type @container space-y-3">
               <ul aria-label="Price change legend" className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-[#F2F5F3]">
                 {BANDS.map(({ label, tone }) => (
                   <li key={label} className="inline-flex items-center gap-1.5">
@@ -356,7 +379,7 @@ export function TradeDesk({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold text-[#F2F5F3]">Order ticket · round {ticket.round.number}</h2>
                 <span className="font-mono text-[11px] text-[#87948D] tabular-nums">
-                  Mark {money(company.price)} ·{" "}
+                  Mark {money(company.price)} · BP {money(fundSummary(ticket.ctx).available)} ·{" "}
                   <span>
                     closes in <Countdown to={ticket.round.closesAt} passed="now" className="font-semibold text-[color:var(--desk-accent)]" />
                   </span>
@@ -377,7 +400,9 @@ export function TradeDesk({
   );
 }
 
-const BANDS = [
+const MOVES = ["ALL", "Rising", "Flat", "Falling"] as const;
+
+export const BANDS = [
   { label: "Above +5%", tone: "bg-[#08604c] border-[#53d6b4]" },
   { label: "+2% to +5%", tone: "bg-[#145340] border-[#49ae91]" },
   { label: "0% to +2%", tone: "bg-[#153f36] border-[#378073]" },
@@ -389,7 +414,7 @@ const BANDS = [
 ] as const;
 
 /** The heatmap's band for a move in basis points (the demo's market-heatmap bands). */
-function bandFor(move: number | null) {
+export function bandFor(move: number | null) {
   if (move === null) return BANDS[7];
   if (move > 500) return BANDS[0];
   if (move >= 200) return BANDS[1];

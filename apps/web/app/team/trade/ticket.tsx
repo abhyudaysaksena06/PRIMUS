@@ -95,33 +95,8 @@ export function OrderTicket({
         startTransition(() => dispatch(form));
       }}
     >
-      <label className="block">
-        <span className="block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D] mb-1">Company</span>
-        <select
-          name="company"
-          required
-          value={companyId}
-          onChange={(e) => {
-            setPicked(e.target.value);
-            setMaxNote(null);
-          }}
-          className="w-full h-9 px-2.5 bg-[#11110d] border border-[#2d2a1d] focus:border-[color:var(--desk-accent)] focus:outline-none rounded text-[13px] font-mono text-[#F2F5F3]"
-        >
-          <option value="" disabled>
-            Choose a company…
-          </option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.ticker}
-              {c.name ? ` · ${c.name}` : ""} · {money(c.price)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <input type="hidden" name="ticker" value={company?.ticker ?? ""} />
-
       <fieldset>
-        <legend className="block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D] mb-1">Order type</legend>
+        <legend className="sr-only">Order type</legend>
         <div className="grid grid-cols-4 gap-1.5 bg-[#11110d] p-1 rounded border border-[#2d2a1d]">
           {ORDER_TYPES.map((t) => (
             <label
@@ -147,6 +122,31 @@ export function OrderTicket({
         </div>
         <p className="mt-1.5 font-mono text-[11px] text-[#87948D]">{ORDER_TYPE_INFO[type].hint}</p>
       </fieldset>
+      <label className="block">
+        <span className="block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D] mb-1">Company</span>
+        <select
+          name="company"
+          required
+          value={companyId}
+          onChange={(e) => {
+            setPicked(e.target.value);
+            setMaxNote(null);
+          }}
+          className="w-full h-9 px-2.5 bg-[#11110d] border border-[#2d2a1d] focus:border-[color:var(--desk-accent)] focus:outline-none rounded text-[13px] font-mono text-[#F2F5F3]"
+        >
+          <option value="" disabled>
+            Choose a company…
+          </option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.ticker}
+              {c.name ? ` · ${c.name}` : ""} · {money(c.price)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <input type="hidden" name="ticker" value={company?.ticker ?? ""} />
+
 
       <div>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
@@ -202,6 +202,11 @@ export function OrderTicket({
         ) : null}
       </div>
 
+      <div className="bg-[#11110d] border border-[#2d2a1d] rounded px-3 py-2 flex items-center justify-between text-xs font-mono">
+        <span className="text-[#87948D]">Est. Notional</span>
+        <span className="text-[#F2F5F3] font-medium tabular-nums">{preview.state === "OK" ? money(preview.value) : company && parsed !== null ? money(parsed * company.price) : "—"}</span>
+      </div>
+
       {company && pos ? (
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 bg-[#11110d] border border-[#2d2a1d] rounded px-3 py-2 text-xs font-mono" aria-label={`Your position in ${company.ticker}`}>
           <Fact label="Price now" value={money(pos.price)} />
@@ -241,12 +246,13 @@ const SUBMIT: Record<OrderType, string> = {
   SHORT: "bg-[#FF5364] enabled:hover:bg-[#e14353] text-[#070909]",
 };
 
-/** Each order type's colour when chosen: buying green, selling red, shorting orange, covering blue. */
+/** Each order type's colour when chosen, as the demo's Buy / Long and Sell / Short keys: the accent for buying and
+ * covering, red for selling and shorting. */
 const TYPE_ON: Record<OrderType, string> = {
-  BUY: "bg-[#00D68F] text-[#070909] ring-[#00D68F]",
-  SELL: "bg-[#FF5364] text-[#070909] ring-[#FF5364]",
-  SHORT: "bg-[#ff9b45] text-[#070909] ring-[#ff9b45]",
-  COVER: "bg-[#63a8ff] text-[#070909] ring-[#63a8ff]",
+  BUY: "bg-[var(--desk-accent)] text-[#070909] ring-transparent",
+  SELL: "bg-[#FF5364] text-[#070909] ring-transparent",
+  SHORT: "bg-[#FF5364] text-[#070909] ring-transparent",
+  COVER: "bg-[var(--desk-accent)] text-[#070909] ring-transparent",
 };
 
 function roomLabel(type: OrderType): string {

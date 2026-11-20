@@ -7,7 +7,8 @@ import { companyPosition, fundSummary } from "@/lib/team/trade";
 import { FUND_LOT_HINTS, FUND_LOT_LABELS, collateralView, meterPct, portfolioTotals, positionLines } from "@/lib/team/portfolio";
 import { bp, clock, count, money, signedMoney } from "@/lib/format";
 import { Notice } from "@/components/ui/ui";
-import { DeskKpi, DeskPanel, DeskRow, DeskStatus, DeskTable, DeskTd, Sparkline, deskPill, deskTr } from "../desk-ui";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { DeskKpi, DeskRow, DeskStatus, DeskTable, DeskTd, Sparkline, deskPill, deskTr } from "../desk-ui";
 import { LineChart } from "@/components/ui/line-chart";
 import { loadPortfolioSeries } from "@/lib/team/portfolio-history-data";
 import { tradeGate } from "../gate";
@@ -53,42 +54,66 @@ export default async function PositionsPage() {
         <h2 id="portfolio-title" className="sr-only">
           Portfolio
         </h2>
-        {/* The demo's 4-column KPI strip. */}
+        {/* The demo overview's key (what each figure means), then its 4-column KPI strip. */}
+        <dl className="grid gap-2 rounded border border-white/10 bg-[#11110d] p-3 text-xs leading-relaxed text-[#BACBB9] sm:grid-cols-3">
+          <div>
+            <dt className="font-semibold text-[#F2F5F3]">Portfolio value</dt>
+            <dd>What the fund is worth at {priceWord} prices: cash + long − short.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-[#F2F5F3]">Available cash</dt>
+            <dd>Cash left for new orders after collateral and open orders.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-[#F2F5F3]">Short exposure</dt>
+            <dd>What your shorts are worth, against the {money(RULES.SHORT_EXPOSURE_LIMIT)} cap.</dd>
+          </div>
+        </dl>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <DeskKpi
             label="Portfolio value"
             tag={closed ? "CLOSED" : <span className="text-[#00D68F]">LIVE</span>}
             value={<span data-testid="portfolio-value">{money(totals.value)}</span>}
-            foot={`Cash + long − short`}
+            foot={
+              <span className={`flex items-center gap-1 ${totals.gain >= 0 ? "text-[#00D68F]" : "text-[#FF5364]"}`}>
+                {totals.gain >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" /> : <ArrowDownRight className="w-3.5 h-3.5" aria-hidden="true" />}
+                <span data-testid="portfolio-return">{bp(totals.returnBp)}</span>
+              </span>
+            }
             aside={<Sparkline values={spark} positive={totals.gain >= 0} />}
           />
           <DeskKpi
-            label={`Return on ${money(totals.start)}`}
-            tag="NET"
+            label="Net P&amp;L"
+            tag={`VS ${money(totals.start)}`}
             tone={totals.gain > 0 ? "up" : totals.gain < 0 ? "down" : "plain"}
-            value={<span data-testid="portfolio-return">{bp(totals.returnBp)}</span>}
-            foot={<span data-testid="portfolio-gain">{signedMoney(totals.gain)}</span>}
-          />
-          <DeskKpi
-            label={closed ? "P&L at closing prices" : "Unrealised P&L"}
-            tag={`${lines.length} ${lines.length === 1 ? "LINE" : "LINES"}`}
-            tone={totals.unrealised > 0 ? "up" : totals.unrealised < 0 ? "down" : "plain"}
-            value={<span data-testid="portfolio-pnl">{signedMoney(totals.unrealised)}</span>}
+            value={<span data-testid="portfolio-gain">{signedMoney(totals.gain)}</span>}
             foot={
               <>
-                Long shares {money(totals.longValue)} · Short shares {money(totals.shortValue)}
+                {closed ? "At closing prices" : "Unrealised"} <span data-testid="portfolio-pnl">{signedMoney(totals.unrealised)}</span>
               </>
             }
+            aside={<Sparkline values={spark.map((v) => v - totals.start)} positive={totals.gain >= 0} />}
           />
           <DeskKpi
-            label="Cash"
-            tag={<span className="text-[#00D68F]">AVAILABLE {money(summary.available)}</span>}
-            value={money(totals.cash)}
-            foot={`Short exposure ${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}% of cap`}
+            label="Gross exposure"
+            tag={`${lines.length} ${lines.length === 1 ? "POSITION" : "POSITIONS"}`}
+            value={money(totals.longValue + Math.abs(totals.shortValue))}
+            foot={<span className="text-[#BACBB9]">Short {meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}% of cap</span>}
             aside={
               <div className="w-24 h-1.5 bg-[#070909] rounded-sm overflow-hidden">
                 <div className="h-full bg-[var(--desk-accent)] transition-all" style={{ width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%` }} />
               </div>
+            }
+          />
+          <DeskKpi
+            label="Available cash"
+            tag={<span className="text-[#00D68F]">CASH {money(totals.cash)}</span>}
+            value={money(summary.available)}
+            foot={<>Reserved {money(summary.reserved)}</>}
+            aside={
+              <Link href="/team/trade" className="font-mono text-[11px] text-[color:var(--desk-accent)] hover:underline whitespace-nowrap">
+                Order Book
+              </Link>
             }
           />
         </div>
@@ -103,22 +128,28 @@ export default async function PositionsPage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
         <div className={`min-w-0 flex flex-col ${series.length >= 2 ? "xl:col-span-8" : "xl:col-span-12"}`}>
           {series.length >= 2 ? (
-            <DeskPanel
-              title="Your fund's value after each step"
-              sub="Equity curve · cash + long − short"
-              actions={<span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">{series.length} steps</span>}
-              className="grow"
-            >
-              <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="font-mono text-xl font-semibold text-[#F2F5F3] tabular-nums">{money(totals.value)}</span>
-                <span className={`font-mono text-xs tabular-nums ${totals.gain > 0 ? "text-[#00D68F]" : totals.gain < 0 ? "text-[#FF5364]" : "text-[#87948D]"}`}>
-                  {bp(totals.returnBp)} vs start ({money(totals.start)})
-                </span>
+            <section className="min-w-0 grow bg-[#171610] border border-white/[0.07] rounded-lg p-4 flex flex-col justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-sm font-semibold tracking-tight text-[#F2F5F3]">Your fund&apos;s value after each step</h2>
+                    <span className="font-mono text-[11px] text-[#87948D] tabular-nums">{series.length} steps</span>
+                  </div>
+                  <div className="flex items-baseline gap-3 mt-1">
+                    <span className="font-mono text-lg font-semibold text-[#F2F5F3] tabular-nums">{money(totals.value)}</span>
+                    <span className={`font-mono text-xs tabular-nums ${totals.gain > 0 ? "text-[#00D68F]" : totals.gain < 0 ? "text-[#FF5364]" : "text-[#87948D]"}`}>
+                      Return {bp(totals.returnBp)} vs start ({money(totals.start)})
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center bg-[#11110d] border border-[#2d2a1d] rounded p-0.5">
+                  <span className="px-2.5 py-1.5 text-[11px] font-mono font-medium rounded-sm whitespace-nowrap bg-[#201e14] text-[color:var(--desk-accent)] border border-[color:var(--desk-accent-line)]">NAV Curve</span>
+                </div>
               </div>
-              <div className="rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
+              <div className="relative w-full">
                 <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
               </div>
-            </DeskPanel>
+            </section>
           ) : (
             positionsPanel()
           )}
@@ -130,7 +161,17 @@ export default async function PositionsPage() {
         ) : null}
       </div>
 
-      {series.length >= 2 ? positionsPanel() : riskPanel()}
+      {series.length >= 2 ? (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+          <div className="min-w-0 xl:col-span-8 flex flex-col">{positionsPanel()}</div>
+          <div className="min-w-0 xl:col-span-4 flex flex-col">{limitsPanel()}</div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+          <div className="min-w-0 xl:col-span-8 flex flex-col">{riskPanel()}</div>
+          <div className="min-w-0 xl:col-span-4 flex flex-col">{limitsPanel()}</div>
+        </div>
+      )}
     </div>
   );
 
@@ -251,28 +292,57 @@ export default async function PositionsPage() {
             current prices.
           </p>
         </div>
-        {limitCompanies.length > 0 ? (
-          <div className="-mx-4 border-t border-[#2d2a1d]">
-            <DeskTable head={["Company", "Long, with pending buys", "Short, with pending shorts"]} label="Limits per company" right={[1, 2]}>
+      </section>
+    );
+  }
+
+  // The demo overview's L2 depth column: each held company's long and short room as depth rows.
+  function limitsPanel() {
+    return (
+      <section className="min-w-0 grow bg-[#171610] border border-white/[0.07] rounded-lg p-4 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between pb-3 border-b border-[#2d2a1d]">
+            <div>
+              <h2 className="text-sm font-semibold text-[#F2F5F3]">Limits per company</h2>
+              <span className="font-mono text-[11px] text-[#87948D]">With pending orders</span>
+            </div>
+            <span className="font-mono text-sm font-semibold text-[color:var(--desk-accent)] tabular-nums">{count(limitCompanies.length)}</span>
+          </div>
+          {limitCompanies.length === 0 ? (
+            <p className="p-6 text-center font-mono text-xs text-[#87948D]">No holdings or pending orders yet.</p>
+          ) : (
+            <div role="region" aria-label="Limits per company" className="mt-3 space-y-1 font-mono text-xs tabular-nums">
+              <div className="grid grid-cols-3 text-[10px] uppercase tracking-[0.08em] text-[#87948D] pb-1">
+                <span>Company</span>
+                <span className="text-right">Long</span>
+                <span className="text-right">Short</span>
+              </div>
               {limitCompanies.map((c) => {
                 const p = companyPosition(fctx, c.id);
+                const long = p.exchangeQty + p.pending.BUY;
+                const short = p.shortQty + p.pending.SHORT;
                 return (
-                  <tr key={c.id} className={deskTr}>
-                    <DeskTd edge className="font-semibold">
-                      {c.ticker}
-                    </DeskTd>
-                    <DeskTd right>
-                      {count(p.exchangeQty + p.pending.BUY)} of {count(RULES.LONG_LIMIT)}
-                    </DeskTd>
-                    <DeskTd edge right>
-                      {count(p.shortQty + p.pending.SHORT)} of {count(RULES.SHORT_LIMIT)}
-                    </DeskTd>
-                  </tr>
+                  <div key={c.id} className="relative grid grid-cols-3 py-1 px-1.5 rounded-sm overflow-hidden">
+                    <div className="absolute inset-y-0 right-0 bg-[#00D68F]/12 pointer-events-none" style={{ width: `${meterPct(long, RULES.LONG_LIMIT)}%` }} />
+                    <span className="relative font-semibold text-[#F2F5F3]">{c.ticker}</span>
+                    <span className="relative text-right text-[#00D68F]">
+                      {count(long)} of {count(RULES.LONG_LIMIT)}
+                    </span>
+                    <span className="relative text-right text-[#FF5364]">
+                      {count(short)} of {count(RULES.SHORT_LIMIT)}
+                    </span>
+                  </div>
                 );
               })}
-            </DeskTable>
-          </div>
-        ) : null}
+            </div>
+          )}
+        </div>
+        <div className="mt-3 pt-3 border-t border-[#2d2a1d] flex items-center justify-between text-xs font-mono">
+          <span className="text-[#87948D]">Long limit {count(RULES.LONG_LIMIT)} · short {count(RULES.SHORT_LIMIT)}</span>
+          <Link href="/team/trade" className="text-[color:var(--desk-accent)] hover:underline whitespace-nowrap">
+            Orders →
+          </Link>
+        </div>
       </section>
     );
   }

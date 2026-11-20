@@ -14,9 +14,11 @@ import { useServerNow } from "@/lib/live/clock";
 import { ActionButton, ResultMessage } from "@/components/ui/action";
 import { useCarried, useCarrier } from "@/lib/live/feedback";
 import { safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
 
-const narrowInput = inputClass.replace("w-full", "w-28");
+/** The demo ticket's quantity field, narrow. */
+const narrowInput = "block w-28 h-9 px-3 bg-[#11110d] border border-[#2d2a1d] focus:border-[color:var(--desk-accent)] focus:outline-none rounded font-mono text-[13px] text-[#F2F5F3] tabular-nums";
+/** The demo ticket's small keys (its 25% / 50% / 100% presets) for the edit row. */
+const smallKey = "h-9 px-2.5 font-mono text-[11px] font-semibold uppercase rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-45";
 
 /** The blotter's side colours: buys and covers green, sells and shorts red (the desk's up and down). */
 const SIDE = { BUY: "text-[#00D68F]", COVER: "text-[#00D68F]", SELL: "text-[#FF5364]", SHORT: "text-[#FF5364]" } as const;
@@ -31,22 +33,30 @@ export function OpenOrders({ ctx, items, closesAt, accepting }: { ctx: OrderCont
   const now = useServerNow(1000);
   const open = accepting && now < new Date(closesAt).getTime();
   return (
-    <ul className="divide-y divide-[#2d2a1d]" aria-label="Open orders">
+    <ul className="-mx-4 divide-y divide-[#1B2420]" aria-label="Open orders">
       {items.map(({ line, edit, cancel }) => {
         const label = orderLabel(line.type, line.qty, line.ticker);
         return (
-          <li key={line.id} className="py-3" data-testid="open-order">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className={`font-mono text-sm font-semibold ${SIDE[line.type]}`}>{label}</span>
-              <span className="font-mono text-[11px] tabular-nums text-[#87948D]">
-                placed {clock(line.createdAt, true)} at {money(line.entryPrice)}
-                {line.reserve > 0 ? ` · ${line.type === "SHORT" ? "collateral" : "cash"} reserved ${money(line.reserve)}` : ""}
+          <li key={line.id} className="px-4 py-3 hover:bg-[#201e14]/60" data-testid="open-order">
+            {/* The demo blotter's row: side and company over the price and time, the status chip on the right. */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className={`font-mono text-xs font-semibold ${SIDE[line.type]}`}>{label}</div>
+                <div className="font-mono text-[11px] text-[#87948D] mt-0.5 tabular-nums">
+                  @ {money(line.entryPrice)} · {clock(line.createdAt, true)}
+                  {line.reserve > 0 ? ` · ${line.type === "SHORT" ? "collateral" : "cash"} reserved ${money(line.reserve)}` : ""}
+                </div>
+              </div>
+              <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] px-2 py-0.5 rounded-sm border bg-[var(--desk-accent-soft)] border-[color:var(--desk-accent-line)] text-[color:var(--desk-accent)]">
+                Open
               </span>
             </div>
             {open ? (
               <div className="mt-2 space-y-2">
                 <EditOrder key={`${line.id}:${line.qty}`} ctx={ctx} line={line} label={label} action={edit} />
-                <ActionButton action={cancel}>Cancel order</ActionButton>
+                <ActionButton action={cancel} variant="danger">
+                  Cancel order
+                </ActionButton>
               </div>
             ) : null}
           </li>
@@ -98,11 +108,11 @@ function EditOrder({ ctx, line, label, action }: { ctx: OrderContext; line: Orde
             setQty(e.target.value);
             setMaxNote(null);
           }}
-          className={`${narrowInput} font-mono`}
+          className={narrowInput}
         />
         <button
           type="button"
-          className={buttonClass.secondary}
+          className={`${smallKey} bg-[#11110d] border-[color:var(--desk-accent-line)] text-[color:var(--desk-accent)] hover:bg-[var(--desk-accent-soft)]`}
           onClick={() => {
             const m = maxOrder(ectx, line.companyId, line.type);
             if (m.max > 0) {
@@ -113,7 +123,11 @@ function EditOrder({ ctx, line, label, action }: { ctx: OrderContext; line: Orde
         >
           Max
         </button>
-        <button type="submit" disabled={pending || !sendable} className={buttonClass.primary}>
+        <button
+          type="submit"
+          disabled={pending || !sendable}
+          className={`${smallKey} bg-[var(--desk-accent)] border-[color:var(--desk-accent)] text-[#070909] enabled:hover:bg-[var(--desk-accent-hover)]`}
+        >
           {pending ? "Saving…" : "Change quantity"}
         </button>
       </div>
