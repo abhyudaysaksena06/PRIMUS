@@ -9,7 +9,7 @@ import { meterPct } from "@/lib/team/portfolio";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
 import { Notice } from "@/components/ui/ui";
-import { DeskPanel, DeskRow, DeskStatus, deskPill } from "./desk-ui";
+import { DeskPanel, DeskRow, DeskStatus } from "./desk-ui";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Countdown } from "@/components/ui/countdown";
 import { tradeGate } from "./gate";
@@ -19,7 +19,7 @@ import { loadTradeCandles } from "@/lib/team/trade-candles-data";
 import { OpenOrders } from "./open-orders";
 import { cancelOrder, editOrder, placeOrder } from "./actions";
 import { loadWire } from "@/lib/team/wire-data";
-import { WireFeed } from "../wire-feed";
+import type { WireItem } from "@/lib/team/wire";
 
 export const metadata: Metadata = { title: "Trade" };
 
@@ -140,8 +140,10 @@ export default async function TradePage() {
         <div className="px-4 py-3 border-b border-[#2d2a1d] flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-[#F2F5F3]">Order blotter · round {shownRound.number}</h2>
           <div className="flex items-center bg-[#11110d] border border-[#2d2a1d] p-0.5 rounded">
-            <span className={deskPill(true)}>Open ({open.length})</span>
-            <Link href="/team/trade/history" className={deskPill(false)}>
+            <span className="px-2.5 py-1 rounded-sm font-mono text-[11px] whitespace-nowrap bg-[#201e14] text-[color:var(--desk-accent)] border border-[color:var(--desk-accent-line)]">
+              Open ({open.length})
+            </span>
+            <Link href="/team/trade/history" className="px-2.5 py-1 rounded-sm font-mono text-[11px] whitespace-nowrap text-[#87948D] hover:text-[#F2F5F3]">
               History
             </Link>
           </div>
@@ -237,8 +239,44 @@ export default async function TradePage() {
         </>
       )}
 
-      <WireFeed items={wire} />
+      <DeskWire items={wire} />
     </div>
+  );
+}
+
+const WIRE_TONE: Record<WireItem["tone"], string> = { up: "text-[#00D68F]", down: "text-[#FF5364]", flat: "text-[#F2F5F3]", info: "text-[#BACBB9]" };
+
+/** What just became public (scores, plans, bulletins), newest first, drawn as the demo's blotter: a row per item with
+ * its time and a kind chip. Re-renders with the page, so a release appears without a reload. */
+function DeskWire({ items }: { items: WireItem[] }) {
+  return (
+    <section className="bg-[#171610] border border-white/[0.07] rounded-lg overflow-hidden flex flex-col" aria-label="Wire feed" data-testid="wire">
+      <div className="px-4 py-3 border-b border-[#2d2a1d] flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-[#F2F5F3]">Wire feed</h2>
+        <span className="font-mono text-[11px] text-[#87948D]">Public news · newest first</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="p-6 text-center font-mono text-xs text-[#87948D]">Waiting for the first score or bulletin.</p>
+      ) : (
+        <ol className="divide-y divide-[#1B2420] overflow-y-auto max-h-[380px]" aria-label="Latest public news, newest first">
+          {items.map((i) => (
+            <li key={i.key} className="px-4 py-2.5 flex items-start gap-3 hover:bg-[#201e14]/60 [overflow-wrap:anywhere]" data-testid={`wire-${i.key}`} data-tone={i.tone}>
+              <span className="shrink-0 font-mono text-[11px] tabular-nums text-[#87948D] pt-0.5">{clock(i.at)}</span>
+              <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] px-2 py-0.5 rounded-sm border bg-[#201e14] border-[#2d2a1d] text-[#87948D]">
+                {i.kind}
+              </span>
+              {i.href ? (
+                <Link href={i.href} className={`min-w-0 flex-1 font-mono text-xs underline-offset-2 hover:underline ${WIRE_TONE[i.tone]}`}>
+                  {i.text}
+                </Link>
+              ) : (
+                <span className={`min-w-0 flex-1 font-mono text-xs ${WIRE_TONE[i.tone]}`}>{i.text}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }
 
