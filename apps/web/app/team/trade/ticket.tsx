@@ -20,7 +20,6 @@ import { useServerNow } from "@/lib/live/clock";
 import { ResultMessage } from "@/components/ui/action";
 import { useCarried, useCarrier } from "@/lib/live/feedback";
 import { safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
 
 export interface TicketCompany {
   id: string;
@@ -86,7 +85,7 @@ export function OrderTicket({
   return (
     <form
       aria-label="Order ticket"
-      className="space-y-4"
+      className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (closed || pending || !company || parsed === null || placeLabel === null) return;
@@ -97,7 +96,7 @@ export function OrderTicket({
       }}
     >
       <label className="block">
-        <span className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">Company</span>
+        <span className="block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D] mb-1">Company</span>
         <select
           name="company"
           required
@@ -106,7 +105,7 @@ export function OrderTicket({
             setPicked(e.target.value);
             setMaxNote(null);
           }}
-          className={inputClass}
+          className="w-full h-9 px-2.5 bg-[#11110d] border border-[#2d2a1d] focus:border-[color:var(--desk-accent)] focus:outline-none rounded text-[13px] font-mono text-[#F2F5F3]"
         >
           <option value="" disabled>
             Choose a company…
@@ -122,8 +121,8 @@ export function OrderTicket({
       <input type="hidden" name="ticker" value={company?.ticker ?? ""} />
 
       <fieldset>
-        <legend className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">Order type</legend>
-        <div className="grid grid-cols-4 gap-1 rounded border border-[#2d2a1d] bg-[#11110d] p-1">
+        <legend className="block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D] mb-1">Order type</legend>
+        <div className="grid grid-cols-4 gap-1.5 bg-[#11110d] p-1 rounded border border-[#2d2a1d]">
           {ORDER_TYPES.map((t) => (
             <label
               key={t}
@@ -146,56 +145,56 @@ export function OrderTicket({
             </label>
           ))}
         </div>
-        <p className="mt-1.5 text-xs text-[#BACBB9]">{ORDER_TYPE_INFO[type].hint}</p>
+        <p className="mt-1.5 font-mono text-[11px] text-[#87948D]">{ORDER_TYPE_INFO[type].hint}</p>
       </fieldset>
 
       <div>
-        <label htmlFor="order-qty" className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">
-          Quantity (shares)
-        </label>
-        <div className="mt-1 flex gap-2">
-          <input
-            id="order-qty"
-            name="qty"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="e.g. 500"
-            value={qty}
-            onChange={(e) => {
-              setQty(e.target.value);
-              setMaxNote(null);
-            }}
-            className={`${inputClass} font-mono`}
-          />
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Quick amounts">
-          {QUICK_QUANTITIES.map((n) => (
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <label htmlFor="order-qty" className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">
+            Quantity (shares)
+          </label>
+          <div className="flex flex-wrap items-center gap-1" role="group" aria-label="Quick amounts">
+            {QUICK_QUANTITIES.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="px-1.5 py-0.5 font-mono text-[10px] bg-[#11110d] border border-[#2d2a1d] hover:border-[color:var(--desk-accent-line)] text-[#87948D] hover:text-[#F2F5F3] rounded-sm"
+                onClick={() => {
+                  setQty(String(n));
+                  setMaxNote(null);
+                }}
+              >
+                {n.toLocaleString("en-US")}
+              </button>
+            ))}
             <button
-              key={n}
               type="button"
-              className="rounded-sm border border-[#2d2a1d] bg-[#11110d] px-2.5 py-1 font-mono text-xs text-[#BACBB9] hover:border-[color:var(--desk-accent-line)] hover:text-[#F2F5F3]"
+              className="px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase bg-[#11110d] border border-[color:var(--desk-accent-line)] text-[color:var(--desk-accent)] hover:bg-[var(--desk-accent-soft)] rounded-sm disabled:opacity-50"
+              disabled={!company}
               onClick={() => {
-                setQty(String(n));
-                setMaxNote(null);
+                if (!company) return;
+                const m = maxOrder(ctx, company.id, type);
+                if (m.max > 0) setQty(String(m.max));
+                else setMaxNote(`No ${type} of ${company.ticker} would pass right now: ${m.reason ?? "check the limits below."}`);
               }}
             >
-              {n.toLocaleString("en-US")}
+              Max
             </button>
-          ))}
-          <button
-            type="button"
-            className={`${buttonClass.secondary} shrink-0`}
-            disabled={!company}
-            onClick={() => {
-              if (!company) return;
-              const m = maxOrder(ctx, company.id, type);
-              if (m.max > 0) setQty(String(m.max));
-              else setMaxNote(`No ${type} of ${company.ticker} would pass right now: ${m.reason ?? "check the limits below."}`);
-            }}
-          >
-            Max
-          </button>
+          </div>
         </div>
+        <input
+          id="order-qty"
+          name="qty"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="e.g. 500"
+          value={qty}
+          onChange={(e) => {
+            setQty(e.target.value);
+            setMaxNote(null);
+          }}
+          className="w-full h-9 px-3 bg-[#11110d] border border-[#2d2a1d] focus:border-[color:var(--desk-accent)] focus:ring-1 focus:ring-[color:var(--desk-accent)] focus:outline-none rounded font-mono text-[13px] text-[#F2F5F3] tabular-nums"
+        />
         {maxNote ? (
           <p className="mt-1 text-sm text-danger-soft" role="alert">
             {maxNote}
@@ -204,7 +203,7 @@ export function OrderTicket({
       </div>
 
       {company && pos ? (
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded border border-[#2d2a1d] bg-[#11110d] px-3 py-2 text-xs" aria-label={`Your position in ${company.ticker}`}>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 bg-[#11110d] border border-[#2d2a1d] rounded px-3 py-2 text-xs font-mono" aria-label={`Your position in ${company.ticker}`}>
           <Fact label="Price now" value={money(pos.price)} />
           <Fact label="You hold (exchange lot)" value={`${count(pos.exchangeQty)}${pos.pending.SELL ? ` · selling ${count(pos.pending.SELL)}` : ""}`} />
           <Fact label="You are short" value={`${count(pos.shortQty)}${pos.pending.COVER ? ` · covering ${count(pos.pending.COVER)}` : ""}`} />
@@ -221,7 +220,11 @@ export function OrderTicket({
       ) : null}
 
       <div>
-        <button type="submit" disabled={pending || closed || placeLabel === null} className={`${buttonClass.primary} h-10 w-full`}>
+        <button
+          type="submit"
+          disabled={pending || closed || placeLabel === null}
+          className={`h-10 w-full rounded font-mono text-xs font-semibold uppercase tracking-wider transition-all disabled:cursor-not-allowed disabled:opacity-45 ${SUBMIT[type]}`}
+        >
           {pending ? "Placing…" : (placeLabel ?? "Place order")}
         </button>
       </div>
@@ -229,6 +232,14 @@ export function OrderTicket({
     </form>
   );
 }
+
+/** The submit key, coloured like the demo's: the accent for buying and covering, red for selling and shorting. */
+const SUBMIT: Record<OrderType, string> = {
+  BUY: "bg-[var(--desk-accent)] enabled:hover:bg-[var(--desk-accent-hover)] text-[#070909] enabled:hover:shadow-[0_0_12px_var(--desk-accent-soft)]",
+  COVER: "bg-[var(--desk-accent)] enabled:hover:bg-[var(--desk-accent-hover)] text-[#070909] enabled:hover:shadow-[0_0_12px_var(--desk-accent-soft)]",
+  SELL: "bg-[#FF5364] enabled:hover:bg-[#e14353] text-[#070909]",
+  SHORT: "bg-[#FF5364] enabled:hover:bg-[#e14353] text-[#070909]",
+};
 
 /** Each order type's colour when chosen: buying green, selling red, shorting orange, covering blue. */
 const TYPE_ON: Record<OrderType, string> = {
@@ -249,7 +260,7 @@ function roomOf(type: OrderType, pos: ReturnType<typeof companyPosition>): numbe
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[#87948D]">{label}</dt>
+      <dt className="font-sans text-[#87948D]">{label}</dt>
       <dd className="font-mono font-semibold tabular-nums text-[#F2F5F3]">{value}</dd>
     </div>
   );
@@ -260,17 +271,17 @@ export function Preview({ preview, type, roundNumber, ticker = null }: { preview
   return (
     <div aria-live="polite" data-testid="order-preview" className="text-sm">
       {preview.state === "EMPTY" ? (
-        <p className="text-muted">Choose a company and type a quantity: the ticket checks the order as you type.</p>
+        <p className="font-mono text-[11px] text-[#87948D]">Choose a company and type a quantity: the ticket checks the order as you type.</p>
       ) : preview.state === "REFUSED" ? (
-        <p className="rounded-md bg-danger/10 px-3 py-2 text-danger-soft ring-1 ring-inset ring-danger/70">
+        <p className="px-3 py-2 rounded border bg-[#FF5364]/10 border-[#FF5364]/40 text-[#ff8994] text-xs">
           The exchange would refuse this order: <span className="font-semibold">{preview.message}</span>
         </p>
       ) : preview.state === "UNKNOWN" ? (
-        <p className="rounded-md bg-warn/10 px-3 py-2 text-warn ring-1 ring-inset ring-warn/60">{preview.message}</p>
+        <p className="px-3 py-2 rounded border bg-[var(--desk-accent-soft)] border-[color:var(--desk-accent-line)] text-[color:var(--desk-accent)] text-xs">{preview.message}</p>
       ) : (
-        <ul className="space-y-1 rounded-md bg-phosphor/10 px-3 py-2 text-phosphor ring-1 ring-inset ring-phosphor-dim">
+        <ul className="space-y-1 bg-[#11110d] border border-[#2d2a1d] rounded px-3 py-2 text-xs text-[#BACBB9]">
           {ticker ? (
-            <li className="text-base font-semibold" data-testid="order-summary">
+            <li className="font-mono text-[13px] font-semibold text-[#F2F5F3]" data-testid="order-summary">
               {orderSummary(type, preview.qty, ticker, preview.value)}
             </li>
           ) : null}
@@ -302,5 +313,5 @@ export function Preview({ preview, type, roundNumber, ticker = null }: { preview
 }
 
 function Num({ children }: { children: string }) {
-  return <span className="font-mono font-semibold tabular-nums">{children}</span>;
+  return <span className="font-mono font-semibold tabular-nums text-[#F2F5F3]">{children}</span>;
 }
