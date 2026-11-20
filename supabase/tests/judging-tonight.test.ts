@@ -288,6 +288,9 @@ describe("judging runs itself (judge_auto)", () => {
       "Judging started by itself for Round 3 solution: 2 submissions, 6 runs.",
       "Judging started by itself for Advice memo (Round 3): no submissions to judge.",
       "Missing scores sealed for Advice memo (Round 3): 0 for 3 companies with no submission.",
+      // The funds' investment theses (migration 089, switch finance_thesis on by default): none written here.
+      "Judging started by itself for Investment thesis (Round 3): no submissions to judge.",
+      "Missing scores sealed for Investment thesis (Round 3): 0 for 3 companies with no submission.",
       "Missing scores sealed for Round 3 solution: 0 for 1 company with no submission.",
     ]);
     await n.q("update rounds set status = 'CLEARED' where event_id = $1 and phase = 'SATURATION' and waits_for is null", [n.eventId]);

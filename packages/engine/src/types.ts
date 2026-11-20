@@ -94,14 +94,17 @@ export const SUBMISSION_TYPES = [
   "ADVICE_3",
   "ADVICE_4",
   "ADVICE_5",
+  // PRIMUS Round 3: each Finance team's investment thesis (migration 089, switch finance_thesis).
+  "THESIS",
 ] as const;
 export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
 
 /**
  * What a submission is, whatever its sub-round: the PRD (PITCH), the classic rescue plan and flash answer, the Round 1
- * crisis memo, a Round 2 crisis response plan, the Round 3 solution, or a hired firm's memo to its client (ADVICE).
+ * crisis memo, a Round 2 crisis response plan, the Round 3 solution, a hired firm's memo to its client (ADVICE), or a
+ * Finance team's Round 3 investment thesis (THESIS).
  */
-export const SUBMISSION_KINDS = ["PITCH", "PLAN", "FLASH", "MEMO", "CRISIS", "SOLUTION", "ADVICE"] as const;
+export const SUBMISSION_KINDS = ["PITCH", "PLAN", "FLASH", "MEMO", "CRISIS", "SOLUTION", "ADVICE", "THESIS"] as const;
 export type SubmissionKind = (typeof SUBMISSION_KINDS)[number];
 
 export function submissionKind(type: SubmissionType): SubmissionKind {
@@ -110,7 +113,10 @@ export function submissionKind(type: SubmissionType): SubmissionKind {
   return type as SubmissionKind;
 }
 
-/** The PRIMUS sub-round of a submission (1–4: Round 2, 5: Round 3), or null for the others. */
+/**
+ * The PRIMUS sub-round of a submission (1–4: Round 2, 5: Round 3), or null for the others. A fund's THESIS is written
+ * in Round 3 but belongs to no sub-round (no firm is hired for it), as in app.subround_of.
+ */
 export function subroundOf(type: SubmissionType): number | null {
   if (type === "SOLUTION") return 5;
   const m = /^(?:CRISIS|ADVICE)_(\d)$/.exec(type);
@@ -129,6 +135,7 @@ export function byKind<V>(perKind: Record<SubmissionKind, V>): Record<Submission
 /** The deadline that closes a submission type (a classic plan also waits for the deal deadline when judged). */
 export function submissionDeadline(type: SubmissionType): DeadlineCode {
   if (type === "MEMO") return "PITCH"; // the memo closes with the PRD
+  if (type === "THESIS") return "DUE_5"; // a fund's thesis is due with the Round 3 solution
   const k = subroundOf(type);
   if (k !== null) return `DUE_${k}` as DeadlineCode;
   return type as DeadlineCode;

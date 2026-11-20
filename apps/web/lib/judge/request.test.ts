@@ -256,6 +256,20 @@ describe("PRIMUS context", () => {
     expect(r.userText).toContain("Title: Giant");
     expect(r.userText).not.toContain("<advice>");
   });
+  test("a fund's investment thesis is read with every Round 3 company (ticker, sector, statement), and nothing else", () => {
+    const r = buildJudgeRequest({
+      ...base, type: "THESIS", submission_text: "We back AQS and BRW: Priya sized it.",
+      market: [
+        { ticker: "AQS", sector: "FMCG", statement: "Cut waste" },
+        { ticker: "BRW", sector: "Aviation", statement: null },
+        { ticker: null, sector: "FMCG", statement: "Unlisted" },
+      ],
+    }, "SYS");
+    expect(r.userText).toContain("<context>\n<market>\nAQS · FMCG · Cut waste\nBRW · Aviation · (no statement)\n</market>\n</context>");
+    expect(r.userText).not.toMatch(/<pitch_card>|<statement>|<advice>|Unlisted|Priya/);
+    expect(r.userText).toContain('<submission type="THESIS" ticker="AQS">');
+    expect(buildJudgeRequest({ ...base, type: "THESIS" }, "SYS").userText).toContain("<market>\n(none: no Round 3 companies)\n</market>");
+  });
   test("a PRD in a sector event is read with its sector brief", () => {
     const r = buildJudgeRequest({ ...base, type: "PITCH", problem_card: { sector: "FMCG", title: "Consumer goods", body: "Brief." } }, "SYS");
     expect(r.userText).toMatch(/<context>\n<problem_card>\nSector: FMCG\nTitle: Consumer goods/);

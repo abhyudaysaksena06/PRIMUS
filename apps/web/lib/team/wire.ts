@@ -36,7 +36,8 @@ const pct = (bp: number) => `${bp > 0 ? "+" : bp < 0 ? "−" : "±"}${(Math.abs(
 export function wireFeed(input: { scores: readonly WireScore[]; bulletins: readonly WireBulletin[]; plansPublishedAt: string | null }, limit = 20): WireItem[] {
   const items: WireItem[] = [];
   for (const s of input.scores) {
-    if (!s.ticker) continue;
+    // A fund's investment thesis is kept with its squad's company but is the fund's: no company news.
+    if (!s.ticker || s.type === "THESIS") continue;
     const tier = s.tierBp ?? 0;
     items.push({
       key: `s-${s.ticker}-${s.type}`,

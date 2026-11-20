@@ -137,6 +137,31 @@ describe("submission windows (app.submission_window)", () => {
       note: "The flash answer closed at 04:15.",
     });
   });
+
+  test("the investment thesis: Round 3 work, from the end of the draft to DUE_5; only the Finance team writes it", () => {
+    const r3 = { ...base, phase: "SATURATION" as const, deadlines: { DRAFT: "2026-10-10T23:30:00.000Z", DUE_5: "2026-10-11T00:30:00.000Z" } };
+    expect(mayWrite("THESIS", "FINANCE")).toBe(true);
+    expect(mayWrite("THESIS", "PRODUCT")).toBe(false);
+    expect(mayWrite("THESIS", "CONSULTING")).toBe(false);
+    expect(submissionWindow("THESIS", "FINANCE", { ...r3, nowMs: T("2026-10-10T23:00:00.000Z") })).toMatchObject({
+      stage: "BEFORE",
+      editable: false,
+      note: "The investment thesis opens when the Round 3 draft is over.",
+    });
+    expect(submissionWindow("THESIS", "FINANCE", { ...r3, nowMs: T("2026-10-10T23:45:00.000Z") })).toMatchObject({
+      stage: "OPEN",
+      editable: true,
+      deadline: "2026-10-11T00:30:00.000Z",
+    });
+    expect(submissionWindow("THESIS", "PRODUCT", { ...r3, nowMs: T("2026-10-10T23:45:00.000Z") })).toMatchObject({
+      editable: false,
+      note: "The Finance team writes the investment thesis; you can read it here.",
+    });
+    expect(submissionWindow("THESIS", "FINANCE", { ...r3, nowMs: T("2026-10-11T00:30:00.001Z") })).toMatchObject({
+      stage: "CLOSED",
+      note: "The investment thesis closed at 06:00.",
+    });
+  });
 });
 
 describe("the problem card pick", () => {

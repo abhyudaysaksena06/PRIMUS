@@ -18,6 +18,14 @@
 3. **Round 3 · Fresh capital (04:45–06:30).** You receive half your starting money again. Round 3 evens
    out the field: a good solution lifts the weakest companies most (×1.25 of the rise) and the leaders least (×0.25),
    ranked by their average score so far; a bad solution's fall applies in full.
+   **Write your investment thesis by 06:00** (Thesis, in the menu, once the draft is over): which sector or sectors
+   and which companies your fund backs for the close, and why, using the Round 3 statements, the companies'
+   solutions and what the market shows. **150 to 500 words**, in four short parts. **Type everything**: paste is
+   off in the writing box and copying text from the site is off too; a draft that grows faster than anyone can type is
+   flagged to the organisers. It saves itself, Submit opens in the last 5 minutes and your last saved draft is submitted for you at 06:00. The robot
+   judge scores it out of 100; when the organisers release the scores your fund is paid a **bonus of
+   $500 × (score − 50)** in cash, from −$25,000 to +$25,000, which counts in your final value. It moves no share
+   price. **No thesis on time scores 0, which costs you $25,000.**
 
 ## Tips
 

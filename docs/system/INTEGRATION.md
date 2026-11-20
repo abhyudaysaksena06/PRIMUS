@@ -66,7 +66,10 @@ Notes on the rules behind the flows:
   (`app.primus_results`). The practice prize (3) is a gain, not capital.
 
 **Tonight (W9, migration 071, switches `hire_base_rate` and `hire_min_bid`, RULE, off by default).** Each firm's
-base rate is 2% + 0.04% × (ZestUp score − 50), between 1% and 4% of the company (1,000 to 4,000 shares). It is the
+base rate is 2% + 0.04% × (score − 50), between 1% and 4% of the company (1,000 to 4,000 shares). Since migration 089
+the score is the average of the firm's released Round 1 memo (ZestUp) score and every advice memo score released so
+far (each client's `ADVICE_k`, once per engagement); it is recalculated after each crisis's advice scores are
+released, and is 2% with no released score (`app.firm_base_rate`). It is the
 firm's minimum bid: an offer worth less (cash + shares × market price, against the base-rate shares × market price)
 is refused (`BELOW_MIN_BID`). When hiring closes (crises 1–4 and Round 3), the companies with no firm and the firms
 with room are shuffled by the lottery's generator (root SHA-256(seed + dice), stream `hire:k`, `app.hire_draw`); in

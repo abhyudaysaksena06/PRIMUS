@@ -9,7 +9,7 @@ import { EXTRA_RUN_SPREAD, TIER_BANDS, judgingSteps, promptAnchor, publishedProm
 const PROMPTS = path.resolve(__dirname, "../../../../prompts");
 
 describe("publishedPrompts", () => {
-  test("the seven prompts of the repository, in the order of the night, read with the judge's own loader", () => {
+  test("the eight prompts of the repository, in the order of the night, read with the judge's own loader", () => {
     const prompts = publishedPrompts();
     expect(prompts.map((p) => [p.type, p.label, p.file, p.wordLimit])).toEqual([
       ["PITCH", "PRD", "PITCH.md", 800],
@@ -19,6 +19,7 @@ describe("publishedPrompts", () => {
       ["CRISIS_1", "Crisis response plan", "CRISIS.md", 500],
       ["SOLUTION", "Round 3 solution", "SOLUTION.md", 600],
       ["ADVICE_1", "Advice memo", "ADVICE.md", 500],
+      ["THESIS", "Investment thesis", "THESIS.md", 500],
     ]);
     for (const p of prompts) {
       expect(p.rubric).toBe(RUBRICS[p.type]);
@@ -29,7 +30,7 @@ describe("publishedPrompts", () => {
       expect(p.prompt.sha).toBe(createHash("sha256").update(bytes).digest("hex"));
       expect(p.prompt.sha).toMatch(/^[0-9a-f]{64}$/);
     }
-    expect(new Set(prompts.map((p) => (p.prompt.ok ? p.prompt.sha : null))).size).toBe(7);
+    expect(new Set(prompts.map((p) => (p.prompt.ok ? p.prompt.sha : null))).size).toBe(8);
   });
 
   test("a prompt that cannot be read is reported, and the others still show", () => {
@@ -46,6 +47,7 @@ describe("publishedPrompts", () => {
       { ok: true, text: "# CRISIS_1\n", sha: "f".repeat(64) },
       { ok: true, text: "# SOLUTION\n", sha: "f".repeat(64) },
       { ok: true, text: "# ADVICE_1\n", sha: "f".repeat(64) },
+      { ok: true, text: "# THESIS\n", sha: "f".repeat(64) },
     ]);
   });
 
@@ -58,6 +60,7 @@ describe("publishedPrompts", () => {
       "Its score moves the market price and the AI price.",
       "Its score moves the price, scaled by its rank among the companies on the same problem statement.",
       "It moves no price: the firm earns a reputation bonus of $500 × (score − 50) plus $1,000 × (client rating − 3).",
+      "It moves no price: the fund is paid a cash bonus of $500 × (score − 50) when the scores are released.",
     ]);
     expect((["PITCH", "PLAN", "FLASH"] as const).map(promptAnchor)).toEqual(["pitch", "plan", "flash"]);
   });

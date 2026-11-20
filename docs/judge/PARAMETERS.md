@@ -162,11 +162,16 @@ a round. A company whose last cleared round moved the full ±10% takes no orders
 ## 12. Hiring base rate (tonight, migration 071)
 
 Switches `hire_base_rate` and `hire_min_bid` (RULE, off by default). A firm's base rate is a share of the client
-company: 2% + 0.04% × (ZestUp score − 50), never below 1% or above 4% of the company's 100,000 shares; in basis points
-clamp(200 + 4 × (score − 50), 100, 400) (`app.firm_base_rate`, migration 071). The score is the released ZestUp score
-of the firm's own squad company; a firm without one has 2%.
+company: 2% + 0.04% × (score − 50), never below 1% or above 4% of the company's 100,000 shares; in basis points
+clamp(200 + 4 × (score − 50), 100, 400), rounded to the nearest basis point (`app.firm_base_rate`, migrations 071 and
+089). Since migration 089 the score is the **average of the firm's released Round 1 memo (ZestUp) score and every
+advice memo score released so far**: the released `MEMO` score of the firm's own squad company and the released
+`ADVICE_k` score of each client it was engaged by (a firm with 2 clients in a crisis has 2 advice scores, each counted
+once). Only released scores with a final score count, so the rate is recalculated after each crisis's advice scores
+are released; with none at all it is 2%. Example: memo 80 and two advice memos of 61 and 40 average 60.33, so 241
+basis points (2.41%).
 
-| ZestUp score | Base rate | Shares |
+| Average score | Base rate | Shares |
 | --- | --- | --- |
 | 0–25 | 1% | 1,000 |
 | 50 | 2% | 2,000 |

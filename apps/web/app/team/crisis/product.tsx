@@ -280,7 +280,10 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
               </p>
               <p>Your cash fee is kept safe (in escrow) until the due time. The firm is paid only if it sends its memo; otherwise you get it back.</p>
               {minBidOn ? (
-                <p>Each firm has a minimum bid: its base rate, 1% to 4% of your company, set by its Round 1 memo score. An offer worth less is refused.</p>
+                <p>
+                  Each firm has a minimum bid: its base rate, 1% to 4% of your company, set by the average of its Round 1 memo and every advice memo score
+                  released so far (recalculated after each crisis&apos;s advice scores are released). An offer worth less is refused.
+                </p>
               ) : null}
               {drawOn && r3 ? <p>No firm by {hireAt}? The draw gives you a random firm with room, for 10% of your cash.</p> : null}
               {drawOn && !r3 ? (

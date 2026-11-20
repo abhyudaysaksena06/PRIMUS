@@ -96,7 +96,7 @@ export default async function TeamHome() {
   const format = ctx.event.format;
   const data = await loadHomeData(ctx);
   // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
-  const facts = await withAssigned({ ...data.facts, submitLast5: featureOn(status, "submit_last_5") }, company?.id ?? null);
+  const facts = await withAssigned({ ...data.facts, submitLast5: featureOn(status, "submit_last_5"), financeThesis: featureOn(status, "finance_thesis") }, company?.id ?? null);
   const plan = homePlan(facts);
   // Every deadline of the night for this team, and the rounds already over (with what the team sent in them).
   const timeline = teamTimeline(facts);

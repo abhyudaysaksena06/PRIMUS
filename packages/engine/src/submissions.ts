@@ -65,6 +65,13 @@ export const TEMPLATES: Record<SubmissionType, readonly TemplateField[]> = byKin
     { key: "evidence", label: "Evidence and numbers" },
     { key: "fit", label: "Why it fits your company" },
   ],
+  // PRIMUS Round 3: the Finance team's investment thesis for the close (migration 089).
+  THESIS: [
+    { key: "backing", label: "What we back for the close" },
+    { key: "evidence", label: "The evidence" },
+    { key: "positioning", label: "How the fund is positioned" },
+    { key: "risks", label: "Risks and what would change our view" },
+  ],
 });
 
 /** 3–4 capital letters (the brief says 4; its acceptance tests use AQS — see PLAN.md Q2). */
@@ -118,7 +125,7 @@ export function submissionText(type: SubmissionType, content: Content): string {
   return sections.join("\n\n");
 }
 
-export type SubmissionRejection = "EMPTY" | "TOO_LONG" | "MISSING_NAME" | "BAD_TICKER";
+export type SubmissionRejection = "EMPTY" | "TOO_LONG" | "TOO_SHORT" | "MISSING_NAME" | "BAD_TICKER";
 
 export type SubmissionCheck =
   | { ok: true; words: number; text: string }
@@ -129,6 +136,9 @@ export function validateSubmission(type: SubmissionType, content: Content): Subm
   const limit = RULES.WORD_LIMIT[type];
   if (words === 0) return { ok: false, code: "EMPTY", words, message: "Write something before submitting." };
   if (words > limit) return { ok: false, code: "TOO_LONG", words, message: `At most ${limit} words (you have ${words}).` };
+  if (type === "THESIS" && words < RULES.THESIS_MIN_WORDS) {
+    return { ok: false, code: "TOO_SHORT", words, message: `An investment thesis is at least ${RULES.THESIS_MIN_WORDS} words (you have ${words}).` };
+  }
   if (type === "PITCH") {
     const name = field(content, "company_name");
     if (name.length < 1 || name.length > 60) {

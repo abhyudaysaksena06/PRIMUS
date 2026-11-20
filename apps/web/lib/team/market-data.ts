@@ -145,7 +145,8 @@ export async function loadCompanyView(eventId: string, ticker: string, phase: Ph
     company,
     history: history.map(({ round_id, ...r }) => ({ ...r, kind: r.kind as PriceKind, round_number: round_id ? (numbers.get(round_id) ?? null) : null })),
     submissions: Object.fromEntries(subs.map((s) => [s.type, s])),
-    scores: scores.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)),
+    // A fund's investment thesis is kept with its squad's company but is not a verdict on the company.
+    scores: scores.filter((s) => s.type !== "THESIS").sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)),
     crisis,
     released,
     types,

@@ -12,7 +12,7 @@ import { Badge, Panel, Table, Td } from "@/app/admin/guide-ui";
 
 /** The types the clock judges, in the order of the night. */
 export const AUTO_JUDGE_TYPES: readonly SubmissionType[] = [
-  "PITCH", "MEMO", "CRISIS_1", "ADVICE_1", "CRISIS_2", "ADVICE_2", "CRISIS_3", "ADVICE_3", "CRISIS_4", "ADVICE_4", "SOLUTION", "ADVICE_5",
+  "PITCH", "MEMO", "CRISIS_1", "ADVICE_1", "CRISIS_2", "ADVICE_2", "CRISIS_3", "ADVICE_3", "CRISIS_4", "ADVICE_4", "SOLUTION", "ADVICE_5", "THESIS",
 ];
 
 export interface AutoJudgeRow {

@@ -18,6 +18,8 @@ const CRISIS_ROOM = { path: "/crisis", label: "Crisis room" };
 const FIRMS = { path: "/firms", label: "Firms" };
 /** PRIMUS: the one-on-one chat between a company and each firm it hired. */
 const HIRE_CHAT = { path: "/messages", label: "Hire chat" };
+/** PRIMUS Round 3: the Finance team's investment thesis (migration 089, switch finance_thesis). */
+const THESIS = { path: "/thesis", label: "Thesis" };
 const COMMON: TeamSection[] = [
   { path: "/market", label: "Market" },
   { path: "/qa", label: "Q&A" },
@@ -41,7 +43,7 @@ export const TEAM_SECTIONS: Record<Track, readonly TeamSection[]> = {
     { path: "/earnings", label: "Earnings" },
     ...COMMON,
   ],
-  FINANCE: [HOME, { path: "/trade", label: "Trade" }, CRISIS_ROOM, RESCUE, CHAT, ...COMMON],
+  FINANCE: [HOME, { path: "/trade", label: "Trade" }, CRISIS_ROOM, THESIS, RESCUE, CHAT, ...COMMON],
 };
 
 /** May this track open this section? (Pages also check, so a typed address shows a clear notice.) */

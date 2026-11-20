@@ -114,6 +114,8 @@ export interface HomeFacts {
   progress: HomeProgress;
   /** Switch submit_last_5 (migration 072): Submit opens only 5 minutes before a writing deadline. */
   submitLast5?: boolean;
+  /** Switch finance_thesis (migration 089): each Finance team writes a Round 3 investment thesis. */
+  financeThesis?: boolean;
 }
 
 /** todo: this team has something to do; waiting: it has done its part, a partner has not; done; info: nothing to press. */
@@ -163,6 +165,7 @@ const IPO = "/team/trade/ipo";
 /** Each submission's own form. */
 const FORM: Record<"PITCH" | "PLAN" | "FLASH", string> = { PITCH, PLAN, FLASH };
 const CRISIS_ROOM = "/team/crisis";
+const THESIS = "/team/thesis";
 const FIRMS = "/team/firms";
 const QA = "/team/qa";
 const BOOK = "/team/market/book";
@@ -673,6 +676,21 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
         detail: "Every fund received half its starting capital again. Companies that share a problem statement compete: watch the draft, then invest.",
         href: CRISIS_ROOM,
         state: "info",
+      });
+    }
+    // The investment thesis (switch finance_thesis): open with the Round 3 work, due with the solutions.
+    if (f.financeThesis && f.phase === "SATURATION" && k === 5 && due && p.workOpen) {
+      const at = clock(deadlineAt(f, due));
+      const sent = !!f.progress.submitted.THESIS;
+      add(due, {
+        key: "THESIS",
+        title: "Write and submit your investment thesis",
+        detail: sent
+          ? `Submitted. You can send a better version until ${at}; the last one on time is judged.`
+          : `150 to 500 words: which sectors and companies your fund backs for the close, and why. Judged; your bonus is $500 × (score − 50). Due ${at}. No thesis scores 0.${submitOpensNote(f, due)}`,
+        href: THESIS,
+        linkLabel: "Write the thesis",
+        state: sent ? "done" : "todo",
       });
     }
   }

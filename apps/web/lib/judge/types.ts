@@ -83,6 +83,8 @@ export interface JudgeInput {
   problem_card?: { sector: string | null; title: string; body: string } | null;
   /** PRIMUS Round 3 (SOLUTION, ADVICE_5): the problem statement the company drafted. */
   statement?: { number: number; title: string; body: string } | null;
+  /** PRIMUS THESIS (migration 089): every Round 3 company, the same list for every fund. */
+  market?: { ticker: string | null; sector: string | null; statement: string | null }[] | null;
   /** PRIMUS CRISIS_k and SOLUTION: the hired firm's advice memo for that sub-round. */
   advice_text?: string | null;
   /** PRIMUS: whether the company hired a firm in this sub-round. */

@@ -14,6 +14,11 @@ export function memoBonus(memoScore: number): number {
   return planBonus(memoScore);
 }
 
+/** A fund's Round 3 investment thesis bonus: $500 × (score − 50), −$25,000 to +$25,000 (app.thesis_bonus, migration 089). */
+export function thesisBonus(thesisScore: number): number {
+  return RULES.THESIS_BONUS_PER_POINT * (clamp(thesisScore, 0, 100) - 50);
+}
+
 /** Product: retained shares × closing price + cash. */
 export function productValue(p: { retainedShares: number; cash: number; closingPrice: number }): number {
   return mul(p.retainedShares, p.closingPrice) + p.cash;

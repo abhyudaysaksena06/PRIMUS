@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useEventChannel } from "@/lib/live/channel";
+import { useFeature } from "@/lib/team/features";
 import { SignOutButton } from "@/components/sign-out-button";
 
 /** Sections shown as the top bar's links (the demo's header links), in the demo's order. */
@@ -82,9 +83,13 @@ export const NAV: Record<string, readonly NavItem[]> = {
     { n: "06", label: "Trade", href: "/team/trade", active: (p) => under("/team/trade")(p) && !desk.test(p) && !under("/team/trade/ipo")(p) },
     { n: "07", label: "Finance Desk", href: "/team/trade#desk", active: (p) => desk.test(p) },
     squadChat("08"),
+    // PRIMUS Round 3 (migration 089): the fund's investment thesis, while the switch finance_thesis is on.
+    { n: "09", label: "Round 3: Thesis", href: "/team/thesis", active: under("/team/thesis") },
   ],
 };
 const navFor = (track: string) => NAV[track] ?? NAV.PRODUCT!;
+/** The sidebar's items, without the thesis while its switch is off. */
+const sidebarFor = (track: string, thesis: boolean) => navFor(track).filter((item) => thesis || item.href !== "/team/thesis");
 
 function setMenu(open: boolean) {
   const app = document.querySelector<HTMLElement>(".guide-app");
@@ -103,6 +108,7 @@ export function MenuButton() {
 export function TeamNav({ team, round }: { team: NavTeam; round: number | null }) {
   const pathname = usePathname();
   const { status } = useEventChannel();
+  const thesisOn = useFeature("finance_thesis");
   // A new page closes the phone's menu.
   useEffect(() => setMenu(false), [pathname]);
   const live = status === "SUBSCRIBED";
@@ -123,7 +129,7 @@ export function TeamNav({ team, round }: { team: NavTeam; round: number | null }
           {team.track} WORKSPACE <b>{"///"}</b>
         </div>
         <nav aria-label="Competition workspace">
-          {navFor(team.track).map((item) => {
+          {sidebarFor(team.track, thesisOn).map((item) => {
             const active = item.active(pathname, round);
             return (
               <Link key={item.label} href={item.href} aria-current={active ? "page" : undefined} className={active ? "active" : ""}>

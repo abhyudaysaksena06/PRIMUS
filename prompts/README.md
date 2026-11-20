@@ -12,6 +12,7 @@ can read how its PRD, crisis memo, rescue plan and flash answer will be scored.
 | `CRISIS.md` | PRIMUS Round 2: the system prompt for a company's crisis response plan (`CRISIS_1` to `CRISIS_4`, at most 500 words), with its PRD, the crisis card and its hired firm's memo as context. Moves the price by the plan tier. |
 | `SOLUTION.md` | PRIMUS Round 3: the system prompt for a company's solution to its problem statement (at most 600 words). Moves the price by the plan tier, scaled by its rank among the companies on the same statement. |
 | `ADVICE.md` | PRIMUS Rounds 2 and 3: the system prompt for a hired firm's memo to its client (`ADVICE_1` to `ADVICE_5`, at most 500 words). Sets the firm's reputation bonus; moves no price. |
+| `THESIS.md` | PRIMUS Round 3: the system prompt for a Finance team's investment thesis (`THESIS`, 150 to 500 words, migration 089): which sectors and companies the fund backs for the close and why. Its context lists every Round 3 company (ticker, sector, statement), the same for every fund. Pays the fund $500 × (score − 50); moves no price. |
 | `calibration/pitches.json` | Ten sample pitches, from very weak to excellent, scored on the calibration page before the event. |
 
 ## How the judge uses them

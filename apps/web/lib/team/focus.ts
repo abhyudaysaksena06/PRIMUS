@@ -163,7 +163,7 @@ const ROUND_PATHS: Record<Track, Record<Stage, readonly string[]>> = {
 const PRIMUS_PATHS: Record<Track, readonly string[]> = {
   PRODUCT: ["", "/crisis", "/firms", "/messages", "/squad", "/chat", "/qa", "/market", "/bulletins"],
   CONSULTING: ["", "/crisis", "/firms", "/messages", "/squad", "/earnings", "/chat", "/qa", "/market", "/bulletins"],
-  FINANCE: ["", "/trade", "/crisis", "/chat", "/qa", "/market", "/bulletins"],
+  FINANCE: ["", "/trade", "/crisis", "/thesis", "/chat", "/qa", "/market", "/bulletins"],
 };
 
 /** Sections that exist only on a classic night. */

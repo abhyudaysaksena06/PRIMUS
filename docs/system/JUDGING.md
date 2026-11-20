@@ -33,14 +33,19 @@ merged.
 | Type | Written by | Deadline | Words | Prompt | What the score does |
 | --- | --- | --- | --- | --- | --- |
 | `PITCH` (the PRD) | Product | `PITCH`, 22:00 | 800 | `prompts/PITCH.md` | Sets the IPO price |
-| `MEMO` (ZestUp) | Consulting | closes with the PRD, 22:00 | 500 | `prompts/MEMO.md` | Firm bonus at settlement; tonight also the firm's base rate (071) |
+| `MEMO` (ZestUp) | Consulting | closes with the PRD, 22:00 | 500 | `prompts/MEMO.md` | Firm bonus at settlement; tonight also the firm's base rate (071), averaged with its released advice scores (089) |
 | `CRISIS_1`…`CRISIS_4` | Product | `DUE_k`, crisis start + 65 min | 500 | `prompts/CRISIS.md` | Moves the price by the plan tier |
-| `ADVICE_1`…`ADVICE_5` | the hired firm | `DUE_k` (Round 3: `DUE_5`, 06:00) | 150–500 | `prompts/ADVICE.md` | Firm bonus when released; moves no price |
+| `ADVICE_1`…`ADVICE_5` | the hired firm | `DUE_k` (Round 3: `DUE_5`, 06:00) | 150–500 | `prompts/ADVICE.md` | Firm bonus when released; moves no price; each released score moves the firm's base rate (089) |
 | `SOLUTION` | Product with its firm | `DUE_5`, 06:00 | 600 | `prompts/SOLUTION.md` | Moves the price by the plan tier, scaled by the Round 3 leveller |
+| `THESIS` (investment thesis, 089) | the squad's Finance team | `DUE_5`, 06:00 | 150–500 | `prompts/THESIS.md` | Fund bonus $500 × (score − 50) in cash when released (−$25,000 to +$25,000); moves no price |
 
 Times are the defaults of `PRIMUS_DEADLINES` in `packages/engine/src/schedule.ts` (crises start 22:45, 00:15, 01:45,
 03:15); pause and "+ time" move them. Word limits: `app.word_limit` and `RULES.WORD_LIMIT`
-(`packages/engine/src/rules.ts`); the 150-word floor for advice memos is `RULES.ADVICE_MIN_WORDS` and migration 065.
+(`packages/engine/src/rules.ts`); the 150-word floor for advice memos is `RULES.ADVICE_MIN_WORDS` and migration 065,
+for the investment thesis `RULES.THESIS_MIN_WORDS` and migration 089 (`submit_submission`; an auto-submitted shorter
+draft is judged as it is). The thesis is the switch `finance_thesis` (RULE, on by default; Run page): off, no Finance
+team may write it, judge auto skips it and its release is refused. It is kept with the squad's company, like the
+firm's `MEMO`, so the Judge page lists it by the fund's squad company.
 `PLAN` and `FLASH` belong to the classic night and are not judged in a PRIMUS event. One prompt serves every
 sub-round of a kind (`PROMPT_FILES` in `apps/web/lib/judge/prompts.ts`).
 
@@ -62,7 +67,8 @@ pressed Submit keeps its last submitted version: a later draft is not submitted 
 auto-submit, the heartbeat queues runs 1–3 for every current submission without runs (the same statement as
 `start_judging`, so nothing is queued twice; a draft auto-submitted a tick late is queued on that tick), and once no
 run of the type is queued or running it seals the missing scores, once. Both steps are logged; an error goes to
-`error_log` and the next tick tries again. Release stays one organiser click, because release moves prices. With the switch off, an organiser
+`error_log` and the next tick tries again. The order is the night's: `PITCH`, `MEMO`, each crisis's `CRISIS_k` then
+`ADVICE_k`, `SOLUTION`, `ADVICE_5`, then `THESIS` (089, only while `finance_thesis` is on). Release stays one organiser click, because release moves prices. With the switch off, an organiser
 presses *Start judging* on the Judge page as before.
 
 **Plans before memos.** Workers take runs in queue order (`created_at`, then submission, then run number). After a
@@ -123,6 +129,7 @@ and the Judge page switches its loop off.
 | `ADVICE_k`, k ≤ 4 | `<pitch_card>` (the client's PRD), `<crisis_card>` (the client's card) |
 | `ADVICE_5` | `<pitch_card>`, `<statement>` (the client's Round 3 statement) |
 | `SOLUTION` | `<statement>`, `<advice>` (the hired firm's `ADVICE_5`, or a note) |
+| `THESIS` | `<market>`: every Round 3 company as ticker · sector · statement title, the same list for every fund (`app.thesis_judge_context`, 089). No case brief: the case is in the prompt itself |
 
 **Building the request** (`buildJudgeRequest`, `apps/web/lib/judge/request.ts`):
 
@@ -182,7 +189,7 @@ breakdown and rationale that teams see come from the first run whose total equal
 - final = clamp(median − injection penalty, 0, 100);
 - injection penalty: a submission with a line removed costs **5** points the first time in the company's chain and
   **10** every later time. The chain is `PITCH → CRISIS_1 → CRISIS_2 → CRISIS_3 → CRISIS_4 → SOLUTION` (migration 032,
-  first offence raised from 0 to 5 in 057). A firm's `MEMO` and `ADVICE_k` are its own work and never carry a penalty,
+  first offence raised from 0 to 5 in 057). A firm's `MEMO` and `ADVICE_k`, and a fund's `THESIS`, are their own work and never carry a penalty,
   though their lines are still removed;
 - the tier (price move) is read from the final score (`app.tier_bp`).
 
@@ -192,7 +199,7 @@ breakdown and rationale. Teams cannot read a sealed score. Only the newest gener
 counts.
 
 **Missing scores.** `public.seal_missing_scores(event, type)` (organisers, after the deadline) seals a 0 for every
-company with no on-time submission, with the tier of a 0 (PRD −10%, crisis plan and solution −20%, memos 0) and the
+company with no on-time submission, with the tier of a 0 (PRD −10%, crisis plan and solution −20%, memos and theses 0) and the
 rationale "No on-time submission." Tonight (073) the heartbeat does this once every run of the type has finished.
 
 ## 7. Release
@@ -206,7 +213,8 @@ Then, by type:
 | `PITCH` | after `CALL_1` (22:30) and while the phase is `READING`; the phase cannot leave `READING` until it is done (`app.gate_blocker`) | IPO price, market price and AI price set from the score (`app.ipo_price`) |
 | `MEMO` | phases `READING` to `CLOSE` | scores visible; the bonus is paid at settlement |
 | `CRISIS_k`, `SOLUTION` | between trading rounds (no round open) | the market price and the AI price both move by the tier (`SUB_TIER` rows in `round_prices`); the Round 3 leveller scales a solution's rise (`app.release_tier_bp`, migration 064); collateral recalculated |
-| `ADVICE_k` | after the ratings close (`RATE_k`) | firm bonuses paid (`app.after_advice_release`) |
+| `ADVICE_k` | after the ratings close (`RATE_k`) | firm bonuses paid (`app.after_advice_release`); the firms' base rates are recalculated (`app.firm_base_rate`, 089) |
+| `THESIS` | phases `SATURATION` to `APPEALS`, switch `finance_thesis` on (else `SWITCH_OFF`); release it with the solutions | no price moves; each squad's fund is paid $500 × (score − 50) (`app.thesis_bonus`), ledger kind `BONUS_THESIS`, balanced by an exchange row "Paid by the exchange" (`app.release_thesis`). A missing thesis is sealed at 0, as every missing piece is, so it costs the fund $25,000. After settlement the results are computed again. An appeal after release pays or takes back the change in the bonus (`app.apply_primus_appeal`) |
 
 The last trading round of each crisis, and of Round 3, waits for the plan or solution scores (`rounds.waits_for`,
 checked by `public.tick`), so no one trades on stale prices. Every release broadcasts `verdicts` to every screen.
@@ -254,7 +262,7 @@ edit a prompt once judging has started.
 ## 11. Throughput at 400 and 600 teams
 
 **Runs per writing deadline.** With C companies (one per squad), each deadline has 2 submissions per company: PRD
-and ZestUp memo (22:00), crisis plan and advice memo (each `DUE_k`), solution and advice memo (`DUE_5`). Each
+and ZestUp memo (22:00), crisis plan and advice memo (each `DUE_k`), solution and advice memo (`DUE_5`; plus the fund's investment thesis, 089, judged after them). Each
 submission takes 3 runs, plus 2 when its runs spread more than 10 points. With a share x of submissions needing
 extra runs, runs = 2 × C × (3 + 2x).
 

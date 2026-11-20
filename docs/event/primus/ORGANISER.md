@@ -18,6 +18,15 @@
 - **Round 3**: after 06:00, judge and **release the solutions** the same way: the last trading round waits for them,
   and with auto-advance on the night waits too (the market does not close without that round). The round then opens
   with its full 15 minutes and everything after it moves later. Release the Round 3 advice memos once ratings close.
+- **Round 3, the funds' investment theses** (switch `finance_thesis`, on by default; Run page): each Finance team
+  writes one by 06:00 (150–500 words). Judge them with the solutions (judge auto queues them after the solutions and
+  advice memos) and **release THESIS with the solutions** on the Judge page, one click, any time from Round 3 until
+  the appeals. The release moves no price: it pays each fund $500 × (score − 50) in cash (−$25,000 to +$25,000,
+  through the ledger). A fund with no thesis is sealed at 0 and loses $25,000. Releasing before the close keeps the
+  bonus in the results; a release after settlement recomputes them.
+- **Base rates** follow the scores: each firm's base rate (its minimum bid and its draw fee) is the average of its
+  Round 1 memo and every advice memo score released so far, so it is recalculated each time you release a crisis's
+  advice memos. Release them before the next crisis's hiring opens.
 - **Round 3**: the overview shows the draft live (who is on the clock in each sector, each sector's statements) and
   warns in red if statements are missing or a sector lacks room. The big screen shows the draft by itself. The rule:
   the 10 lowest-scoring companies in each sector pick a statement, lowest first, 20 seconds each, each statement once.

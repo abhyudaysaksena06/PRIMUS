@@ -18,6 +18,7 @@ const TIER_TABLE: Record<SubmissionType, Tiers> = byKind<Tiers>({
   FLASH: [[90, 500], [80, 500], [70, 500], [60, 0], [50, 0], [40, -500], [0, -500]],
   MEMO: NO_MOVE, // a firm's memo moves no price: it sets the firm's reputation bonus
   ADVICE: NO_MOVE,
+  THESIS: NO_MOVE, // a fund's thesis pays it a cash bonus and moves no price
   CRISIS: PLAN_TIERS,
   SOLUTION: PLAN_TIERS,
 });

@@ -294,6 +294,20 @@ describe("a PRIMUS event's Rounds 2 and 3", () => {
     expect(idle.PROFILE).toBeUndefined();
   });
 
+  test("Finance, Round 3: the investment thesis while the switch is on and the Round 3 work is open", () => {
+    const open = { k: 5, hiringK: null, workOpen: true };
+    const t = byKey(primus("FINANCE", "SATURATION", "05:20", open, { financeThesis: true })).THESIS!;
+    expect(t).toMatchObject({ state: "todo", title: "Write and submit your investment thesis", href: "/team/thesis", linkLabel: "Write the thesis", due: at("06:00") });
+    expect(t.detail).toContain("150 to 500 words");
+    expect(t.detail).toContain("$500 × (score − 50)");
+    const sent = byKey(primus("FINANCE", "SATURATION", "05:20", open, { financeThesis: true, progress: progress({ submitted: { THESIS: true } }) })).THESIS!;
+    expect(sent.state).toBe("done");
+    // Switch off, the draft still on (work closed), or Round 2: no thesis task.
+    expect(keys(primus("FINANCE", "SATURATION", "05:20", open, { financeThesis: false }))).not.toContain("THESIS");
+    expect(keys(primus("FINANCE", "SATURATION", "04:50", { ...open, workOpen: false }, { financeThesis: true }))).not.toContain("THESIS");
+    expect(keys(primus("FINANCE", "PRESSURE", "22:50", { k: 1, hiringK: 1, workOpen: true }, { financeThesis: true }))).not.toContain("THESIS");
+  });
+
   test("Finance reads the cards; a classic night has none of these tasks", () => {
     expect(keys(primus("FINANCE", "PRESSURE", "22:50", { k: 1, hiringK: 1, workOpen: true }))).toContain("CARDS");
     expect(keys(facts("PRODUCT", "RESCUE_1", "01:00"))).not.toContain("HIRE");

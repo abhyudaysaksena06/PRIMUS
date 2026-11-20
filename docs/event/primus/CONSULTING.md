@@ -7,8 +7,10 @@ earn: **fees + bonuses + the value of any shares you were paid in.**
 
 1. **Round 1 · Prove yourself (21:10–22:00).** Every firm writes a memo on the same case (ZestUp). A good memo earns
    a bonus and builds your name: its score also sets your **base rate**, the minimum bid a company must offer you in
-   every crisis. The base rate is 2% of the client company, plus 0.04% for every point your memo scored above 50
-   (minus 0.04% for every point below), never below 1% or above 4%. A memo of 75 makes it 3%; 100 makes it 4%.
+   every crisis. The base rate is 2% of the client company, plus 0.04% for every point your score is above 50
+   (minus 0.04% for every point below), never below 1% or above 4%. The score is the **average of your Round 1 memo
+   and every advice memo score released so far**; it is recalculated after each crisis's advice scores are released.
+   An average of 75 makes it 3%; 100 makes it 4%; with no score released yet it is 2%.
    Then, by 22:30, make **Call 1**: for each of the two companies you follow, guess whether its price will go up
    (BUY) or down (SELL) from its IPO price to the end of trading round 4. Each correct call earns $2,500.
 2. **Round 2 · Win clients (22:45–04:45).** In each of the four crises:
@@ -25,8 +27,8 @@ earn: **fees + bonuses + the value of any shares you were paid in.**
 
 ## Writing tonight
 
-- **Type everything.** Paste is turned off in the writing boxes, and a draft that grows faster than anyone can
-  type is flagged to the organisers.
+- **Type everything.** Paste is turned off in the writing boxes, copying text from the site is turned off too, and
+  a draft that grows faster than anyone can type is flagged to the organisers.
 - **Your draft saves itself.** Submit opens only in the last 5 minutes before the deadline. At the deadline the
   last saved version is submitted for you. If you press Submit and then change your text, press Submit again.
 - **Stay within the word limit.** A draft over 500 words cannot be submitted, not even at the deadline. An

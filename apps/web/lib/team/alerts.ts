@@ -63,6 +63,10 @@ export function eventToast(kind: string, payload: Record<string, unknown>, track
     case "crisis":
       return { text: "Crisis! Every company has a crisis card and every price fell 15%.", tone: "warn", href: track === "FINANCE" ? "/team/market" : "/team/rescue", loud: true };
     case "verdicts":
+      // The funds' investment theses (migration 089) move no price: only the funds hear of them.
+      if (payload.type === "THESIS") {
+        return track === "FINANCE" ? { text: "Investment thesis scores released: see your score and bonus.", tone: "info", href: "/team/thesis", loud: true } : null;
+      }
       return { text: "Scores released: prices have moved.", tone: "info", href: "/team/market", loud: true };
     case "ipo_allocated":
       return track === "FINANCE" ? { text: "IPO shares allocated: check your positions.", tone: "good", href: "/team/trade/positions", loud: false } : null;

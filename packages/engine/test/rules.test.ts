@@ -34,6 +34,10 @@ import {
   shortReserve,
   stripInjections,
   tierBp,
+  thesisBonus,
+  validateSubmission,
+  submissionDeadline,
+  subroundOf,
   validateDeal,
   validateDealTerms,
   validateFee,
@@ -480,6 +484,17 @@ describe("runs, median and the final score", () => {
 describe("scoring", () => {
   test("plan bonus: $500 per point above 50, from −$10,000 to +$25,000", () => {
     expect([100, 88, 50, 45, 31, 30, 0].map(planBonus)).toEqual([2_500_000, 1_900_000, 0, -250_000, -950_000, -1_000_000, -1_000_000]);
+  });
+
+  test("investment thesis (migration 089): $500 per point from 50, −$25,000 to +$25,000; 150–500 words; due with the solution; no price", () => {
+    expect([100, 80, 50, 30, 0].map(thesisBonus)).toEqual([2_500_000, 1_500_000, 0, -1_000_000, -2_500_000]);
+    const text = (n: number) => ({ backing: Array.from({ length: n }, () => "word").join(" ") });
+    expect(validateSubmission("THESIS", text(149))).toMatchObject({ ok: false, code: "TOO_SHORT" });
+    expect(validateSubmission("THESIS", text(150))).toMatchObject({ ok: true, words: 150 });
+    expect(validateSubmission("THESIS", text(501))).toMatchObject({ ok: false, code: "TOO_LONG" });
+    expect(submissionDeadline("THESIS")).toBe("DUE_5");
+    expect(subroundOf("THESIS")).toBeNull();
+    expect([0, 50, 100].map((s) => tierBp("THESIS", s))).toEqual([0, 0, 0]);
   });
 
   test("return in basis points", () => {
