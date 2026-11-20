@@ -72,7 +72,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
     return null;
   });
   // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
-  const facts = loaded ? await withAssigned({ ...loaded, submitLast5: featureOn(status, "submit_last_5") }, ctx.company?.id ?? null) : null;
+  const facts = loaded ? await withAssigned({ ...loaded, submitLast5: featureOn(status, "submit_last_5"), financeThesis: featureOn(status, "finance_thesis") }, ctx.company?.id ?? null) : null;
   const plan = facts ? homePlan(facts) : null;
   const next = plan ? nextAction(plan) : null;
   // A PRIMUS event's Rounds 2 and 3: the crisis under way, for the phase chip.

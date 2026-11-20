@@ -47,6 +47,13 @@ describe("dueAlert", () => {
 });
 
 describe("eventToast", () => {
+  test("verdicts: prices moved; the funds' investment thesis scores go to the funds only", () => {
+    expect(eventToast("verdicts", { type: "CRISIS_1" }, "PRODUCT")).toMatchObject({ text: "Scores released: prices have moved.", href: "/team/market" });
+    expect(eventToast("verdicts", { type: "THESIS" }, "FINANCE")).toMatchObject({ text: "Investment thesis scores released: see your score and bonus.", href: "/team/thesis" });
+    expect(eventToast("verdicts", { type: "THESIS" }, "PRODUCT")).toBeNull();
+    expect(eventToast("verdicts", { type: "THESIS" }, "CONSULTING")).toBeNull();
+  });
+
   test("rounds: every team hears a clearing; only funds hear that a round opened", () => {
     expect(eventToast("round_cleared", { round: 4 }, "PRODUCT")).toMatchObject({ text: "Round 4 cleared: new prices are in.", href: "/team/market" });
     expect(eventToast("round_cleared", { round: 4 }, "FINANCE")).toMatchObject({ href: "/team/trade/positions" });

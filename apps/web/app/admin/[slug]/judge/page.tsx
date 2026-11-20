@@ -474,6 +474,17 @@ function Rules({ type, deadlines }: { type: SubmissionType; deadlines: Partial<R
           </li>
           <li>Release at Verdicts (03:30). The tier moves both the market price and the AI price.</li>
         </>
+      ) : type === "THESIS" ? (
+        <>
+          <li>
+            Each Finance team&apos;s investment thesis (150–500 words) closes with the solutions at <When at={deadlines.DUE_5} />. Judging starts after
+            that; a fund with no thesis is sealed as 0.
+          </li>
+          <li>
+            Release with the solutions, from Round 3 until the appeals (switch finance_thesis on). It moves no price: each fund is paid $500 × (score − 50)
+            in cash, −$25,000 to +$25,000.
+          </li>
+        </>
       ) : (
         <>
           <li>

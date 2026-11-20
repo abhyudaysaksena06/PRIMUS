@@ -100,7 +100,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         {myRate !== null && (minBidOn || (drawOn && !r3)) ? (
           <p className="guide-muted mt-2" data-testid="my-base-rate">
             Your base rate: <strong className="text-[#39ff88]">{rateText(myRate)}</strong> of a company ({rateShares(myRate).toLocaleString("en-US")}{" "}
-            shares), set by your Round 1 memo score.
+            shares), set by the average of your Round 1 memo and every advice memo score released so far; recalculated after each
+            crisis&apos;s advice scores are released.
             {minBidOn ? " It is your minimum bid: no offer for less can be made or accepted." : ""}
             {drawOn && !r3 ? " A company the draw gives you pays it." : ""}
           </p>

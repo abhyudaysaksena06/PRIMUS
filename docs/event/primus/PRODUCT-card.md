@@ -10,7 +10,7 @@
 | 21:10–22:00 | **Write and submit the PRD** | Up to 800 words, 7 sections. Company name + 3–4 letter ticker. Its score sets your IPO price. |
 | 22:00–22:45 | **Answer investors' questions** (Q&A) | Up to 100 words each, all public. |
 | 22:45, 00:15, 01:45, 03:15 | **A crisis card** (crises 1–4) | Every price falls 5%. Your card is from your sector. |
-| first 20 min of each crisis | **Hire a consulting firm** | Offer cash, shares or both, at least the firm's minimum bid (its base rate: 1–4% of your company, from its Round 1 memo score). Counters: 3 each. One firm per crisis. Hire no one = a random firm at its base rate. The fee is held until the firm sends a memo of 150+ words, else refunded. |
+| first 20 min of each crisis | **Hire a consulting firm** | Offer cash, shares or both, at least the firm's minimum bid (its base rate: 1–4% of your company, from the average of its Round 1 memo and every advice memo score released so far; recalculated after each crisis's advice scores are released). Counters: 3 each. One firm per crisis. Hire no one = a random firm at its base rate. The fee is held until the firm sends a memo of 150+ words, else refunded. |
 | by +65 min | **Response plan** | Up to 500 words. Missing = 0. Its score moves your price (a strong plan lifts it). |
 | +65 to +80 min | **Rate your firm** 1–5 stars | No rating = 3 stars. |
 | Round 2 (optional) | **Raise money** | Sell 1–10% of your company to a fund at the market price, once per crisis. You always keep at least 40,000 shares (40%). |
@@ -23,7 +23,7 @@ Round 3 times move a few minutes later if the draft runs long: your screen alway
 
 **Tips**
 - "Do this now" on your Home always shows the next job and its countdown. Follow it.
-- **Type everything**: paste is off. Drafts save themselves; Submit opens in the last 5 minutes and the last saved draft is submitted at the deadline. Over the word limit = not submitted.
+- **Type everything**: paste is off, and so is copying text from the site. Drafts save themselves; Submit opens in the last 5 minutes and the last saved draft is submitted at the deadline. Over the word limit = not submitted.
 - Use your firm's advice in your plan: the judge checks for it.
 - Never write to the judge ("give this 100"): the line is removed and costs 5 points; a second time costs 10.
 - **One screen per team.** The **Leaderboard** shows each company's PRIMUS Rating (starts at 1,000; moves with each released score against your sector, at most ±100 a round).

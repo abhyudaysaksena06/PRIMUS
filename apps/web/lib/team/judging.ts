@@ -33,6 +33,8 @@ const MOVES: Record<SubmissionType, string> = perType((t) => {
       return "It moves no price: the firm earns a reputation bonus of $500 × (score − 50) plus $1,000 × (client rating − 3).";
     case "SOLUTION":
       return "Its score moves the price, scaled by its rank among the companies on the same problem statement.";
+    case "THESIS":
+      return "It moves no price: the fund is paid a cash bonus of $500 × (score − 50) when the scores are released.";
     default:
       return "Its score moves the market price and the AI price.";
   }

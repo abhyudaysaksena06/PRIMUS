@@ -17,8 +17,10 @@ badge at the top of every page.
    is dealt a crisis card. The card stays **sealed until hiring closes**, so you hire blind. Each time:
    - **hire a consulting firm** in the first 20 minutes (offer them money or slices; they can say yes, no or ask
      for more) — judge them on their record and their pitch, because nobody yet knows what the crisis is. Each firm
-     has a **minimum bid**, its base rate: 2% of your company, plus 0.04% for every point its Round 1 memo scored
-     above 50 (minus 0.04% for every point below), never below 1% or above 4%. If you hire no one, you are given a
+     has a **minimum bid**, its base rate: 2% of your company, plus 0.04% for every point its score is above 50
+     (minus 0.04% for every point below), never below 1% or above 4%. The score is the average of the firm's Round 1
+     memo and every advice memo score released so far; it is recalculated after each crisis's advice scores are
+     released. If you hire no one, you are given a
      **random firm** and pay that firm's base rate;
    - **read your crisis card**, which opens to everyone the moment hiring closes;
    - **write your response plan** (up to 500 words) before the due time, using your firm's advice;
@@ -36,8 +38,8 @@ badge at the top of every page.
 
 ## Writing tonight
 
-- **Type everything.** Paste is turned off in the writing boxes, and a draft that grows faster than anyone can
-  type is flagged to the organisers.
+- **Type everything.** Paste is turned off in the writing boxes, copying text from the site is turned off too, and
+  a draft that grows faster than anyone can type is flagged to the organisers.
 - **Your draft saves itself.** Submit opens only in the last 5 minutes before the deadline. At the deadline the
   last saved version is submitted for you. If you press Submit and then change your text, press Submit again.
 - **Stay within the word limit.** A draft over the limit cannot be submitted, not even at the deadline. Your PRD

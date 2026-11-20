@@ -28,7 +28,7 @@ export interface FirmRow {
   value_cents: number;
   clients: number;
   avg_rating: number | null;
-  /** The firm's base rate in basis points (migration 071): 2% + 0.04% per ZestUp point over 50, 1–4%. Null before 071. */
+  /** The firm's base rate in basis points (migrations 071, 089): 2% + 0.04% per point over 50 of the average of its released Round 1 memo and advice memo scores, 1–4%. Null before 071. */
   base_rate_bp: number | null;
   /** For a Product team: that rate of its own company at today's price, in cents (the minimum bid). Null otherwise. */
   min_bid_cents: number | null;

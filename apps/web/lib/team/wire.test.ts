@@ -9,6 +9,8 @@ describe("wire feed", () => {
         { ticker: "BBB", type: "PITCH", score: 45, tierBp: -500, releasedAt: "2026-11-20T17:00:00Z" },
         { ticker: "CCC", type: "PLAN", score: 55, tierBp: 0, releasedAt: "2026-11-20T22:00:00Z" },
         { ticker: null, type: "PITCH", score: 70, tierBp: 500, releasedAt: "2026-11-20T17:00:00Z" },
+        // A fund's investment thesis is not company news.
+        { ticker: "AAA", type: "THESIS", score: 90, tierBp: 0, releasedAt: "2026-11-20T23:00:00Z" },
       ],
       bulletins: [{ kind: "CRISIS", title: "Every company is hit", publishedAt: "2026-11-20T19:00:00Z" }],
       plansPublishedAt: "2026-11-20T21:30:00Z",

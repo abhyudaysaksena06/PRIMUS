@@ -13,6 +13,7 @@ You may never trade your own squad's company.
 | Round 2 | **Fund a raise** (optional) | A company sells 1–10% of itself at the market price. One raise per fund per crisis; at most 10,000 shares of one company through raises. |
 | each crisis | **Read the cards** | Every price falls 5% at the reveal; each company's plan score then moves its price. The last round of a crisis waits for those scores. |
 | 04:45 | **Fresh capital** | +50% of your starting money. Round 3 evens out the field: price rises are ×1.25 for the weakest company down to ×0.25 for the strongest (by score so far); falls apply in full. |
+| from the end of the draft (about 04:50) to 06:00 | **Write your investment thesis** (Thesis) | **150–500 words, judged**: which sectors and companies you back for the close, and why. Bonus $500 × (score − 50), from −$25,000 to +$25,000, paid in cash when the scores are released; moves no price. No thesis = 0 = −$25,000. Submit opens in the last 5 minutes; your saved draft is submitted at 06:00. |
 | 06:30 | Market closes | Every short is covered at the closing price. |
 | 07:10 | Awards | |
 

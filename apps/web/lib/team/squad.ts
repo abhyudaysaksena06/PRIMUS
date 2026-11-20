@@ -12,6 +12,7 @@ const CLASSIC_LABELS: Record<"PITCH" | "PLAN" | "FLASH" | "MEMO", string> = { PI
 
 export const SUBMISSION_LABELS: Record<SubmissionType, string> = perType((t) => {
   const k = subroundOf(t);
+  if (t === "THESIS") return "Investment thesis";
   if (k === null) return CLASSIC_LABELS[t as keyof typeof CLASSIC_LABELS];
   if (t === "SOLUTION") return "Round 3 solution";
   return submissionKind(t) === "CRISIS" ? `${subroundName(k)} response plan` : `Advice memo (${subroundName(k)})`;
@@ -20,9 +21,12 @@ export const SUBMISSION_LABELS: Record<SubmissionType, string> = perType((t) => 
 /** The deadline that closes each submission. */
 export const SUBMISSION_DEADLINE: Record<SubmissionType, DeadlineCode> = perType(submissionDeadline);
 
+/** The Finance team's Round 3 investment thesis page (migration 089). */
+export const THESIS_PATH = "/team/thesis";
+
 /** Where each submission is edited. */
 export const SUBMISSION_PATHS: Record<SubmissionType, string> = perType((t) =>
-  subroundOf(t) === null ? `/team/squad/${t.toLowerCase()}` : "/team/crisis",
+  t === "THESIS" ? THESIS_PATH : subroundOf(t) === null ? `/team/squad/${t.toLowerCase()}` : "/team/crisis",
 );
 
 export interface PauseState {
@@ -80,6 +84,7 @@ export function otherSaver(s: SquadTeams, me: string, teamId: string | null | un
 export function mayWrite(type: SubmissionType, track: Track): boolean {
   if (type === "PITCH") return track === "PRODUCT";
   if (type === "MEMO") return track === "CONSULTING";
+  if (type === "THESIS") return track === "FINANCE"; // the squad's fund, on its own
   if (submissionKind(type) === "ADVICE") return track === "CONSULTING"; // the hired firm, for its client
   if (submissionKind(type) === "CRISIS") return track === "PRODUCT";
   if (type === "SOLUTION") return track === "PRODUCT" || track === "CONSULTING"; // co-edited by the hired firm
@@ -130,8 +135,9 @@ function stageOf(type: SubmissionType, w: WindowInput): Stage {
       return published && w.drawn ? "OPEN" : "BEFORE";
     }
     default: {
-      // PRIMUS: open from the sub-round's reveal (Round 3: the end of the draft) until its due time.
-      const k = subroundOf(type) ?? 0;
+      // PRIMUS: open from the sub-round's reveal (Round 3: the end of the draft) until its due time. A fund's thesis
+      // is Round 3 work (app.subround_open(5)).
+      const k = type === "THESIS" ? 5 : (subroundOf(type) ?? 0);
       const opens = w.deadlines[k === 5 ? "DRAFT" : (`REVEAL_${k}` as DeadlineCode)];
       const live = w.phase === (k === 5 ? "SATURATION" : "PRESSURE") || (k < 5 && w.phase === "SATURATION");
       if (!opens || Date.parse(opens) > w.nowMs || !phaseReached(w.phase, k === 5 ? "SATURATION" : "PRESSURE")) return "BEFORE";
@@ -154,12 +160,18 @@ export function submissionWindow(type: SubmissionType, track: Track, w: WindowIn
         MEMO: "The crisis memo opens at the squad draw.",
         PLAN: "The rescue plan opens when the crisis is published.",
         FLASH: `The flash answer opens when the flash bulletin is published${bulletin ? ` (planned for ${clock(bulletin)})` : ""}.`,
+        THESIS: "The investment thesis opens when the Round 3 draft is over.",
       }[type as string] ?? `The ${SUBMISSION_LABELS[type].toLowerCase()} opens when its ${subroundOf(type) === 5 ? "problem statement is drafted" : "crisis card is revealed"}.`;
   } else if (stage === "CLOSED") {
     const at = deadline ? ` at ${clock(deadline)}` : "";
     note = `The ${type === "PITCH" ? "PRD" : SUBMISSION_LABELS[type].replace(/^[A-Z]/, (c) => c.toLowerCase())} closed${at}.`;
   } else if (!may) {
-    note = type === "MEMO" ? "The Consulting team writes the crisis memo; you can read it here." : "The Product team writes the PRD; you can read it here.";
+    note =
+      type === "MEMO"
+        ? "The Consulting team writes the crisis memo; you can read it here."
+        : type === "THESIS"
+          ? "The Finance team writes the investment thesis; you can read it here."
+          : "The Product team writes the PRD; you can read it here.";
   }
   return { type, stage, mayWrite: may, editable, deadline, note };
 }
