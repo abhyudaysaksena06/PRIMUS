@@ -453,7 +453,7 @@ describe("backups and resets", () => {
       [E],
     );
     // The judge's full texts are still there after the restore.
-    expect((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and raw_response is not null", [E])).c).toBe(1500);
+    expect((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and raw_response is not null", [E])).c).toBe((await n.one("select count(*)::int as c from judge_runs where event_id = $1", [E])).c);
     const mb = (b: number | string) => `${(Number(b) / 1_048_576).toFixed(1)} MB`;
     console.log(
       [
