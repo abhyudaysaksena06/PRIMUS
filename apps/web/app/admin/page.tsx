@@ -1,3 +1,4 @@
+import { ROLE_LABELS } from "@/lib/auth/routes";
 import Link from "next/link";
 import { PHASE_LABELS, type PhaseCode } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
@@ -26,7 +27,7 @@ export default async function AdminHome() {
             <span className="guide-team-code">PRIMUS ’26</span>
             <b className="guide-phase">ORGANISER CONSOLE</b>
             <span>
-              {viewer.displayName} · {viewer.role === "FAIRNESS" ? "Fairness officer" : "Organiser"}
+              {viewer.displayName} · {ROLE_LABELS[viewer.role] ?? "Staff"}
             </span>
           </div>
           <div className="guide-top-right">

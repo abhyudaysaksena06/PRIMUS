@@ -66,6 +66,16 @@ export async function signIn(_prev: LoginState, form: FormData): Promise<LoginSt
     await sb.auth.signOut();
     return { error: "This login is not set up for the event. Please go to the technical support desk.", login };
   }
+  // The Organiser tab is for staff accounts only: a team's own login used there is refused, not let in as the team.
+  if (mode === "staff" && viewer.team) {
+    await sb.auth.signOut();
+    return { error: "These are a team's details. Teams sign in on the Team access tab with the code on their card.", login };
+  }
+  // The Team tab builds a team email from the code, so only team accounts can match; refuse anything else all the same.
+  if (mode === "team" && !viewer.team) {
+    await sb.auth.signOut();
+    return { error: "That team code and password do not match. Check your card.", login };
+  }
   // A track's portal admits only that track's teams (organisers can sign in everywhere).
   const portal = await teamPortal();
   if (portal && viewer.team && !portalAdmits(portal, viewer.team.track)) {

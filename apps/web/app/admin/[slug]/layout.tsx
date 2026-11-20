@@ -1,3 +1,4 @@
+import { ROLE_LABELS } from "@/lib/auth/routes";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PHASE_LABELS } from "@msim/engine";
@@ -26,7 +27,7 @@ export default async function EventAdminLayout({ children, params }: LayoutProps
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
   const status = await loadEventStatus(event.id);
   const organiser = viewer!.role === "ORGANISER";
-  const roleLabel = organiser ? "Organiser" : viewer!.role === "FAIRNESS" ? "Fairness officer" : "Staff";
+  const roleLabel = ROLE_LABELS[viewer!.role] ?? "Staff";
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <EventChannel eventId={event.id} staff>

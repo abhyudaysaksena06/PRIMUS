@@ -1,3 +1,4 @@
+import { requireSection } from "@/lib/auth/staff";
 import type { Metadata } from "next";
 import { DEADLINE_LABELS, PHASE_LABELS, type DeadlineCode } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
@@ -23,7 +24,8 @@ export const metadata: Metadata = { title: "Phase" };
 // tracks (Product, Consulting, Finance) and the full schedule have pages of their own.
 export default async function PhaseControl({ params }: PageProps<"/admin/[slug]">) {
   const { slug } = await params;
-  const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
+  // Desks other than registration land elsewhere: the gate redirects them before anything renders.
+  const [viewer, event] = await Promise.all([requireSection(slug, ""), loadAdminEvent(slug)]);
   const [status, todoInput] = await Promise.all([loadEventStatus(event.id), loadTodoInput(event)]);
   const todos = organiserTodos(todoInput);
   const dbVersion = await readSchemaVersion();
