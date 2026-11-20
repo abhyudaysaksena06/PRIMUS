@@ -47,9 +47,10 @@ prompts and decks; the case-book PDF in the repo is byte for byte the one the or
 Tests on the final build: typecheck, 290 engine, 822 web and 316 database tests pass (`pnpm test`).
 
 Live database (20 Nov): schema 20261205000069, with the close fixed (068) and the cooling-off and raise caps (069).
-A function-by-function check against this repo found three differences, none of which changes what the game does:
-`tick` runs the auto-submit step twice in a row and `judge_input` has its PITCH branch twice (migrations 054 and 053
-were run twice on that database before the catch-ups), and `fund_raise` lacks one comment line.
+Checked against this repo function by function: identical except that `fund_raise` lacks one comment line; permissions,
+row-level security, policies, columns, constraints, indexes and triggers are identical too. Migrations 053 and 054 had
+been run twice on that database, leaving a duplicated block in `tick` (auto-submit ran twice per heartbeat) and in
+`judge_input` (a second PITCH branch that was never reached); both were re-created from this repo on 20 Nov.
 
 ### The /demo walkthrough and the real game
 
