@@ -10,7 +10,8 @@ import { minBidText, openFirms, rateText } from "@/lib/team/hire-lists";
 import { sectionAllowed } from "@/lib/team/sections";
 import { pauseOf } from "@/lib/team/squad-data";
 import { RoomShell } from "../crisis/room-shell";
-import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass } from "@/components/ui/ui";
+import { Chip, GuideAlert, GuidePanel } from "../crisis/guide";
 
 export const metadata: Metadata = { title: "Firms" };
 
@@ -19,9 +20,9 @@ export const metadata: Metadata = { title: "Firms" };
 // open a full firm is not listed (locked = gone: the hire_locked message makes the page re-read as one fills).
 export default async function FirmsPage({ searchParams }: { searchParams: Promise<{ q?: string; sort?: string }> }) {
   const ctx = await loadTeamContext();
-  if (!sectionAllowed(ctx.team.track, "/firms")) return <Notice>This section is not part of your team&apos;s portal.</Notice>;
+  if (!sectionAllowed(ctx.team.track, "/firms")) return <GuideAlert>This section is not part of your team&apos;s portal.</GuideAlert>;
   const data = await loadCrisisRoom(ctx);
-  if (data.format !== "PRIMUS") return <Notice>Tonight&apos;s event plays the classic format: there is no firm marketplace.</Notice>;
+  if (data.format !== "PRIMUS") return <GuideAlert>Tonight&apos;s event plays the classic format: there is no firm marketplace.</GuideAlert>;
   const { q = "", sort: rawSort } = await searchParams;
   const sort = parseSort(rawSort);
   const query = q.slice(0, 80);
@@ -44,7 +45,7 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
       title="Consulting firms"
       lede={product ? "Compare every firm's pitch, base rate, value and client ratings, then offer the one you want a stake in your company." : "The marketplace as Product teams see it when they choose whom to hire."}
     >
-      <Panel title="Consulting firm directory">
+      <GuidePanel title="Consulting firm directory">
         <p className="text-sm text-paper">
           {product
             ? "Every Consulting firm of tonight's event. Open a firm's profile to read its pitch, track record and client ratings, then send it an offer. Once a firm accepts, a private one-on-one chat with it opens under Hire chat."
@@ -52,7 +53,7 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
         </p>
         {k !== null ? (
           <p className="mt-2 text-sm">
-            <span className="text-[var(--term-amber)]">{subroundTitle(k)}</span>
+            <span className="text-[#39ff88]">{subroundTitle(k)}</span>
             <span className="text-paper"> · hiring is {hiring ? "open" : "closed"}</span>
             {hiredNow ? (
               <span className="text-paper">
@@ -63,12 +64,12 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
         ) : null}
         <form method="get" className="mt-3 flex flex-wrap items-end gap-2" role="search" aria-label="Search the firms">
           <label className="min-w-0 flex-1 text-sm">
-            <span className="pd-label">Search</span>
-            <input name="q" defaultValue={query} placeholder="pricing, supply chain, C07…" className={`${inputClass} mt-1`} />
+            <span className="guide-label uppercase">Search</span>
+            <input name="q" defaultValue={query} placeholder="pricing, supply chain, C07…" className={`guide-input mt-1`} />
           </label>
           <label className="text-sm">
-            <span className="pd-label">Sort by</span>
-            <select name="sort" defaultValue={sort} className={`${inputClass} mt-1`}>
+            <span className="guide-label uppercase">Sort by</span>
+            <select name="sort" defaultValue={sort} className={`guide-input mt-1`}>
               {FIRM_SORTS.map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}
@@ -85,21 +86,21 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
             </Link>
           ) : null}
         </form>
-      </Panel>
+      </GuidePanel>
 
       {fullHidden > 0 ? (
-        <p className="text-sm text-muted" data-testid="full-firms-hidden">
+        <p className="guide-muted" data-testid="full-firms-hidden">
           {fullHidden === 1 ? "1 firm is" : `${fullHidden} firms are`} full for this {k === 5 ? "round" : "crisis"} and not shown.
         </p>
       ) : null}
       {firms.length === 0 ? (
-        <Notice>
+        <GuideAlert>
           {data.firms.length === 0
             ? "No Consulting firm in this event yet."
             : found.length === 0
               ? "No firm matches that search."
               : `Every firm${query ? " that matches" : ""} is full for this ${k === 5 ? "round" : "crisis"}.`}
-        </Notice>
+        </GuideAlert>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2" aria-label="Firms">
           {firms.map((f) => {
@@ -109,14 +110,14 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
             const openOffer = mine && k !== null ? data.offers.some((o) => o.company_id === mine.id && o.firm_team_id === f.team_id && o.k === k && o.status === "OPEN") : false;
             const complete = profileCompleteness(p);
             return (
-              <li key={f.team_id} className={`pd-card flex flex-col ${hiredByMe ? "pd-card-hot" : ""}`} data-testid={`directory-${f.code}`}>
+              <li key={f.team_id} className={`border border-[#294832] p-3.5 flex flex-col ${hiredByMe ? "border border-[#294832] p-3.5-hot" : ""}`} data-testid={`directory-${f.code}`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="pd-chip pd-chip-solid">{f.code}</span>
+                  <span className="guide-chip guide-chip-solid">{f.code}</span>
                   <span className="text-base font-semibold text-paper">{f.name}</span>
-                  {f.team_id === ctx.team.id ? <Badge tone="violet">You</Badge> : null}
-                  {hiredByMe ? <Badge tone="green">Hired by you</Badge> : null}
-                  {openOffer ? <Badge tone="amber">Offer open</Badge> : null}
-                  {k !== null && taken >= FIRM_CLIENTS_PER_SUBROUND ? <Badge tone="red">Full this sub-round</Badge> : null}
+                  {f.team_id === ctx.team.id ? <Chip tone="violet">You</Chip> : null}
+                  {hiredByMe ? <Chip tone="green">Hired by you</Chip> : null}
+                  {openOffer ? <Chip tone="amber">Offer open</Chip> : null}
+                  {k !== null && taken >= FIRM_CLIENTS_PER_SUBROUND ? <Chip tone="red">Full this sub-round</Chip> : null}
                 </div>
                 <p className="mt-1 text-sm font-semibold text-paper">{p?.headline || <span className="font-normal text-muted">No headline yet.</span>}</p>
                 {p?.specialities.length ? <p className="mt-1 text-xs text-[var(--term-cyan)]">{p.specialities.join(" · ")}</p> : null}
@@ -140,7 +141,7 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
                   </div>
                 </dl>
                 {f.base_rate_bp !== null && (minBidOn || drawOn) ? (
-                  <p className="mt-2 text-xs text-[var(--term-amber)]" data-testid={`directory-rate-${f.code}`}>
+                  <p className="mt-2 text-xs text-[#39ff88]" data-testid={`directory-rate-${f.code}`}>
                     {minBidOn && mine ? `Minimum bid: ${minBidText(f.base_rate_bp, mine.market_price)}.` : `Base rate: ${rateText(f.base_rate_bp)} of a company.`}
                   </p>
                 ) : null}

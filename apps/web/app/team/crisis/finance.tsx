@@ -8,9 +8,10 @@ import type { TeamContext } from "@/lib/team/context";
 import type { CrisisRoomData } from "@/lib/team/crisis-data";
 import { pastSubrounds, statementCounts, subroundTitle } from "@/lib/team/crisis";
 import { DoThis } from "@/components/ui/how-it-works";
-import { Badge, Notice, Panel, Table, Td, buttonClass } from "@/components/ui/ui";
+import { Table, Td, buttonClass } from "@/components/ui/ui";
 import { FinanceRaisePanel } from "./raises";
 import { CardsOf, EngagementTable, FirmLeague, StatementBoard, companyLabel } from "./parts";
+import { Chip, GuideAlert, GuidePanel } from "./guide";
 
 export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRoomData; k: number | null }) {
   const company = new Map(data.companies.map((c) => [c.id, c]));
@@ -26,12 +27,12 @@ export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRo
             : "The first crisis card arrives soon. Until then, keep trading."}
       </DoThis>
       {data.injectionCents !== null ? (
-        <Notice tone="green">
+        <GuideAlert>
           Round 3 capital injection received: <strong className="font-mono">{money(data.injectionCents)}</strong> (half your starting capital). Your return is
           measured on everything you were given, so put it to work.
-        </Notice>
+        </GuideAlert>
       ) : ctx.status.phase === "PRESSURE" ? (
-        <Notice>At the start of Round 3 every fund receives half its starting capital again.</Notice>
+        <GuideAlert>At the start of Round 3 every fund receives half its starting capital again.</GuideAlert>
       ) : null}
       <div>
         <Link href="/team/trade" className={buttonClass.primary}>
@@ -48,18 +49,18 @@ export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRo
       ) : null}
 
       {k !== null && k < 5 ? (
-        <Panel title={`Crisis cards · ${subroundTitle(k)}`}>
+        <GuidePanel title={`Crisis cards · ${subroundTitle(k)}`}>
           <p className="mb-3 text-sm text-paper">
             Each reveal knocked 5% off every price. After the due time each company&apos;s response plan is judged and its tier moves the price.
           </p>
           <CardsOf data={data} k={k} />
-        </Panel>
+        </GuidePanel>
       ) : null}
 
       {k === 5 || data.picks.length ? <StatementBoard data={data} /> : null}
 
       {k === 5 || data.picks.length ? (
-        <Panel title="Round 3 · draft order">
+        <GuidePanel title="Round 3 · draft order">
           <Table head={["Pick", "Company", "Score so far", "Statement"]} empty={data.picks.length === 0 ? "The draft has not started." : undefined}>
             {data.picks.map((p) => {
               const s = p.statement_id ? statement.get(p.statement_id) : undefined;
@@ -71,7 +72,7 @@ export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRo
                   <Td>
                     {s ? (
                       <>
-                        #{s.number} {s.title} {p.by_default ? <Badge tone="slate">default</Badge> : null}
+                        #{s.number} {s.title} {p.by_default ? <Chip tone="slate">default</Chip> : null}
                       </>
                     ) : (
                       "—"
@@ -87,16 +88,16 @@ export function FinanceRoom({ ctx, data, k }: { ctx: TeamContext; data: CrisisRo
               company&apos;s standing going into Round 3: ×1.25 for the weakest down to ×0.25 for the strongest (a fall applies in full).
             </p>
           ) : null}
-        </Panel>
+        </GuidePanel>
       ) : null}
 
       <EngagementTable data={data} rows={[...data.engagements].reverse()} />
       <FirmLeague data={data} />
 
       {pastSubrounds(k, data.subrounds).map((pk) => (
-        <Panel key={pk} title={`Earlier · ${subroundTitle(pk)}`}>
+        <GuidePanel key={pk} title={`Earlier · ${subroundTitle(pk)}`}>
           <CardsOf data={data} k={pk} />
-        </Panel>
+        </GuidePanel>
       ))}
     </div>
   );

@@ -6,10 +6,11 @@ import { clock, money } from "@/lib/format";
 import type { CrisisRoomData, RaiseRow, RoomCompany } from "@/lib/team/crisis-data";
 import { equityText, stakeValue } from "@/lib/team/equity";
 import { ActionButton, ActionForm } from "@/components/ui/action";
-import { Badge, Notice, Panel, Table, Td, inputClass, type Tone } from "@/components/ui/ui";
+import { Table, Td, type Tone } from "@/components/ui/ui";
 import { cancelRaise, fundRaise, postRaise } from "./actions";
 import { EquityFields } from "./equity-fields";
 import { companyLabel } from "./parts";
+import { Chip, GuideAlert, GuidePanel } from "./guide";
 
 const STATUS_TONE: Record<RaiseRow["status"], Tone> = { OPEN: "amber", FUNDED: "green", CANCELLED: "slate", LAPSED: "slate" };
 
@@ -24,7 +25,7 @@ export function ProductRaisePanel({ data, mine, open }: { data: CrisisRoomData; 
   const live = mineRaises.find((r) => r.status === "OPEN" && r.k === k);
   const doneThisCrisis = mineRaises.some((r) => r.status === "FUNDED" && r.k === k);
   return (
-    <Panel title="Raise money from Finance (sell equity)">
+    <GuidePanel title="Raise money from Finance (sell equity)">
       <div data-testid="raise-product" className="space-y-3">
         <p className="text-sm text-paper">
           Sell a stake in your company to a Finance fund for cash. Choose how much equity (1% to 10%); the fund pays shares × your share price at
@@ -32,9 +33,9 @@ export function ProductRaisePanel({ data, mine, open }: { data: CrisisRoomData; 
           company.
         </p>
         {!open ? (
-          <Notice>Raising from Finance is open during Round 2.</Notice>
+          <GuideAlert>Raising from Finance is open during Round 2.</GuideAlert>
         ) : live ? (
-          <Notice tone="amber">
+          <GuideAlert tone="warn">
             Your raise of {equityText(live.shares)} is open to every fund
             {mine.market_price ? ` (worth ${money(stakeValue(live.shares, mine.market_price))} at today's price)` : ""}.{" "}
             <span className="inline-block align-middle">
@@ -42,21 +43,21 @@ export function ProductRaisePanel({ data, mine, open }: { data: CrisisRoomData; 
                 Cancel raise
               </ActionButton>
             </span>
-          </Notice>
+          </GuideAlert>
         ) : doneThisCrisis ? (
-          <Notice tone="green">You have raised from Finance in this crisis. You can raise again in the next one.</Notice>
+          <GuideAlert>You have raised from Finance in this crisis. You can raise again in the next one.</GuideAlert>
         ) : (
           <ActionForm action={postRaise} submit="Post the raise" confirm="Click again to offer this stake to every fund" resetOnSuccess>
             <EquityFields priceCents={mine.market_price} label="Equity to sell (% of your company)" testId="raise-fields" />
             <label className="mt-2 block text-sm">
               <span className="font-semibold text-paper">Pitch to the funds (optional)</span>
-              <input name="note" maxLength={300} placeholder="What the money is for" className={`${inputClass} mt-1`} />
+              <input name="note" maxLength={300} placeholder="What the money is for" className={`guide-input mt-1`} />
             </label>
           </ActionForm>
         )}
         <RaiseHistory data={data} rows={mineRaises} />
       </div>
-    </Panel>
+    </GuidePanel>
   );
 }
 
@@ -65,13 +66,13 @@ export function FinanceRaisePanel({ data, ownCompanyId, open }: { data: CrisisRo
   const company = new Map(data.companies.map((c) => [c.id, c]));
   const live = data.raises.filter((r) => r.status === "OPEN" && r.k === k);
   return (
-    <Panel title="Companies raising money (buy equity)">
+    <GuidePanel title="Companies raising money (buy equity)">
       <div data-testid="raise-finance" className="space-y-3">
         <p className="text-sm text-paper">
           A company sells a stake for cash. The price is its share price at the moment you fund it, so you pay shares × that price. The shares are held
           to the close and count in your portfolio value; they are not sold on the exchange. You cannot fund your own squad&apos;s company.
         </p>
-        {!open ? <Notice>Raises are open during Round 2.</Notice> : null}
+        {!open ? <GuideAlert>Raises are open during Round 2.</GuideAlert> : null}
         <Table head={["Company", "Stake", "Price now", "You pay", "Pitch", ""]} empty={live.length === 0 ? "No company is raising right now." : undefined}>
           {live.map((r) => {
             const c = company.get(r.company_id);
@@ -87,7 +88,7 @@ export function FinanceRaisePanel({ data, ownCompanyId, open }: { data: CrisisRo
                 <Td>{r.note || "—"}</Td>
                 <Td>
                   {own ? (
-                    <Badge tone="slate">your squad</Badge>
+                    <Chip tone="slate">your squad</Chip>
                   ) : open ? (
                     <ActionButton variant="primary" action={fundRaise.bind(null, r.id, label)} confirm={`Click again to pay about ${money(value)}`}>
                       Fund
@@ -100,7 +101,7 @@ export function FinanceRaisePanel({ data, ownCompanyId, open }: { data: CrisisRo
         </Table>
         <RaiseHistory data={data} rows={data.raises.filter((r) => r.status === "FUNDED")} title="Funded so far" />
       </div>
-    </Panel>
+    </GuidePanel>
   );
 }
 
@@ -109,7 +110,7 @@ function RaiseHistory({ data, rows, title = "Your raises" }: { data: CrisisRoomD
   const company = new Map(data.companies.map((c) => [c.id, c]));
   return (
     <div>
-      <h3 className="pd-label mb-2">{title}</h3>
+      <h3 className="guide-label uppercase mb-2">{title}</h3>
       <Table head={["Crisis", "Company", "Stake", "Status", "Fund", "Price", "Cash", "When"]}>
         {rows.map((r) => (
           <tr key={r.id}>
@@ -117,7 +118,7 @@ function RaiseHistory({ data, rows, title = "Your raises" }: { data: CrisisRoomD
             <Td mono>{companyLabel(company.get(r.company_id))}</Td>
             <Td mono>{equityText(r.shares)}</Td>
             <Td>
-              <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
+              <Chip tone={STATUS_TONE[r.status]}>{r.status}</Chip>
             </Td>
             <Td mono>{r.funded_by ? (data.fundCodes.get(r.funded_by) ?? "a fund") : "—"}</Td>
             <Td mono>{r.price_cents ? money(r.price_cents) : "—"}</Td>

@@ -7,11 +7,12 @@
 import { RULES, TRACKS, type Track } from "@msim/engine";
 import { clock, money } from "@/lib/format";
 import { dealBalanceWarning, dealTermsText, teamLabel, upperFirst, type DealView, type Deadlines, type PauseState } from "@/lib/team/rescue";
-import { Badge, Notice, Panel } from "@/components/ui/ui";
+
 import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
 import { setDealAmount, setDealPrice, signDeal } from "./actions";
 import { ClosingActionButton, Due } from "./parts";
 import { DealTermForm } from "./terms-form";
+import { Chip, GuideAlert, GuidePanel } from "../crisis/guide";
 
 export function DealPanel({
   deal,
@@ -33,7 +34,7 @@ export function DealPanel({
   const warning = dealBalanceWarning(deal, { track, fundAvailable, retained });
   const showTerms = deal.stage !== "BEFORE_CRISIS";
   return (
-    <Panel
+    <GuidePanel
       title="Rescue deal"
       actions={
         <span className="text-sm text-paper">
@@ -78,22 +79,22 @@ export function DealPanel({
           </div>
         </dl>
 
-        {deal.stage === "BEFORE_CRISIS" ? <Notice>The deal can be agreed from the crisis.</Notice> : null}
+        {deal.stage === "BEFORE_CRISIS" ? <GuideAlert>The deal can be agreed from the crisis.</GuideAlert> : null}
         {deal.stage === "SIGNED" ? (
-          <Notice tone="green">
+          <GuideAlert>
             <span data-testid="deal-outcome">
               Signed by all three teams at {clock(deal.executedAt, true)}: {deal.shares?.toLocaleString("en-US")} shares at {money(deal.price)} moved from the
               Product team&apos;s retained shares into the fund&apos;s squad lot, and {money(deal.cashMoved)} was paid to the company.
             </span>
-          </Notice>
+          </GuideAlert>
         ) : null}
         {deal.stage === "CLOSED" ? (
-          <Notice tone="red">
+          <GuideAlert tone="bad">
             <span data-testid="deal-outcome">
               The deal was not fully signed by the deadline: no shares or cash moved, there is no deal bonus, and the rescue plan&apos;s score is capped at{" "}
               {RULES.PLAN_CAP_WITHOUT_DEAL}.
             </span>
-          </Notice>
+          </GuideAlert>
         ) : null}
 
         {showTerms ? (
@@ -101,7 +102,7 @@ export function DealPanel({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold text-phosphor">{deal.stage === "SIGNED" ? "Signed terms" : `Terms: version ${deal.version}`}</h3>
               {deal.editedBy && deal.editedAt ? (
-                <span className="text-xs text-muted">
+                <span className="guide-muted">
                   Last changed by {teamLabel(deal.editedBy, track)} at {clock(deal.editedAt, true)}
                 </span>
               ) : null}
@@ -116,7 +117,7 @@ export function DealPanel({
               {TRACKS.map((t) => (
                 <li key={t} data-testid={`deal-sign-${t}`}>
                   {upperFirst(teamLabel(t, track))}:{" "}
-                  {deal.signatures[t] ? <Badge tone="green">Signed {clock(deal.signatures[t], true)}</Badge> : <Badge tone="slate">Not signed</Badge>}
+                  {deal.signatures[t] ? <Chip tone="green">Signed {clock(deal.signatures[t], true)}</Chip> : <Chip tone="slate">Not signed</Chip>}
                 </li>
               ))}
             </ul>
@@ -172,20 +173,20 @@ export function DealPanel({
           </div>
         ) : null}
         {deal.stage === "OPEN" && track === "PRODUCT" ? (
-          <p className="text-xs text-muted">
+          <p className="guide-muted">
             Your team signs; the Consulting team proposes the price and the fund sets the amount.
             {retained !== null ? ` Your retained shares: ${retained.toLocaleString("en-US")}.` : ""}
           </p>
         ) : null}
       </div>
-    </Panel>
+    </GuidePanel>
   );
 }
 
 function Term({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId: string }) {
   return (
     <div>
-      <dt className="text-xs text-muted">
+      <dt className="guide-muted">
         {label}
         {hint ? <span className="text-muted"> · {hint}</span> : null}
       </dt>
@@ -199,7 +200,7 @@ function Term({ label, value, hint, testId }: { label: string; value: string; hi
 function OutcomeBadge({ value, yes, no, testId, yesTone = "green" }: { value: "YES" | "NO" | "OPEN"; yes: string; no: string; testId: string; yesTone?: "green" | "red" }) {
   return (
     <span data-testid={testId} data-value={value}>
-      {value === "YES" ? <Badge tone={yesTone}>{yes}</Badge> : value === "NO" ? <Badge tone={yesTone === "green" ? "slate" : "green"}>{no}</Badge> : null}
+      {value === "YES" ? <Chip tone={yesTone}>{yes}</Chip> : value === "NO" ? <Chip tone={yesTone === "green" ? "slate" : "green"}>{no}</Chip> : null}
     </span>
   );
 }

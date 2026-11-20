@@ -9,12 +9,13 @@ import { hireThreads } from "@/lib/team/hire";
 import { loadHireMessages, pairKey } from "@/lib/team/hire-data";
 import { sectionAllowed } from "@/lib/team/sections";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
-import { Badge, Notice, Panel, buttonClass } from "@/components/ui/ui";
+import { buttonClass } from "@/components/ui/ui";
 import { ChatForm } from "../chat/chat";
 import { companyLabel } from "../crisis/parts";
 import { postHireMessage } from "./actions";
 import { KeepNewestInView } from "./scroll";
 import { RoomShell } from "../crisis/room-shell";
+import { Chip, GuideAlert, GuidePanel } from "../crisis/guide";
 
 export const metadata: Metadata = { title: "Hire chat" };
 
@@ -23,9 +24,9 @@ export const metadata: Metadata = { title: "Hire chat" };
 // re-reads itself every few seconds while it is open.
 export default async function HireChatPage({ searchParams }: { searchParams: Promise<{ c?: string; f?: string }> }) {
   const ctx = await loadTeamContext();
-  if (!sectionAllowed(ctx.team.track, "/messages")) return <Notice>This section is not part of your team&apos;s portal.</Notice>;
+  if (!sectionAllowed(ctx.team.track, "/messages")) return <GuideAlert>This section is not part of your team&apos;s portal.</GuideAlert>;
   const data = await loadCrisisRoom(ctx);
-  if (data.format !== "PRIMUS") return <Notice>Tonight&apos;s event plays the classic format: use the squad Chat.</Notice>;
+  if (data.format !== "PRIMUS") return <GuideAlert>Tonight&apos;s event plays the classic format: use the squad Chat.</GuideAlert>;
   const product = ctx.team.track === "PRODUCT";
   const messages = await loadHireMessages(ctx.event.id);
   const { c, f } = await searchParams;
@@ -40,12 +41,12 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
   if (threads.length === 0) {
     return (
       <RoomShell track={ctx.team.track} eyebrow="Private 1-to-1" title="Hire chat">
-      <Panel title="Hire chat">
-        <Notice>
+      <GuidePanel title="Hire chat">
+        <GuideAlert>
           {product
             ? "Open a firm's profile and write to it: you can talk terms before you hire, and the thread stays yours afterwards."
             : "Open a company from the Crisis room and write to it: you can pitch before it hires you, and the thread stays yours afterwards."}
-        </Notice>
+        </GuideAlert>
         {product ? (
           <Link href="/team/firms" className={`${buttonClass.primary} mt-3 inline-block`}>
             Browse the firms →
@@ -55,7 +56,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
             Pitch a company from the Crisis room →
           </Link>
         )}
-      </Panel>
+      </GuidePanel>
       </RoomShell>
     );
   }
@@ -104,7 +105,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
                   data-testid={`thread-${l.title}`}
                 >
                   <span className="flex items-baseline gap-2">
-                    <span className="font-mono font-semibold text-[var(--term-amber)]">{l.title}</span>
+                    <span className="font-mono font-semibold text-[#39ff88]">{l.title}</span>
                     <span className="truncate text-xs text-muted">{l.sub}</span>
                   </span>
                   <span className="block truncate text-xs text-paper">
@@ -117,15 +118,15 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
         </ul>
       </nav>
 
-      <Panel title={`${head.title}${head.sub ? ` · ${head.sub}` : ""}`}>
+      <GuidePanel title={`${head.title}${head.sub ? ` · ${head.sub}` : ""}`}>
         <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
           {deals.map((e) => (
-            <Badge key={e.id} tone="green">
+            <Chip key={e.id} tone="green">
               {subroundTitle(e.k)}: {termsText(money(e.cash_cents), e.shares)}
-            </Badge>
+            </Chip>
           ))}
           {product ? (
-            <Link href={`/team/firms/${encodeURIComponent(head.title)}`} className="ml-auto text-[var(--term-amber)] hover:underline">
+            <Link href={`/team/firms/${encodeURIComponent(head.title)}`} className="ml-auto text-[#39ff88] hover:underline">
               Firm profile →
             </Link>
           ) : (
@@ -148,7 +149,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
                   <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                     <article className={`pd-bubble max-w-[85%] text-sm text-paper ${mine ? "pd-bubble-mine" : ""}`}>
                       <header className="mb-0.5 flex items-center gap-2 text-xs">
-                        <span className="font-semibold text-[var(--term-amber)]">{mine ? "You" : head.title}</span>
+                        <span className="font-semibold text-[#39ff88]">{mine ? "You" : head.title}</span>
                         <time dateTime={m.created_at} className="text-muted">
                           {clock(m.created_at)}
                         </time>
@@ -169,10 +170,10 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
               placeholder={`Write to ${head.title}…`}
             />
           ) : (
-            <Notice>The hire chat closed at the awards. The messages stay readable.</Notice>
+            <GuideAlert>The hire chat closed at the awards. The messages stay readable.</GuideAlert>
           )}
         </div>
-      </Panel>
+      </GuidePanel>
     </div>
     </RoomShell>
   );

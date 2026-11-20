@@ -3,10 +3,12 @@ import { loadTeamContext } from "@/lib/team/context";
 import { loadChat } from "@/lib/team/chat-data";
 import { author, chatState } from "@/lib/team/chat";
 import { clock } from "@/lib/format";
-import { Notice, Panel } from "@/components/ui/ui";
+
 import { postSquadMessage } from "./actions";
 import { ChatLive } from "@/components/chat-live";
 import { ChatForm } from "./chat";
+import { GuideAlert, GuidePanel } from "../crisis/guide";
+import { RoomShell } from "../crisis/room-shell";
 
 export const metadata: Metadata = { title: "Chat" };
 
@@ -24,20 +26,23 @@ export default async function ChatPage() {
   const state = chatState(status.phase, squad !== null);
   if (!squad) {
     return (
-      <Panel title="Squad chat">
-        <Notice>The squad chat opens at the squad draw, for the three teams of your squad.</Notice>
-      </Panel>
+      <RoomShell track={team.track} eyebrow="Squad chat" title="Chat">
+        <GuidePanel title="Squad chat">
+          <GuideAlert>The squad chat opens at the squad draw, for the three teams of your squad.</GuideAlert>
+        </GuidePanel>
+      </RoomShell>
     );
   }
   const { messages, more } = await loadChat(squad.id);
   return (
-    <Panel title={`Squad ${String(squad.number).padStart(2, "0")} chat`}>
+    <RoomShell track={team.track} eyebrow="Squad chat" title="Chat" lede="A private chat for your squad's three teams.">
+      <GuidePanel title={`Squad ${String(squad.number).padStart(2, "0")} chat`} tag={`${messages.length} MESSAGES`}>
       <ChatLive newest={messages.at(-1)?.id ?? null} />
-      <p className="text-sm text-paper">
+      <p className="guide-muted">
         A private chat for your squad&apos;s three teams: product, consulting and finance. Agree the fee and the deal here. Organisers and the
         fairness officer can read it too, so keep it fair.
       </p>
-      <div id="chat-log" className="mt-4 max-h-[60vh] overflow-y-auto rounded-md border border-line bg-raised p-3" data-testid="chat-log">
+      <div id="chat-log" className="guide-scroll-box mt-4 border border-[#294832] p-3" data-testid="chat-log">
         {more ? <p className="mb-2 text-center text-xs text-muted">Older messages are not shown.</p> : null}
         {messages.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">No messages yet. Say hello to your squad.</p>
@@ -63,8 +68,9 @@ export default async function ChatPage() {
         )}
       </div>
       <div className="mt-3">
-        {state === "OPEN" ? <ChatForm action={postSquadMessage} /> : <Notice>The squad chat closed at the awards. The messages stay readable.</Notice>}
+        {state === "OPEN" ? <ChatForm action={postSquadMessage} /> : <GuideAlert>The squad chat closed at the awards. The messages stay readable.</GuideAlert>}
       </div>
-    </Panel>
+      </GuidePanel>
+    </RoomShell>
   );
 }

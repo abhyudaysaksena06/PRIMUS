@@ -14,7 +14,7 @@ import { dealPreview, dollarsText, feePreview, type PauseState, type Preview } f
 import { ResultMessage } from "@/components/ui/action";
 import { useCarried, useCarrier } from "@/lib/live/feedback";
 import { safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass } from "@/components/ui/ui";
 import { useDeadlineOpen } from "./parts";
 
 type Action = (prev: ActionResult | null, form: FormData) => Promise<ActionResult>;
@@ -89,11 +89,11 @@ export function FeeForm({
       <fieldset disabled={!open} className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="text-xs font-medium text-paper">Cash (US$)</span>
-          <input name="cash" inputMode="decimal" autoComplete="off" placeholder="e.g. 20000" value={cash} onChange={(e) => setCash(e.target.value)} className={inputClass} />
+          <input name="cash" inputMode="decimal" autoComplete="off" placeholder="e.g. 20000" value={cash} onChange={(e) => setCash(e.target.value)} className="guide-input" />
         </label>
         <label className="block">
           <span className="text-xs font-medium text-paper">Retained shares (at most 3,000)</span>
-          <input name="shares" inputMode="numeric" autoComplete="off" placeholder="e.g. 1000" value={shares} onChange={(e) => setShares(e.target.value)} className={inputClass} />
+          <input name="shares" inputMode="numeric" autoComplete="off" placeholder="e.g. 1000" value={shares} onChange={(e) => setShares(e.target.value)} className="guide-input" />
         </label>
       </fieldset>
       <Check preview={preview}>
@@ -163,7 +163,7 @@ export function DealTermForm({
             placeholder={consulting ? "e.g. 7.50" : "e.g. 60000"}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className={inputClass}
+            className="guide-input"
           />
         </label>
       </fieldset>

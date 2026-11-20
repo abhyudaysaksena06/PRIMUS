@@ -5,11 +5,12 @@
 import { RULES, type Track } from "@msim/engine";
 import { clock, money } from "@/lib/format";
 import { dollarsText, feeTermsText, teamLabel, upperFirst, type FeeView, type PauseState } from "@/lib/team/rescue";
-import { Badge, Notice, Panel } from "@/components/ui/ui";
+
 import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
 import { confirmFee, proposeFee } from "./actions";
 import { ClosingActionButton, Due } from "./parts";
 import { FeeForm } from "./terms-form";
+import { Chip, GuideAlert, GuidePanel } from "../crisis/guide";
 
 export function FeePanel({
   fee,
@@ -30,7 +31,7 @@ export function FeePanel({
 }) {
   const p = fee.proposal;
   return (
-    <Panel
+    <GuidePanel
       title="Advisor fee"
       actions={
         <span className="text-sm text-paper">
@@ -56,29 +57,29 @@ export function FeePanel({
           {fee.party ? null : <p>The fund follows the fee here; it does not take part.</p>}
         </HowItWorks>
 
-        {fee.stage === "BEFORE_CRISIS" ? <Notice>The fee can be proposed from the crisis.</Notice> : null}
+        {fee.stage === "BEFORE_CRISIS" ? <GuideAlert>The fee can be proposed from the crisis.</GuideAlert> : null}
 
         {fee.stage === "AGREED" && fee.executed ? (
-          <Notice tone="green">
+          <GuideAlert>
             <span data-testid="fee-outcome">
               Agreed fee paid at {clock(fee.executed.at, true)}: {feeTermsText(fee.executed)}, from the Product team to the Consulting team.
             </span>
-          </Notice>
+          </GuideAlert>
         ) : null}
         {fee.stage === "DEFAULT" && fee.executed ? (
-          <Notice tone="amber">
+          <GuideAlert tone="warn">
             <span data-testid="fee-outcome">
               No fee was confirmed by both teams by the deadline: the default fee of {money(fee.executed.cash)} cash was paid to the Consulting team at{" "}
               {clock(fee.executed.at, true)}.
             </span>
-          </Notice>
+          </GuideAlert>
         ) : null}
         {fee.stage === "DEFAULT_PENDING" ? (
-          <Notice tone="amber">
+          <GuideAlert tone="warn">
             <span data-testid="fee-outcome">
               The deadline has passed without a fee confirmed by both teams: the default fee of {money(RULES.FEE_DEFAULT)} cash is being paid.
             </span>
-          </Notice>
+          </GuideAlert>
         ) : null}
 
         {fee.stage === "OPEN" ? (
@@ -87,7 +88,7 @@ export function FeePanel({
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-semibold text-phosphor">On the table: version {p.version}</h3>
-                  <span className="text-xs text-muted">
+                  <span className="guide-muted">
                     Proposed by {teamLabel(p.by, track)} at {clock(p.at, true)}
                   </span>
                 </div>
@@ -98,7 +99,7 @@ export function FeePanel({
                   {(["PRODUCT", "CONSULTING"] as const).map((t) => (
                     <li key={t} data-testid={`fee-confirm-${t}`}>
                       {upperFirst(teamLabel(t, track))}:{" "}
-                      {fee.confirmed[t] ? <Badge tone="green">Confirmed {clock(fee.confirmed[t], true)}</Badge> : <Badge tone="slate">Not confirmed</Badge>}
+                      {fee.confirmed[t] ? <Chip tone="green">Confirmed {clock(fee.confirmed[t], true)}</Chip> : <Chip tone="slate">Not confirmed</Chip>}
                     </li>
                   ))}
                 </ul>
@@ -150,6 +151,6 @@ export function FeePanel({
           </div>
         ) : null}
       </div>
-    </Panel>
+    </GuidePanel>
   );
 }

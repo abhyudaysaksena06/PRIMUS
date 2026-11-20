@@ -27,7 +27,8 @@ import {
   type TimelineStep,
 } from "@/lib/team/crisis";
 import { ActionButton, ActionForm } from "@/components/ui/action";
-import { Badge, Panel, Table, Td } from "@/components/ui/ui";
+import { Table, Td } from "@/components/ui/ui";
+import { Chip, GuidePanel } from "./guide";
 import { EquityFields } from "./equity-fields";
 import { Countdown } from "@/components/ui/countdown";
 import { CrisisCard } from "../market/crisis-card";
@@ -40,10 +41,10 @@ export const companyLabel = (c: RoomCompany | undefined) => (c ? `${c.ticker ?? 
 export type StepState = "now" | "done" | "later" | "closed" | "read";
 
 const STEP_CHIP: Record<StepState, { text: string; cls: string } | null> = {
-  now: { text: "Do this now", cls: "pd-chip-solid" },
-  done: { text: "Done", cls: "pd-chip-good" },
-  later: { text: "Later", cls: "pd-chip-quiet" },
-  closed: { text: "Closed", cls: "pd-chip-quiet" },
+  now: { text: "Do this now", cls: "active" },
+  done: { text: "Done", cls: "good" },
+  later: { text: "Later", cls: "" },
+  closed: { text: "Closed", cls: "" },
   read: null,
 };
 
@@ -73,22 +74,22 @@ export function Step({
 }) {
   const chip = STEP_CHIP[state];
   return (
-    <section id={id} className="pd-step min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
+    <section id={id} className="guide-panel guide-step min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
       <details open={open ?? (state === "now" || state === "read")} className="group">
-        <summary>
-          <span aria-hidden className="pd-step-n">
-            {state === "done" ? "✓" : String(n).padStart(2, "0")}
-          </span>
+        <summary className="guide-panel-head cursor-pointer list-none">
           <span className="min-w-[10rem] flex-1">
-            <h2 className="pd-step-title">{title}</h2>
-            {summary ? <span className="pd-step-summary">{summary}</span> : null}
+            <h2>
+              <span aria-hidden>{state === "done" ? "✓ " : `${n}. `}</span>
+              {title}
+            </h2>
+            {summary ? <span className="guide-muted mt-1 block !font-sans !text-[11px] !tracking-normal">{summary}</span> : null}
           </span>
-          {chip ? <span className={`pd-chip ${chip.cls}`}>{chip.text}</span> : null}
-          <span aria-hidden className="pd-step-caret">
+          {chip ? <span className={`guide-chip ${chip.cls}`}>{chip.text}</span> : null}
+          <span aria-hidden className="guide-step-caret">
             ▸
           </span>
         </summary>
-        <div className="pd-step-body">{children}</div>
+        <div className="guide-panel-body">{children}</div>
       </details>
     </section>
   );
@@ -97,24 +98,25 @@ export function Step({
 export function Timeline({ k, steps }: { k: number; steps: TimelineStep[] }) {
   const next = steps.find((s) => !s.passed && s.at);
   return (
-    <div className="pd-panel" data-testid="subround-timeline">
-      <div className="pd-panel-head">
-        <h2 className="pd-eyebrow">{subroundTitle(k)}</h2>
+    <section className="guide-panel" data-testid="subround-timeline">
+      <div className="guide-panel-head">
+        <h2>{subroundTitle(k)}</h2>
         {next ? (
-          <span className="pd-panel-meta">
-            {next.label} in <Countdown to={next.at} className="text-[var(--term-amber)]" />
+          <span>
+            {next.label} in <Countdown to={next.at} className="text-[#39ff88]" />
           </span>
         ) : null}
       </div>
-      <ol className="pd-metrics p-3 sm:p-4">
+      <ol className="guide-panel-body guide-grid guide-timeline">
         {steps.map((s) => (
-          <li key={s.code} className={`pd-metric ${s.passed ? "is-past" : s === next ? "is-next" : ""}`}>
-            <p>{s.label}</p>
-            <p>{s.at ? clock(s.at) : "—"}</p>
+          <li key={s.code} className={`guide-metric ${s.passed ? "opacity-55" : ""} ${s === next ? "is-next" : ""}`}>
+            <small>{s.label}</small>
+            <b className="!text-lg">{s.at ? clock(s.at) : "—"}</b>
+            <span>{s.passed ? "PASSED" : s === next ? "NEXT" : "LATER"}</span>
           </li>
         ))}
       </ol>
-    </div>
+    </section>
   );
 }
 
@@ -137,7 +139,7 @@ export function CardsOf({ data, k, only }: { data: CrisisRoomData; k: number; on
     <ul className="grid gap-3 sm:grid-cols-2" aria-label="Crisis cards">
       {rows.map((r) => (
         <li key={r.company_id} className={single ? "sm:col-span-2" : undefined}>
-          {single ? null : <p className="mb-1 font-mono text-xs text-[var(--term-cyan)]">{companyLabel(byId.get(r.company_id))}</p>}
+          {single ? null : <p className="guide-chip active mb-2">{companyLabel(byId.get(r.company_id))}</p>}
           {/* The one card a team must answer is shown in focus; a list of every company's card stays compact. */}
           {single ? <CrisisFocusCard card={r.card} /> : <CrisisCard card={r.card} />}
         </li>
@@ -155,7 +157,7 @@ export function StatementCrowd({ group }: { group: StatementGroup }) {
           {group.companies.map((c) => (
             <li
               key={c.id}
-              className={`pd-chip ${c.mine ? "pd-chip-solid" : "pd-chip-quiet"}`}
+              className={`guide-chip ${c.mine ? "active" : ""}`}
             >
               {c.label}
               {c.mine ? " (you)" : ""} <span className={c.mine ? "" : "text-muted"}>· {c.scoreAvg.toFixed(0)}</span>
@@ -182,9 +184,9 @@ export function OnTheClock({ data }: { data: CrisisRoomData }) {
       <ul className="space-y-1 text-sm font-semibold text-paper" data-testid="on-the-clock" aria-label="On the clock in each sector">
         {heads.map((h) => (
           <li key={h.queue}>
-            <span className="mr-2 pd-chip pd-chip-solid">{name(h.queue)}</span>
-            <span className="font-mono text-[var(--term-amber)]">{companyLabel(data.companies.find((x) => x.id === h.pick.company_id))}</span> · pick {h.place} of {h.size} ·{" "}
-            <Countdown to={h.pick.closes_at} passed="time is up" className="font-mono text-[var(--term-amber)]" /> · {h.left} still to pick
+            <span className="guide-chip active mr-2">{name(h.queue)}</span>
+            <span className="font-mono text-[#39ff88]">{companyLabel(data.companies.find((x) => x.id === h.pick.company_id))}</span> · pick {h.place} of {h.size} ·{" "}
+            <Countdown to={h.pick.closes_at} passed="time is up" className="font-mono text-[#39ff88]" /> · {h.left} still to pick
           </li>
         ))}
       </ul>
@@ -195,9 +197,9 @@ export function OnTheClock({ data }: { data: CrisisRoomData }) {
   const left = data.picks.filter((p) => p.statement_id === null).length;
   return (
     <p className="text-sm font-semibold text-paper" data-testid="on-the-clock">
-      <span className="mr-2 pd-chip pd-chip-solid">On the clock</span>
-      <span className="font-mono text-[var(--term-amber)]">{companyLabel(c)}</span> · pick {d.current.pick_no} of {data.picks.length} ·{" "}
-      <Countdown to={d.current.closes_at} passed="time is up" className="font-mono text-[var(--term-amber)]" /> · {left} still to pick
+      <span className="guide-chip active mr-2">On the clock</span>
+      <span className="font-mono text-[#39ff88]">{companyLabel(c)}</span> · pick {d.current.pick_no} of {data.picks.length} ·{" "}
+      <Countdown to={d.current.closes_at} passed="time is up" className="font-mono text-[#39ff88]" /> · {left} still to pick
     </p>
   );
 }
@@ -209,7 +211,7 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
   const groups = statementGroups(data.statements, data.picks, (id) => label.get(id) ?? "—");
   const sectorOf = new Map(data.statements.map((s) => [s.id, s.sector]));
   return (
-    <Panel title={title}>
+    <GuidePanel title={title} tag={`${data.statements.length} STATEMENTS`}>
       <OnTheClock data={data} />
       {draftState(data.picks, null).bySector && !draftState(data.picks, null).done ? (
         // Picks are not broadcast to every screen while the sectors draft: this board catches up when the draft ends.
@@ -221,26 +223,26 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
       </p>
       <ul className="grid gap-3 md:grid-cols-2" aria-label="Statements and their companies">
         {groups.map((g) => (
-          <li key={g.id} className="pd-card" data-testid={`board-${g.number}`}>
+          <li key={g.id} className="border border-[#294832] p-3.5" data-testid={`board-${g.number}`}>
             <p className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[var(--term-amber)]">#{g.number}</span>
+              <span className="font-mono text-[#39ff88]">#{g.number}</span>
               <span className="font-semibold text-paper">{g.title}</span>
-              {sectorOf.get(g.id) ? <Badge tone="blue">{sectorOf.get(g.id)}</Badge> : null}
-              <Badge tone={g.companies.length >= g.cap ? "red" : "slate"}>
+              {sectorOf.get(g.id) ? <Chip tone="blue">{sectorOf.get(g.id)}</Chip> : null}
+              <Chip tone={g.companies.length >= g.cap ? "red" : "slate"}>
                 {g.companies.length}/{g.cap}
-              </Badge>
+              </Chip>
             </p>
             <StatementCrowd group={g} />
           </li>
         ))}
       </ul>
-    </Panel>
+    </GuidePanel>
   );
 }
 
 export function FirmLeague({ data, me }: { data: CrisisRoomData; me?: string }) {
   return (
-    <Panel title="Firm values">
+    <GuidePanel title="Firm values" tag={`${data.firms.length} FIRMS`}>
       <Table
         head={["Firm", "Cash", "Fee shares", "Value", "Clients", "Avg rating"]}
         empty={data.firms.length === 0 ? "No Consulting firm in this event." : undefined}
@@ -249,8 +251,8 @@ export function FirmLeague({ data, me }: { data: CrisisRoomData; me?: string }) 
           <tr key={f.team_id} className={f.team_id === me ? "bg-raised" : ""} data-testid={`firm-value-${f.code}`}>
             <Td>
               <span className="mr-2 text-muted">{i + 1}.</span>
-              <span className="font-mono font-semibold text-[var(--term-amber)]">{f.code}</span> {f.name}
-              {f.team_id === me ? <span className="ml-2"><Badge tone="violet">You</Badge></span> : null}
+              <span className="font-mono font-semibold text-[#39ff88]">{f.code}</span> {f.name}
+              {f.team_id === me ? <span className="ml-2"><Chip tone="active">You</Chip></span> : null}
             </Td>
             <Td mono>{money(f.cash_cents)}</Td>
             <Td mono>{money(f.fee_share_value_cents)}</Td>
@@ -263,7 +265,7 @@ export function FirmLeague({ data, me }: { data: CrisisRoomData; me?: string }) 
         ))}
       </Table>
       <p className="mt-2 text-xs text-muted">Value = cash + fee shares at the market price. The final ranking ties on the average client rating.</p>
-    </Panel>
+    </GuidePanel>
   );
 }
 
@@ -273,7 +275,7 @@ export function EngagementTable({ data, rows, title = "Who hired whom" }: { data
   const company = new Map(data.companies.map((c) => [c.id, c]));
   const firm = new Map(data.firms.map((f) => [f.team_id, f]));
   return (
-    <Panel title={title}>
+    <GuidePanel title={title} tag={`${rows.length} HIRES`}>
       <Table head={["Sub-round", "Company", "Firm", "Fee", "Escrow", "Rating", "Bonus"]} empty={rows.length === 0 ? "No firm hired yet." : undefined}>
         {rows.map((e) => (
           <tr key={e.id}>
@@ -282,14 +284,14 @@ export function EngagementTable({ data, rows, title = "Who hired whom" }: { data
             <Td mono>{firm.get(e.firm_team_id)?.code ?? "—"}</Td>
             <Td mono>{termsText(money(e.cash_cents), e.shares)}</Td>
             <Td>
-              <Badge tone={ESCROW_TONE[e.escrow]}>{e.escrow}</Badge>
+              <Chip tone={ESCROW_TONE[e.escrow]}>{e.escrow}</Chip>
             </Td>
             <Td mono>{e.rating === null ? "—" : `${e.rating}/5${e.rating_default ? " (default)" : ""}`}</Td>
             <Td mono>{e.bonus_cents === null ? "—" : money(e.bonus_cents)}</Td>
           </tr>
         ))}
       </Table>
-    </Panel>
+    </GuidePanel>
   );
 }
 
@@ -298,16 +300,16 @@ export function OfferCard({ offer, side, hiring, counterpart, priceCents = null 
   const moves = offerMoves(offer, side, hiring);
   const waiting = offer.status === "OPEN" && offer.turn !== side;
   return (
-    <li className="pd-card" data-testid="offer">
+    <li className="border border-[#294832] p-3.5" data-testid="offer">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-mono font-semibold text-[var(--term-amber)]">{counterpart}</span>
+        <span className="font-mono font-semibold text-[#39ff88]">{counterpart}</span>
         <span className="font-mono text-paper">{termsText(money(offer.cash_cents), offer.shares)}</span>
         {offer.shares > 0 && priceCents ? (
           <span className="font-mono text-xs text-[var(--term-cyan)]">worth {money(offer.cash_cents + offer.shares * priceCents)} now</span>
         ) : null}
-        <Badge tone={OFFER_STATUS_TONE[offer.status]}>{offer.status}</Badge>
+        <Chip tone={OFFER_STATUS_TONE[offer.status]}>{offer.status}</Chip>
         {offer.status === "OPEN" ? (
-          <span className="text-xs text-muted">{waiting ? "Waiting for the other side" : "Your turn to answer"}</span>
+          <span className="guide-status">{waiting ? "Waiting for the other side" : "Your turn to answer"}</span>
         ) : null}
         <span className="ml-auto font-mono text-xs text-muted">{clock(offer.updated_at)}</span>
       </div>
@@ -325,7 +327,7 @@ export function OfferCard({ offer, side, hiring, counterpart, priceCents = null 
       ) : null}
       {moves.includes("COUNTER") ? (
         <details className="mt-2">
-          <summary className="pd-summary-btn">Counter ({countersLeft(offer, side)} left)</summary>
+          <summary className="guide-btn secondary cursor-pointer list-none">Counter ({countersLeft(offer, side)} left)</summary>
           <ActionForm action={counterOffer.bind(null, offer.id)} submit="Send counter" className="mt-2">
             <TermsFields cash={offer.cash_cents} shares={offer.shares} priceCents={priceCents} />
           </ActionForm>

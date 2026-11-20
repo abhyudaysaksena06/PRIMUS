@@ -8,8 +8,9 @@ import type { CrisisCardRow } from "@/lib/team/rescue-data";
 import type { SquadCompany } from "@/lib/team/context";
 import { ThermalBeam } from "@/components/ui/matrix/thermal-scan";
 import { CipherText } from "@/components/ui/matrix/cipher-text";
-import { Panel, Stat } from "@/components/ui/ui";
+import { Stat } from "@/components/ui/ui";
 import { Due } from "./parts";
+import { GuidePanel } from "../crisis/guide";
 
 export function CrisisPanel({
   applied,
@@ -30,7 +31,7 @@ export function CrisisPanel({
 }) {
   if (!applied) {
     return (
-      <Panel title={`The crisis${startsAt ? ` at ${clock(startsAt)}` : ""}`}>
+      <GuidePanel title={`The crisis${startsAt ? ` at ${clock(startsAt)}` : ""}`}>
         <div className="space-y-3 text-sm text-paper" data-testid="crisis-before">
           <p>
             At {startsAt ? clock(startsAt) : "00:30"} trading halts and every company is dealt a crisis card, drawn by the same verifiable lottery as the
@@ -49,13 +50,13 @@ export function CrisisPanel({
             ))}
           </ol>
         </div>
-      </Panel>
+      </GuidePanel>
     );
   }
   const post = company?.post_crisis_price ?? move?.market_after ?? null;
   const band = post ? dealPriceBand(post) : null;
   return (
-    <Panel title="The crisis">
+    <GuidePanel title="The crisis">
       <div className="grid gap-4 md:grid-cols-2">
         {card ? (
           <div className="mx-thermal border-l-4 border-danger bg-danger/10 py-2 pl-3 pr-2" data-testid="crisis-card">
@@ -64,7 +65,7 @@ export function CrisisPanel({
             <h3 className="mt-1 font-semibold text-danger [--mx-cipher-color:var(--mx-red)]">
               <CipherText text={card.title} />
             </h3>
-            {card.body ? <p className="mt-1 whitespace-pre-wrap text-sm text-paper">{card.body}</p> : null}
+            {card.body ? <p className="guide-muted mt-1.5 whitespace-pre-wrap">{card.body}</p> : null}
           </div>
         ) : (
           <p className="text-sm text-paper">Your company&apos;s crisis card is not available.</p>
@@ -79,6 +80,6 @@ export function CrisisPanel({
           {band ? <Stat label="Deal price band" value={`${money(band.min)}–${money(band.max)}`} hint="50%–100% of the post-crisis price" /> : null}
         </div>
       </div>
-    </Panel>
+    </GuidePanel>
   );
 }

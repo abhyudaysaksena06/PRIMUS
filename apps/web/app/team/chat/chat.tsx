@@ -10,7 +10,7 @@ import { CHAT_MAX_CHARS, chatCheck } from "@/lib/team/chat";
 import { count } from "@/lib/format";
 import { ResultMessage } from "@/components/ui/result-message";
 import { safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass } from "@/components/ui/ui";
 
 type Action = (prev: ActionResult | null, form: FormData) => Promise<ActionResult>;
 
@@ -63,7 +63,7 @@ export function ChatForm({ action, placeholder = "Write to your squad…" }: { a
               }
             }}
             placeholder={placeholder}
-            className={`${inputClass} resize-none`}
+            className={`guide-input resize-none`}
           />
         </label>
         <button type="submit" className={buttonClass.primary} disabled={!check.ok || pending}>
