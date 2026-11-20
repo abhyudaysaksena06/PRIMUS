@@ -7,7 +7,9 @@
 import { useEventChannel } from "@/lib/live/channel";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 
+// safetyMs 0: no re-read while connected (the team screens re-read only while the channel is down).
 export function FallbackRefresh({ everyMs = 10_000, safetyMs = 60_000 }: { everyMs?: number; safetyMs?: number }) {
   const { status } = useEventChannel();
-  return <AutoRefresh everyMs={status === "SUBSCRIBED" ? safetyMs : everyMs} />;
+  const live = status === "SUBSCRIBED";
+  return <AutoRefresh everyMs={live && safetyMs > 0 ? safetyMs : everyMs} active={!live || safetyMs > 0} />;
 }

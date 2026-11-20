@@ -42,7 +42,7 @@ fuzz-parity run of random rounds; its findings are in TRADING-ALGORITHM.md.
 | Clock | How often | Code |
 | --- | --- | --- |
 | `pg_cron` job `msim-tick` inside the database | every **2 seconds** | `select app.tick_all()` (migration 014) |
-| Every open organiser console | every **1 second** while the page is open | `Heartbeat` with `tick` on, `apps/web/lib/live/heartbeat.tsx` (`TICK_MS`), mounted by `app/admin/[slug]/layout.tsx` for organisers |
+| Every open organiser console | every **5 seconds** while the page is open | `Heartbeat` with `tick` on, `apps/web/lib/live/heartbeat.tsx` (`TICK_MS`), mounted by `app/admin/[slug]/layout.tsx` for organisers |
 
 `app.tick_all()` ticks every event whose phase is between `CHECKIN` and `APPEALS`, each inside its own exception
 block: an error in one event is written to `error_log` (source `tick`) and the others still tick. It waits at most

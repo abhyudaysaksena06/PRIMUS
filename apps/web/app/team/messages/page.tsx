@@ -75,7 +75,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="grid gap-4 md:grid-cols-[16rem_1fr]">
-      <AutoRefresh everyMs={5_000} active={open} />
+      <AutoRefresh everyMs={15_000} active={open} />
       <KeepNewestInView newest={log.at(-1)?.id ?? null} />
       <nav className="border border-line bg-panel" aria-label="Conversations">
         <h2 className="border-b border-line bg-raised px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">

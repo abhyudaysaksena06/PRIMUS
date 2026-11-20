@@ -7,6 +7,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { clock, count, money } from "@/lib/format";
 import { Badge, Panel, Stat, Table, Td } from "@/components/ui/ui";
 import { currentViewer } from "@/lib/auth/viewer";
+import { fetchAll } from "@/lib/fetch-all";
 
 export const metadata: Metadata = { title: "Finance" };
 
@@ -18,19 +19,24 @@ export default async function FinanceTrack({ params }: PageProps<"/admin/[slug]/
   const [status, { teams, squads }] = await Promise.all([loadEventStatus(event.id), loadSquads(event.id)]);
   const sb = await supabaseServer();
   const funds = teams.filter((t) => t.track === "FINANCE");
-  const [bidsQ, ordersQ, marketQ, accountsQ, positionsQ] = await Promise.all([
-    sb.from("ipo_bids").select("team_id, qty_requested, qty_allocated").eq("event_id", event.id),
-    sb.from("orders").select("team_id, qty").eq("event_id", event.id).eq("status", "PENDING"),
+  // Bids, pending orders and practice positions can pass PostgREST's 1,000-row cap: read every page.
+  const [bids, orders, marketQ, accountsQ, positions] = await Promise.all([
+    fetchAll<{ team_id: string; qty_requested: number; qty_allocated: number | null }>((from, to) =>
+      sb.from("ipo_bids").select("team_id, qty_requested, qty_allocated").eq("event_id", event.id).order("id").range(from, to),
+    ),
+    fetchAll<{ team_id: string; qty: number }>((from, to) =>
+      sb.from("orders").select("team_id, qty").eq("event_id", event.id).eq("status", "PENDING").order("id").range(from, to),
+    ),
     // The practice tables come with migration 52: a database without them shows no practice market.
     sb.from("practice_markets").select("starts_at, tick_seconds, steps, settled_at").eq("event_id", event.id).maybeSingle(),
     sb.from("practice_accounts").select("team_id, cash_cents, trades, equity_cents, edge_cents").eq("event_id", event.id),
-    sb.from("practice_positions").select("team_id, ticker_team_id, qty").eq("event_id", event.id).neq("qty", 0),
+    fetchAll<{ team_id: string; ticker_team_id: string; qty: number }>((from, to) =>
+      sb.from("practice_positions").select("team_id, ticker_team_id, qty").eq("event_id", event.id).neq("qty", 0)
+        .order("team_id").order("ticker_team_id").range(from, to),
+    ).catch(() => []),
   ]);
-  const bids = (bidsQ.data ?? []) as { team_id: string; qty_requested: number; qty_allocated: number | null }[];
-  const orders = (ordersQ.data ?? []) as { team_id: string; qty: number }[];
   const market = marketQ.data as { starts_at: string; tick_seconds: number; steps: number; settled_at: string | null } | null;
   const accounts = (accountsQ.data ?? []) as { team_id: string; cash_cents: number | string; trades: number; equity_cents: number | string | null; edge_cents: number | string | null }[];
-  const positions = (positionsQ.data ?? []) as { team_id: string; ticker_team_id: string; qty: number }[];
 
   // Live practice standings: cash plus every position at its latest price (the tick of this moment).
   let latest = new Map<string, number>();

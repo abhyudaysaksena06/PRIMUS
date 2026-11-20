@@ -8,6 +8,7 @@ import { ClockProvider } from "@/lib/live/clock";
 import { EventChannel } from "@/lib/live/channel";
 import { SquadChannel } from "@/lib/live/squad-channel";
 import { Heartbeat } from "@/lib/live/heartbeat";
+import { FallbackRefresh } from "@/app/display/[slug]/fallback-refresh";
 import { FeedbackBar, FeedbackProvider } from "@/lib/live/feedback";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Badge } from "@/components/ui/ui";
@@ -133,10 +134,12 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <TeamFeatures features={status.features}>
-      <EventChannel eventId={event.id} teamId={team.id} spreadMs={1200}>
+      <EventChannel eventId={event.id} teamId={team.id} spreadMs={4000}>
         <SquadChannel squadId={ctx.squad?.id ?? null}>
         <FeedbackProvider>
         <Heartbeat eventId={event.id} area="team" />
+        {/* Realtime down: re-read every 20 s until it is back. */}
+        <FallbackRefresh everyMs={20_000} safetyMs={0} />
         <BootSequence who={team.code} />
         <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
         {/* "Your pick!" on every page during a by-sector Round 3 draft (it stops by itself when the draft ends). */}
