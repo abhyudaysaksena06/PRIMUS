@@ -6,12 +6,16 @@
 // was based on. A version saved elsewhere meanwhile is merged section by section with what was typed here: the other
 // team's sections are taken, the typed text stays, and a section both changed asks which text to keep (see
 // lib/team/editor.ts). Unsaved changes are also saved automatically after a pause in the typing. The form hard-closes at the deadline by the server clock; the database refuses late saves anyway.
+// Tonight's switches (lib/team/writing.ts): paste_block cancels pasting and dropping text into any field of the form;
+// submit_last_5 keeps Submit shut, with a countdown, until 5 minutes before the deadline.
 
 import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TEMPLATES, type SubmissionType } from "@msim/engine";
-import { clock } from "@/lib/format";
+import { clock, countdown } from "@/lib/format";
 import { useServerNow } from "@/lib/live/clock";
+import { useFeature } from "@/lib/team/features";
+import { GUARDED_EVENTS, PASTE_BLOCKED_TEXT, blocksEvent, submitOpensAt, submitWaitMs, type GuardedEvent } from "@/lib/team/writing";
 import {
   MAX_CONTENT_CHARS,
   afterResult,
@@ -95,6 +99,37 @@ export function DraftEditor(props: DraftEditorProps) {
   // Hard close at the deadline, by the server clock (frozen while the event is paused).
   const now = useServerNow(1000);
   const live = editable && !deadlinePassed(deadline, now, { paused: props.paused, pausedAt: props.pausedAt });
+  // submit_last_5: Submit opens 5 minutes before the deadline (the database refuses earlier ones anyway).
+  const lastFive = useFeature("submit_last_5");
+  const opensAt = submitOpensAt(deadline, lastFive);
+  const submitWait = submitWaitMs(opensAt, now, { paused: props.paused, pausedAt: props.pausedAt });
+
+  // paste_block: every way of putting text in without typing it is cancelled at the browser's own events, on every
+  // field of the form (listened to on the form, before React sees them).
+  const pasteSwitch = useFeature("paste_block");
+  const blockPaste = pasteSwitch && live;
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pasteBlockedAt, setPasteBlockedAt] = useState<number | null>(null);
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form || !blockPaste) return;
+    const guard = (e: Event) => {
+      const g = { type: e.type, inputType: (e as InputEvent).inputType, ...keyOf(e) } as GuardedEvent;
+      if (!blocksEvent(g)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPasteBlockedAt(Date.now());
+    };
+    for (const t of GUARDED_EVENTS) form.addEventListener(t, guard, true);
+    return () => {
+      for (const t of GUARDED_EVENTS) form.removeEventListener(t, guard, true);
+    };
+  }, [blockPaste]);
+  useEffect(() => {
+    if (pasteBlockedAt === null) return;
+    const t = setTimeout(() => setPasteBlockedAt(null), 6000);
+    return () => clearTimeout(t);
+  }, [pasteBlockedAt]);
 
   // This tab's backup of unsaved text, looked at once in the browser (after hydration).
   const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
@@ -237,6 +272,7 @@ export function DraftEditor(props: DraftEditorProps) {
 
   return (
     <form
+      ref={formRef}
       className="space-y-4"
       aria-label={`${SUBMISSION_LABELS[type]} editor`}
       onSubmit={(e) => {
@@ -334,6 +370,17 @@ export function DraftEditor(props: DraftEditorProps) {
         </div>
       ) : null}
 
+      {blockPaste ? (
+        <p
+          role="status"
+          className={`text-sm ${pasteBlockedAt !== null ? "rounded-md bg-warn/10 px-3 py-2 font-semibold text-warn ring-1 ring-inset ring-warn/60" : "text-muted"}`}
+          data-testid="paste-blocked"
+          data-state={pasteBlockedAt !== null ? "blocked" : "hint"}
+        >
+          {PASTE_BLOCKED_TEXT}
+        </p>
+      ) : null}
+
       {type === "PITCH" ? (
         <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
           <div>
@@ -429,6 +476,11 @@ export function DraftEditor(props: DraftEditorProps) {
             {live ? ": submit again to replace it." : "."}
           </p>
         )
+      ) : live && opensAt ? (
+        <p className="text-sm text-paper" data-testid="submitted-state">
+          Not submitted yet. Submit opens at {clock(opensAt)}, 5 minutes before the deadline at {clock(deadline)}. Changes save automatically when
+          you pause typing, and if nobody submits, your last saved version is submitted for you at the deadline.
+        </p>
       ) : live ? (
         <p className="text-sm text-paper" data-testid="submitted-state">
           Not submitted yet. Submit when it is ready (you can submit again until the deadline). Changes save automatically when you pause
@@ -450,10 +502,20 @@ export function DraftEditor(props: DraftEditorProps) {
             <ActionButton
               variant="primary"
               action={submit}
-              confirm={confirm}
-              disabled={choosing || pending || submitting || problem !== null || (isSubmitted && !dirty)}
+              confirm={submitWait > 0 ? undefined : confirm}
+              disabled={choosing || pending || submitting || problem !== null || (isSubmitted && !dirty) || submitWait > 0}
             >
-              {isSubmitted && !dirty ? "Submitted" : dirty ? "Save and submit" : "Submit"}
+              {submitWait > 0 ? (
+                <span data-testid="submit-opens-in" suppressHydrationWarning>
+                  Submit opens in {countdown(submitWait)}
+                </span>
+              ) : isSubmitted && !dirty ? (
+                "Submitted"
+              ) : dirty ? (
+                "Save and submit"
+              ) : (
+                "Submit"
+              )}
             </ActionButton>
           </div>
           <ResultMessage result={saveResult} />
@@ -461,6 +523,11 @@ export function DraftEditor(props: DraftEditorProps) {
       ) : null}
     </form>
   );
+}
+
+/** The key fields of a keyboard event (other events have none). */
+function keyOf(e: Event) {
+  return e instanceof KeyboardEvent ? { key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey } : {};
 }
 
 /** Text shown read-only, field by field (the unsaved text, or the set-aside sections when `only` names them). */

@@ -43,7 +43,8 @@ export function SubmissionEditor({ ctx, ws, type, win }: { ctx: TeamContext; ws:
         <h3 className="text-sm font-semibold text-phosphor">Submitted versions</h3>
         {versions.length === 0 ? (
           <p className="mt-1 text-sm text-muted">
-            No {SUBMISSION_LABELS[type].toLowerCase()} has been submitted yet. A saved draft is not judged until it is submitted.
+            No {SUBMISSION_LABELS[type].toLowerCase()} has been submitted yet. If nobody submits, the last saved draft is submitted for you at the
+            deadline{win.deadline ? ` (${clock(win.deadline)})` : ""} and judged.
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
