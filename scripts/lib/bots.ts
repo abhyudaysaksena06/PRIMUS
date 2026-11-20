@@ -101,6 +101,17 @@ export interface Snapshot {
   statements?: { id: string; cap: number; taken: number }[];
   /** PRIMUS, Consulting: the version of its advice draft for each client (company id → version). */
   clientDrafts?: Record<string, number>;
+  /** PRIMUS Round 1, Finance: the practice market, once it is prepared (null before, or for other teams). */
+  practice?: PracticeView | null;
+}
+
+export interface PracticeView {
+  /** Open for trades now (prepared, not settled, Round 1 under way). */
+  open: boolean;
+  /** The simulated companies' ids (whatever the market was prepared with). */
+  tickers: string[];
+  /** This fund's practice positions: ticker id → shares (negative: short). */
+  positions: Record<string, number>;
 }
 
 export interface PrimusView {
@@ -123,9 +134,14 @@ export interface Memory {
   wait: Map<string, number>;
   /** Round numbers in which this fund has already placed its orders. */
   tradedRounds: Set<number>;
+  /** Practice trades made in Round 1. */
+  practiceTrades: number;
 }
 
-export const newMemory = (): Memory => ({ done: new Set(), wait: new Map(), tradedRounds: new Set() });
+export const newMemory = (): Memory => ({ done: new Set(), wait: new Map(), tradedRounds: new Set(), practiceTrades: 0 });
+
+/** A fund's practice trades in Round 1 (a few, like a person trying the terminal; the market allows 30 per 10 s). */
+export const PRACTICE_TRADES = 6;
 
 export type Action =
   | { key: string; fn: "pick_problem_card"; args: { p_card: string } }
@@ -145,7 +161,8 @@ export type Action =
   | { key: string; fn: "rate_firm"; args: { p_k: number; p_rating: number } }
   | { key: string; fn: "pick_statement"; args: { p_statement: string } }
   | { key: string; fn: "save_draft_for"; args: { p_company: string; p_type: SubmissionType; p_content: Record<string, string>; p_expected_version: number } }
-  | { key: string; fn: "submit_for"; args: { p_company: string; p_type: SubmissionType } };
+  | { key: string; fn: "submit_for"; args: { p_company: string; p_type: SubmissionType } }
+  | { key: string; fn: "practice_trade"; args: { p_ticker: string; p_type: "BUY" | "SELL"; p_qty: number } };
 
 // ───────────────────────────── Content ─────────────────────────────
 
@@ -290,6 +307,10 @@ export function decide(s: Snapshot, m: Memory, r: () => number, now: number, pha
   if (s.format === "PRIMUS") primusActions(add, s, r);
 
   if (track === "FINANCE") {
+    if (p === "BUILD") {
+      const trade = practiceTrade(s, m, r);
+      if (trade) add(trade);
+    }
     const others = s.companies.filter((c) => c.squad_id !== null && c.squad_id !== s.squad?.id);
     if (p === "IPO" && s.ipoBids === 0 && !m.done.has("ipo")) {
       for (const a of ipoBids(others, s.team.cash_cents, r)) add(a);
@@ -369,6 +390,25 @@ function submission(add: (a: Action) => void, s: Snapshot, type: SubmissionType,
   add({ key: `submit-${type}`, fn: "submit_submission", args: { p_type: type } });
 }
 
+/**
+ * One practice trade in Round 1 (PRIMUS): sell a position now and then, else buy 10–100 shares of a simulated company,
+ * within the 4,000-share long limit. The market fills at its current price; at most PRACTICE_TRADES per fund.
+ */
+export function practiceTrade(s: Snapshot, m: Memory, r: () => number, max = PRACTICE_TRADES): Action | null {
+  const P = s.practice;
+  if (!P?.open || !P.tickers.length || m.practiceTrades >= max) return null;
+  const key = `practice-${m.practiceTrades}`;
+  const held = Object.entries(P.positions).filter(([, q]) => q > 0);
+  if (held.length && r() < 0.4) {
+    const [ticker, qty] = pick(r, held);
+    return { key, fn: "practice_trade", args: { p_ticker: ticker, p_type: "SELL", p_qty: qty } };
+  }
+  const ticker = pick(r, P.tickers);
+  const qty = Math.min(between(r, 1, 10) * 10, 4000 - Math.max(0, P.positions[ticker] ?? 0));
+  if (qty < 1) return null;
+  return { key, fn: "practice_trade", args: { p_ticker: ticker, p_type: "BUY", p_qty: qty } };
+}
+
 /** IPO bids: 4–8 other companies, 500–2,000 shares each, within 60% of the fund's cash at IPO prices. */
 export function ipoBids(companies: BotCompany[], cash: number, r: () => number): Action[] {
   const priced = companies.filter((c) => c.ipo_price);
@@ -430,6 +470,8 @@ export const LATER = new Set([
   "RATE_LIMITED", "NOT_OPEN", "WINDOW_CLOSED", "TRADING_HALTED", "TRADING_PAUSED", "NOT_YET", "WRONG_PHASE", "STALE_VERSION", "VERSION_CONFLICT",
   // PRIMUS: hiring, the draft and ratings move on; the bot looks again next turn.
   "HIRING_CLOSED", "NOT_YOUR_TURN", "FIRM_FULL", "OFFER_OPEN", "RATING_CLOSED", "STATEMENT_FULL",
+  // The Round 1 practice market: not open (yet), or a ticker without a price yet.
+  "PRACTICE_CLOSED", "NO_PRICE",
 ]);
 
 /** What a refusal means for the memory: done (never again), or wait and retry. */
@@ -438,6 +480,7 @@ export function remember(m: Memory, a: Action, result: { ok: boolean; code?: str
     m.done.add(a.key);
     if (a.fn === "place_ipo_bid") m.done.add("ipo");
     if (a.fn === "place_order" && s.openRound !== null) m.tradedRounds.add(s.openRound);
+    if (a.fn === "practice_trade") m.practiceTrades++;
     return;
   }
   if (a.fn === "place_order" && s.openRound !== null) m.tradedRounds.add(s.openRound); // one try per round

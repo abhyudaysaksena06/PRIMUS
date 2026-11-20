@@ -1,49 +1,47 @@
-// The Phase 7 load test: many live screens and every fund trading in the last minute of a round, measured against
-// the plan's targets (a clearing under 5 s, every screen updated within 2 s of it).
+// The realtime load test (docs/LOAD-TEST.md): the night's live screens and every fund trading in a round's last
+// minute, measured against the bot test's targets (realtime delivery at least 99%, a clearing under 5 s).
 //
-//   1. Signs in every team of a rehearsal event and opens --connections realtime connections (default 500) on the
-//      event's private channel and the team's own channel, as the team screens do.
-//   2. Waits for an open round with --window seconds (default 60) or less to go, then every fund places
-//      --orders-per-fund orders (default 6) at random moments in that window, while the other teams re-read their
-//      pages every 5 s.
-//   3. At the close it watches the round (as the service role) until it is CLEARED, and records when each screen hears
-//      "round_cleared" and how long a sample of screens takes to read the new prices.
+//   pnpm load-test [--slug load-600] [--connections 450] [--rounds 1] [--orders-per-fund 6] [--window 60] [--sample 50]
 //
-//   SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… NEXT_PUBLIC_SUPABASE_ANON_KEY=… CARD_SECRET=… TEAM_EMAIL_DOMAIN=… \
-//     pnpm load-test --slug rehearsal [--connections 500] [--orders-per-fund 6] [--window 60] [--sample 50]
+//   1. Signs in the present teams (checked in, when the event uses the desk) and opens --connections realtime
+//      connections (default 450: Supabase Pro allows 500 connections and 500 messages a second, which leaves room for
+//      the projectors and consoles), each on the event's private channel, its team's channel and its squad's chat.
+//   2. Records every event broadcast each connection hears, from the moment all have joined: a broadcast's delivery is
+//      the share of the connected screens that heard it, its latency how long after its "at" (the server's time) and
+//      after the first screen each one heard it. Also the busiest second (deliveries a second, against Pro's 500).
+//   3. For each of --rounds trading rounds: waits for an open round with --window seconds or less to go, every present
+//      fund places its orders at random moments in that window while the other teams re-read their pages every 5 s,
+//      then measures the clearing (close → CLEARED) and how fast a sample of screens reads the new prices.
 //
-// Run it against a rehearsal event in ROUNDS (e.g. while `pnpm rehearse --autopilot` plays it). Writes a JSON report
-// to out/ and exits 1 when a target is missed.
+// Run it while the bots play the event (pnpm rehearse --autopilot). Refuses a live event. Writes out/load-<timestamp>.md
+// and exits 1 when a target is missed.
 
-import { mkdirSync, writeFileSync } from "node:fs";
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 import { parseArgs, required } from "./lib/args";
 import { call, pool, signInTeam, sleep, snapshot, type Env, type TeamLogin } from "./lib/bot-runner";
 import { rng, roundOrders } from "./lib/bots";
+import { REALTIME_USAGE, UsageError, realtimeOptions, type RealtimeOptions } from "./lib/load-args";
+import { admittedTeams, interleaveTracks, loadEvent, loadTeams } from "./lib/load-event";
+import { Deliveries } from "./lib/load-realtime";
+import { TARGETS, clearingCheck, deliveryCheck, errorCheck, joinCheck, report, spread, type SummaryRow } from "./lib/load-summary";
 
-const CLEARING_TARGET_MS = 5000;
-const SCREEN_TARGET_MS = 2000;
-
-const pct = (xs: number[], p: number) => {
-  if (!xs.length) return null;
-  const s = [...xs].sort((a, b) => a - b);
-  return Math.round(s[Math.min(s.length - 1, Math.ceil((p / 100) * s.length) - 1)]!);
-};
-const summary = (xs: number[]) => ({ n: xs.length, p50: pct(xs, 50), p95: pct(xs, 95), max: pct(xs, 100) });
 const time = () => new Date().toISOString().slice(11, 19);
+const say = (m: string) => console.log(`${time()}  ${m}`);
 
-async function main() {
+async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
-  if (args.help || typeof args.slug !== "string") {
-    console.log("pnpm load-test --slug <rehearsal slug> [--connections 500] [--orders-per-fund 6] [--window 60] [--sample 50]");
-    return args.help ? 0 : 1;
+  if (args.help) {
+    console.log(REALTIME_USAGE);
+    return 0;
   }
-  const slug = args.slug;
-  const num = (k: string, d: number) => (typeof args[k] === "string" ? Number(args[k]) : d);
-  const connections = num("connections", 500);
-  const ordersPerFund = num("orders-per-fund", 6);
-  const windowMs = num("window", 60) * 1000;
-  const sample = num("sample", 50);
+  let o: RealtimeOptions;
+  try {
+    o = realtimeOptions(args);
+  } catch (e) {
+    if (!(e instanceof UsageError)) throw e;
+    console.log(`${e.message}\n\n${REALTIME_USAGE}`);
+    return 1;
+  }
   const env: Env = {
     url: required("SUPABASE_URL"),
     anonKey: required("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
@@ -51,17 +49,26 @@ async function main() {
     emailDomain: required("TEAM_EMAIL_DOMAIN"),
   };
   const admin = createClient(env.url, required("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: event } = await admin.from("events").select("id, name, is_rehearsal").eq("slug", slug).single();
-  if (!event?.is_rehearsal) throw new Error(`${slug} is not a rehearsal event`);
-  const { data: teamRows } = await admin.from("teams").select("id, code, track").eq("event_id", event.id).order("code");
-  const teams = (teamRows ?? []) as TeamLogin[];
+  const event = await loadEvent(admin, o.slug); // refuses a live event
+  const present = admittedTeams(await loadTeams(admin, event.id), event.desk_check_in);
+  // As many teams as connections (a team with two connections is a second phone), in turn from each track.
+  const teams = interleaveTracks(present, Math.min(present.length, o.connections)) as TeamLogin[];
+  if (!teams.length) throw new Error(`no team of ${o.slug} can sign in (none checked in?)`);
 
   // 1. Sign-ins.
   let t0 = Date.now();
-  const clients = await pool(teams, 10, (t) => signInTeam(env, slug, t.code));
-  const signInMs = Date.now() - t0;
-  console.log(`${time()}  ${teams.length} teams signed in in ${(signInMs / 1000).toFixed(1)} s`);
-  const tokens = await Promise.all(clients.map(async (c) => (await c.auth.getSession()).data.session!.access_token));
+  const failedSignIns: string[] = [];
+  const signed = await pool(teams, 10, async (t) => {
+    try {
+      return await signInTeam(env, o.slug, t.code);
+    } catch (e) {
+      failedSignIns.push(e instanceof Error ? e.message : String(e));
+      return null;
+    }
+  });
+  const pairs = teams.map((t, i) => ({ t, sb: signed[i] })).filter((x): x is { t: TeamLogin; sb: SupabaseClient } => x.sb !== null);
+  say(`${pairs.length} of ${teams.length} teams signed in in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+  const tokens = await Promise.all(pairs.map(async (p) => (await p.sb.auth.getSession()).data.session!.access_token));
 
   // The server's clock: offset = server − local, from the quickest of a few round trips.
   let offset = 0;
@@ -77,197 +84,211 @@ async function main() {
   }
   const serverNow = () => Date.now() + offset;
 
-  // 2. Realtime connections (each its own socket, like a phone), on the event's private channel, the team's own
-  //    channel (its hiring offers) and, once the squads are drawn, the team's squad chat channel.
-  type Screen = { sb: SupabaseClient; channel: RealtimeChannel; heard: Map<number, number> };
-  // The clearing transaction's start (the broadcast's "at"), per round, from the first screen that hears it.
-  const txnStarts = new Map<number, number>();
-  const screens: Screen[] = [];
+  // 2. Connections: each its own socket (a phone), on the event's channel, its team's and its squad's chat.
+  const deliveries = new Deliveries();
   const joinFailures: Record<string, number> = {};
-  const squadJoins = { ok: 0, failed: 0 };
-  const teamJoins = { ok: 0, failed: 0 };
-  const join = (ch: RealtimeChannel) =>
+  const extra = { team: { ok: 0, failed: 0 }, squad: { ok: 0, failed: 0 } };
+  const sockets: SupabaseClient[] = [];
+  /** Joins a channel; once joined, a later drop is reported to onDrop (a channel is subscribed only once). */
+  const join = (ch: RealtimeChannel, onFail?: (why: string) => void, onDrop?: () => void) =>
     new Promise<boolean>((resolve) => {
-      const timer = setTimeout(() => resolve(false), 30_000);
-      ch.subscribe((st) => {
-        if (st === "SUBSCRIBED" || st === "CHANNEL_ERROR" || st === "TIMED_OUT" || st === "CLOSED") {
-          clearTimeout(timer);
-          resolve(st === "SUBSCRIBED");
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        onFail?.("TIMED_OUT (30 s)");
+        resolve(false);
+      }, 30_000);
+      ch.subscribe((st, err) => {
+        if (settled) {
+          if (st !== "SUBSCRIBED") onDrop?.();
+          return;
         }
-      });
-    });
-  t0 = Date.now();
-  const joined = await pool(Array.from({ length: connections }, (_, i) => i), 25, async (i) => {
-    const token = tokens[i % tokens.length]!;
-    const sb = createClient(env.url, env.anonKey, { accessToken: async () => token });
-    await sb.realtime.setAuth(token);
-    const screen: Screen = { sb, channel: sb.channel(`event:${event.id}`, { config: { private: true } }), heard: new Map() };
-    screen.channel.on("broadcast", { event: "round_cleared" }, (msg) => {
-      const p = msg.payload as { round?: number; at?: string };
-      const round = Number(p.round);
-      if (!screen.heard.has(round)) screen.heard.set(round, serverNow());
-      if (p.at && !txnStarts.has(round)) txnStarts.set(round, Date.parse(p.at));
-    });
-    const ok = await new Promise<boolean>((resolve) => {
-      const timer = setTimeout(() => resolve(false), 30_000);
-      screen.channel.subscribe((s, err) => {
-        if (s === "SUBSCRIBED") {
+        if (st === "SUBSCRIBED") {
+          settled = true;
           clearTimeout(timer);
           resolve(true);
-        } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") {
+        } else if (st === "CHANNEL_ERROR" || st === "TIMED_OUT" || st === "CLOSED") {
+          settled = true;
           clearTimeout(timer);
-          const why = `${s}${err ? `: ${err.message}` : ""}`.slice(0, 120);
-          joinFailures[why] = (joinFailures[why] ?? 0) + 1;
+          onFail?.(`${st}${err ? `: ${err.message}` : ""}`.slice(0, 120));
           resolve(false);
         }
       });
     });
-    if (ok) screens.push(screen);
-    // A team screen also listens on its own team channel, and on its squad's chat channel once the squads are drawn
-    // (RLS shows only its own).
-    if (ok) {
-      if (await join(sb.channel(`team:${teams[i % teams.length]!.id}`, { config: { private: true } }))) teamJoins.ok++;
-      else teamJoins.failed++;
-      const me = teams[i % teams.length]!.id;
-      const { data: squad } = await sb
-        .from("squads")
-        .select("id")
-        .or(`product_team_id.eq.${me},consulting_team_id.eq.${me},finance_team_id.eq.${me}`)
-        .maybeSingle<{ id: string }>();
-      if (squad) {
-        if (await join(sb.channel(`squad:${squad.id}`, { config: { private: true } }))) squadJoins.ok++;
-        else squadJoins.failed++;
-      }
+  t0 = Date.now();
+  const screenSb: SupabaseClient[] = [];
+  const joined = await pool(Array.from({ length: o.connections }, (_, i) => i), 25, async (i) => {
+    const { t } = pairs[i % pairs.length]!;
+    const token = tokens[i % pairs.length]!;
+    const sb = createClient(env.url, env.anonKey, { accessToken: async () => token });
+    sockets.push(sb);
+    await sb.realtime.setAuth(token);
+    const ch = sb.channel(`event:${event.id}`, { config: { private: true } });
+    ch.on("broadcast", { event: "*" }, (msg) => deliveries.heard(i, msg.event, (msg.payload ?? {}) as Record<string, unknown>, serverNow()));
+    const ok = await join(
+      ch,
+      (why) => void (joinFailures[why] = (joinFailures[why] ?? 0) + 1),
+      () => deliveries.dropped(i, serverNow()),
+    );
+    if (!ok) return false;
+    deliveries.connected(i, serverNow());
+    screenSb.push(sb);
+    if (await join(sb.channel(`team:${t.id}`, { config: { private: true } }))) extra.team.ok++;
+    else extra.team.failed++;
+    const { data: squad } = await sb
+      .from("squads")
+      .select("id")
+      .or(`product_team_id.eq.${t.id},consulting_team_id.eq.${t.id},finance_team_id.eq.${t.id}`)
+      .maybeSingle<{ id: string }>();
+    if (squad) {
+      if (await join(sb.channel(`squad:${squad.id}`, { config: { private: true } }))) extra.squad.ok++;
+      else extra.squad.failed++;
     }
-    return ok;
+    return true;
   });
-  const joinMs = Date.now() - t0;
-  const failedJoins = joined.filter((x) => !x).length;
-  console.log(`${time()}  ${screens.length} of ${connections} screens joined in ${(joinMs / 1000).toFixed(1)} s (${failedJoins} failed${failedJoins ? `: ${JSON.stringify(joinFailures)}` : ""}); team channels: ${teamJoins.ok} joined, ${teamJoins.failed} failed; squad chat channels: ${squadJoins.ok} joined, ${squadJoins.failed} failed`);
+  const joinedCount = joined.filter(Boolean).length;
+  const allJoinedAt = serverNow();
+  deliveries.measureFrom(allJoinedAt);
+  say(
+    `${joinedCount} of ${o.connections} connections joined in ${((Date.now() - t0) / 1000).toFixed(1)} s` +
+      `${joinedCount < o.connections ? ` (failed: ${JSON.stringify(joinFailures)})` : ""}; team channels ${extra.team.ok} joined, ${extra.team.failed} failed; squad chats ${extra.squad.ok} joined, ${extra.squad.failed} failed`,
+  );
 
-  // 3. Wait for an open round with at most the window left.
-  let round: { number: number; closes_at: string } | null = null;
-  for (;;) {
-    const { data } = await admin.rpc("event_status", { p_event: event.id });
-    const open = (data as { open_round: { number: number; closes_at: string } | null } | null)?.open_round ?? null;
-    if (open && Date.parse(open.closes_at) - serverNow() <= windowMs && Date.parse(open.closes_at) - serverNow() > 5000) {
-      round = open;
-      break;
-    }
-    process.stdout.write(`\r${time()}  waiting for an open round with ${windowMs / 1000} s or less to go…   `);
-    await sleep(1000);
-  }
-  const closesAt = Date.parse(round.closes_at);
-  console.log(`\n${time()}  round ${round.number} closes in ${((closesAt - serverNow()) / 1000).toFixed(0)} s: trading`);
-
-  // 4. Funds trade in the window; the other teams re-read their pages every 5 s.
+  // 3. Rounds.
   const orderMs: number[] = [];
   const readMs: number[] = [];
+  const rereadMs: number[] = [];
   const outcomes: Record<string, number> = {};
-  const end = closesAt - 3000;
-  const work = teams.map(async (t, i) => {
-    const sb = clients[i]!;
-    if (t.track === "FINANCE") {
-      let s;
-      try {
-        s = await snapshot(sb, event.id, t);
-      } catch (e) {
-        const key = `read failed: ${e instanceof Error ? e.message : e}`;
-        outcomes[key] = (outcomes[key] ?? 0) + 1;
-        return;
+  const clearings: { round: number; ms: number }[] = [];
+  let measured = 0;
+  for (let k = 0; k < o.rounds; k++) {
+    let round: { number: number; closes_at: string } | null = null;
+    for (;;) {
+      const { data } = await admin.rpc("event_status", { p_event: event.id });
+      const st = data as { phase?: string; open_round: { number: number; closes_at: string } | null } | null;
+      const open = st?.open_round ?? null;
+      const left = open ? Date.parse(open.closes_at) - serverNow() : 0;
+      if (open && left <= o.windowMs && left > 5000 && !clearings.some((c) => c.round === open.number)) {
+        round = open;
+        break;
       }
-      const companies = s.companies.filter((c) => c.squad_id !== null && c.squad_id !== s.squad?.id);
-      const orders = roundOrders(s, companies, rng(`${t.code}-${round!.number}`), ordersPerFund);
-      const at = orders.map(() => serverNow() + Math.random() * Math.max(0, end - serverNow())).sort((a, b) => a - b);
-      for (const [k, o] of orders.entries()) {
-        await sleep(Math.max(0, at[k]! - serverNow()));
-        const a = Date.now();
-        const r = await call(sb, o.fn, o.args as Record<string, unknown>);
-        orderMs.push(Date.now() - a);
-        const key = r.ok ? "ok" : (r.code ?? "?");
-        outcomes[key] = (outcomes[key] ?? 0) + 1;
-      }
-    } else {
-      while (serverNow() < end) {
-        const a = Date.now();
-        // What every team page reads: the status, the prices, the team's own row and its "Do this now" facts.
-        await Promise.all([
-          sb.rpc("event_status", { p_event: event.id }),
-          sb.from("companies").select("id, ticker, market_price").eq("event_id", event.id),
-          sb.from("teams").select("cash_cents").eq("id", t.id),
-          sb.rpc("team_plan_facts"),
-        ]);
-        readMs.push(Date.now() - a);
-        await sleep(5000 * (0.8 + Math.random() * 0.4));
-      }
+      if (st?.phase === "AWARDS" || st?.phase === "SETTLEMENT" || st?.phase === "APPEALS") break;
+      process.stdout.write(`\r${time()}  waiting for an open round with ${o.windowMs / 1000} s or less to go (${st?.phase ?? "?"})…   `);
+      await sleep(1000);
     }
-  });
-  await Promise.all(work);
-  console.log(`${time()}  ${orderMs.length} orders placed (${JSON.stringify(outcomes)}); waiting for the clearing…`);
-
-  // 5. The clearing, seen from the database: when the round is CLEARED (polled every 100 ms).
-  let clearedAt: number | null = null;
-  const deadline = closesAt + 60_000;
-  while (serverNow() < deadline) {
-    const { data } = await admin.from("rounds").select("status").eq("event_id", event.id).eq("number", round.number).single();
-    if (data?.status === "CLEARED") {
-      clearedAt = serverNow();
+    if (!round) {
+      console.log(`\n${time()}  the trading is over: ${measured} round${measured === 1 ? "" : "s"} measured`);
       break;
     }
-    await sleep(100);
+    const closesAt = Date.parse(round.closes_at);
+    console.log(`\n${time()}  round ${round.number} closes in ${((closesAt - serverNow()) / 1000).toFixed(0)} s: trading`);
+    const end = closesAt - 3000;
+    await Promise.all(
+      pairs.map(async ({ t, sb }) => {
+        if (t.track === "FINANCE") {
+          let s;
+          try {
+            s = await snapshot(sb, event.id, t);
+          } catch (e) {
+            const key = `read failed: ${e instanceof Error ? e.message : e}`;
+            outcomes[key] = (outcomes[key] ?? 0) + 1;
+            return;
+          }
+          const companies = s.companies.filter((c) => c.squad_id !== null && c.squad_id !== s.squad?.id);
+          const orders = roundOrders(s, companies, rng(`${t.code}-${round!.number}`), o.ordersPerFund);
+          const at = orders.map(() => serverNow() + Math.random() * Math.max(0, end - serverNow())).sort((a, b) => a - b);
+          for (const [i, a] of orders.entries()) {
+            await sleep(Math.max(0, at[i]! - serverNow()));
+            const started = Date.now();
+            const r = await call(sb, a.fn, a.args as Record<string, unknown>);
+            orderMs.push(Date.now() - started);
+            const key = r.ok ? "ok" : (r.code ?? "?");
+            outcomes[key] = (outcomes[key] ?? 0) + 1;
+          }
+        } else {
+          while (serverNow() < end) {
+            const a = Date.now();
+            // What every team page reads: the status, the prices, the team's own row and its "Do this now" facts.
+            await Promise.all([
+              sb.rpc("event_status", { p_event: event.id }),
+              sb.from("companies").select("id, ticker, market_price").eq("event_id", event.id),
+              sb.from("teams").select("cash_cents").eq("id", t.id),
+              sb.rpc("team_plan_facts"),
+            ]);
+            readMs.push(Date.now() - a);
+            await sleep(5000 * (0.8 + Math.random() * 0.4));
+          }
+        }
+      }),
+    );
+    // The clearing, seen from the database: when the round is CLEARED (polled every 100 ms).
+    let clearedAt: number | null = null;
+    while (serverNow() < closesAt + 60_000) {
+      const { data } = await admin.from("rounds").select("status").eq("event_id", event.id).eq("number", round.number).single();
+      if (data?.status === "CLEARED") {
+        clearedAt = serverNow();
+        break;
+      }
+      await sleep(100);
+    }
+    if (clearedAt === null) {
+      say(`round ${round.number} did not clear within 60 s of its close`);
+      clearings.push({ round: round.number, ms: 60_000 });
+      continue;
+    }
+    clearings.push({ round: round.number, ms: Math.round(clearedAt - closesAt) });
+    measured++;
+    // A sample of screens reads the new prices.
+    await sleep(1000);
+    await pool(screenSb.slice(0, o.sample), 25, async (sb) => {
+      const a = Date.now();
+      await Promise.all([
+        sb.rpc("event_status", { p_event: event.id }),
+        sb.from("companies").select("id, ticker, market_price").eq("event_id", event.id),
+        sb.rpc("team_plan_facts"),
+      ]);
+      rereadMs.push(Date.now() - a);
+    });
+    say(`round ${round.number}: ${orderMs.length} orders so far (${JSON.stringify(outcomes)}); cleared ${clearings.at(-1)!.ms} ms after its close`);
   }
-  if (clearedAt === null) throw new Error(`round ${round.number} did not clear within 60 s of its close`);
-  // 6. Screens: when each heard it, and a sample re-reads the new prices.
-  const listen = serverNow() + 15_000;
-  while (serverNow() < listen && screens.some((s) => !s.heard.has(round!.number))) await sleep(100);
-  const heard = screens.map((s) => s.heard.get(round!.number)).filter((x): x is number => x !== undefined);
-  // The commit is seen either by the poll or by the first screen to hear it, whichever came first.
-  const commitSeen = Math.min(clearedAt, ...heard);
-  const delivery = heard.map((h) => Math.max(0, h - commitSeen));
-  // A screen is updated once it has heard the clearing and read its page again: its delivery time plus a typical
-  // re-read (measured on a sample of screens right after the clearing).
-  const rereadMs: number[] = [];
-  await pool(screens.slice(0, sample), 25, async (x) => {
-    const a = Date.now();
-    await Promise.all([
-      x.sb.rpc("event_status", { p_event: event.id }),
-      x.sb.from("companies").select("id, ticker, market_price").eq("event_id", event.id),
-      x.sb.rpc("team_plan_facts"),
-    ]);
-    rereadMs.push(Date.now() - a);
-  });
-  const reread50 = pct(rereadMs, 50) ?? 0;
-  const screenUpdated = delivery.map((d) => d + reread50);
-  const txnStart = txnStarts.get(round.number) ?? null;
 
-  const report = {
-    slug,
-    at: new Date().toISOString(),
-    teams: teams.length,
-    signInMs,
-    screens: { requested: connections, joined: screens.length, failed: failedJoins, failures: joinFailures, joinMs, teamChannels: teamJoins, squadChannels: squadJoins },
-    round: round.number,
-    orders: { placed: orderMs.length, outcomes, latencyMs: summary(orderMs) },
-    pageReadsMs: summary(readMs),
-    clearing: {
-      closeToClearedMs: Math.round(clearedAt - closesAt),
-      transactionMs: txnStart !== null ? Math.round(clearedAt - txnStart) : null,
-      target: CLEARING_TARGET_MS,
-    },
-    screensHeard: { heard: heard.length, of: screens.length, deliveryMs: summary(delivery), note: "after the first sign of the commit (poll every 100 ms or the first screen)" },
-    rereadMs: summary(rereadMs),
-    screenUpdatedMs: { ...summary(screenUpdated), target: SCREEN_TARGET_MS, note: "delivery after the commit + a typical re-read" },
+  // Stragglers: give the last broadcasts 10 s to arrive, then count.
+  await sleep(10_000);
+  const d = deliveries.result(serverNow() - 10_000);
+  for (const sb of sockets) void sb.removeAllChannels();
+
+  const orderErrors = Object.entries(outcomes).filter(([k]) => k === "ERROR" || k.startsWith("read failed")).reduce((a, [, v]) => a + v, 0);
+  const orders = spread(orderMs);
+  const reread = spread(rereadMs);
+  const row: SummaryRow = {
+    run: "load-test (realtime)",
+    slug: o.slug,
+    screens: pairs.length,
+    connections: { joined: joinedCount, requested: o.connections },
+    latencyOf: "delivery after sent",
+    p50Ms: d.sinceSent.p50,
+    p95Ms: d.sinceSent.p95,
+    errors: { failed: orderErrors + (o.connections - joinedCount), total: orderMs.length + o.connections },
+    clearingMs: clearings.length ? Math.max(...clearings.map((c) => c.ms)) : null,
+    deliveryPct: d.expected ? (d.delivered / d.expected) * 100 : null,
+    checks: [
+      joinCheck(joinedCount, o.connections),
+      deliveryCheck(d.delivered, d.expected),
+      clearingCheck(clearings.map((c) => c.ms)),
+      errorCheck(orderErrors, orderMs.length, "order errors"),
+    ],
   };
-  const clearingOk = (report.clearing.transactionMs ?? report.clearing.closeToClearedMs) < CLEARING_TARGET_MS;
-  const screensOk = heard.length === screens.length && (report.screenUpdatedMs.p95 ?? Infinity) < SCREEN_TARGET_MS;
-  console.log(JSON.stringify(report, null, 2));
-  console.log(`Clearing under ${CLEARING_TARGET_MS / 1000} s: ${clearingOk ? "yes" : "NO"} · every screen updated within ${SCREEN_TARGET_MS / 1000} s (p95): ${screensOk ? "yes" : "NO"}`);
-  mkdirSync("out", { recursive: true });
-  const file = `out/load-test-${slug}-${report.at.replace(/[:.]/g, "-")}.json`;
-  writeFileSync(file, JSON.stringify(report, null, 2) + "\n");
-  console.log(`Report: ${file}`);
-  for (const s of screens) void s.sb.removeChannel(s.channel);
-  return clearingOk && screensOk ? 0 : 1;
+  const details = [
+    `${pairs.length} of ${teams.length} present teams signed in${failedSignIns.length ? ` (failed: ${failedSignIns.slice(0, 3).join("; ")})` : ""}; ${joinedCount} of ${o.connections} connections joined` +
+      `${Object.keys(joinFailures).length ? ` (failures: ${JSON.stringify(joinFailures)})` : ""}; team channels ${extra.team.ok}/${extra.team.ok + extra.team.failed}, squad chats ${extra.squad.ok}/${extra.squad.ok + extra.squad.failed}.`,
+    `Event broadcasts measured: ${d.messages} (${d.byEvent.map(([e, n]) => `${e} ${n}`).join(", ") || "none"}); delivered ${d.delivered} of ${d.expected} expected (screens connected when each was sent).`,
+    `Delivery latency after the broadcast's "at": p50 ${d.sinceSent.p50 ?? "—"} ms, p95 ${d.sinceSent.p95 ?? "—"} ms, max ${d.sinceSent.max ?? "—"} ms (includes the sending transaction's own time). After the first screen heard it: p50 ${d.spread.p50 ?? "—"} ms, p95 ${d.spread.p95 ?? "—"} ms.`,
+    `Busiest second: ${d.peakPerSecond} deliveries (Pro allows ${TARGETS.proMessagesPerSecond} messages a second; above it Supabase may hold messages back).`,
+    `Rounds: ${clearings.map((c) => `${c.round} cleared ${c.ms} ms after the close`).join("; ") || "none measured"}. Orders ${orderMs.length} (p50 ${orders.p50 ?? "—"} ms, p95 ${orders.p95 ?? "—"} ms): ${JSON.stringify(outcomes)}.`,
+    `Page reads during trading: p95 ${spread(readMs).p95 ?? "—"} ms; a sample of ${rereadMs.length} screens re-read the prices after the clearing in p50 ${reread.p50 ?? "—"} ms, p95 ${reread.p95 ?? "—"} ms.`,
+  ].join("\n");
+  return report([row], { title: `Realtime load test: ${event.name}`, details });
 }
 
 main().then(
