@@ -267,7 +267,7 @@ describe("migration 074 patched exactly the intended permission lines", () => {
 describe("pnpm staff-sql in the database", () => {
   const SECRET = "staff-sql-test-secret-0123";
   const DOMAIN = "staff.roles.test";
-  const counts = { full: 2, display: 1, registration: 1, judge: 1, crisis: 1 };
+  const counts = { full: 2, display: 1, registration: 1, judge: 1, crisis: 1, fairness: 0 };
   const signsIn = async (email: string, password: string) =>
     (await db.pool.query("select encrypted_password = extensions.crypt($2, encrypted_password) as ok from auth.users where email = $1", [email, password]))
       .rows[0]?.ok === true;
@@ -330,7 +330,7 @@ describe("pnpm staff-sql in the database", () => {
     const team = [...n.ev.teams.values()][0]!;
     const email = (await n.one<{ email: string }>("select email from auth.users where id = $1", [team.userId])).email;
     const [local, domain] = email.split("@") as [string, string];
-    const clash = staffLogins({ domain, secret: SECRET, counts: { full: 1, display: 0, registration: 0, judge: 0, crisis: 0 } });
+    const clash = staffLogins({ domain, secret: SECRET, counts: { full: 1, display: 0, registration: 0, judge: 0, crisis: 0, fairness: 0 } });
     clash[0]!.email = `${local}@${domain}`;
     await expect(db.pool.query(staffSql(clash, "-- clash"))).rejects.toThrow(/is a team login/);
     expect((await n.one("select role::text as role from accounts where user_id = $1", [team.userId])).role).toBe("TEAM");

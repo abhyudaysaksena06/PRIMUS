@@ -203,7 +203,7 @@ describe("200 teams per track", () => {
 });
 
 describe("after a draw of the checked-in teams", () => {
-  test("absent and left-out teams stay out; the practice market has one company per seated Finance team", async () => {
+  test("absent and left-out teams stay out; the practice market has one company per verified Finance team (6), traded by the seated funds (4)", async () => {
     const n = await Night.create(db.pool, 6, "PRIMUS");
     const seed = sha256Hex("scale-small");
     await n.org("set_seed_commitment", n.eventId, sha256Hex(seed));
@@ -224,41 +224,42 @@ describe("after a draw of the checked-in teams", () => {
     await n.advanceTo("BUILD");
     await expect(n.call(n.team(squads[0]!.f_code), "prepare_practice_market", n.eventId, 5, 10, "[]")).rejects.toThrow(/only an organiser/);
     await expect(n.call(n.team(squads[0]!.f_code), "practice_market_status", n.eventId)).rejects.toThrow(/only staff/);
-    expect(await n.org("practice_market_status", n.eventId)).toMatchObject({ prepared: false, switch: true, phase: "BUILD", funds: 4 });
+    expect(await n.org("practice_market_status", n.eventId)).toMatchObject({ prepared: false, switch: true, phase: "BUILD", funds: 6 });
 
-    // The first call fixes the companies: one per seated Finance team (4, not 6), four-letter tickers, fixed names.
+    // The first call fixes the companies: one per Finance team that entered the draw (6: migration 082), four-letter
+    // tickers, fixed names. Only the 4 seated funds trade them.
     const steps = PRACTICE.candles * PRACTICE.candleTicks;
     const first = await n.org("prepare_practice_market", n.eventId, PRACTICE.tickSeconds, steps, "[]");
-    expect(first).toMatchObject({ prepared: true, simulated: true, companies: 4, loaded: 0, ready: false, steps, tick_seconds: PRACTICE.tickSeconds });
+    expect(first).toMatchObject({ prepared: true, simulated: true, companies: 6, loaded: 0, ready: false, steps, tick_seconds: PRACTICE.tickSeconds });
     const list = first.list as { id: string; ticker: string; name: string }[];
     expect(list.map((c) => c.ticker)).toEqual([...list.map((c) => c.ticker)].sort());
     for (const c of list) {
       expect(c.ticker).toMatch(/^[A-Z]{4}$/);
       expect(c.name).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
     }
-    expect(new Set(list.map((c) => c.ticker)).size).toBe(4);
-    expect(new Set(list.map((c) => c.id)).size).toBe(4);
+    expect(new Set(list.map((c) => c.ticker)).size).toBe(6);
+    expect(new Set(list.map((c) => c.id)).size).toBe(6);
     expect((await n.one("select app.practice_companies($1) as c", [n.eventId])).c).toEqual(list);
     // Keys are Product cards (as practice_trade expects); nothing about them is shown.
     expect((await n.q("select track from teams where id = any($1::uuid[]) group by track", [list.map((c) => c.id)]))).toEqual([{ track: "PRODUCT" }]);
     const build = (await n.one("select started_at from phases where event_id = $1 and code = 'BUILD'", [n.eventId])).started_at;
     expect(new Date((await n.one("select starts_at from practice_markets where event_id = $1", [n.eventId])).starts_at).getTime()).toBe(new Date(build).getTime());
 
-    // In chunks: two companies, then all four (the two stored are not stored again), then nothing more.
+    // In chunks: two companies, then all six (the two stored are not stored again), then nothing more.
     const rows = list.map((c) => ({ ticker: c.id, prices: practiceCandles(`${n.eventId}:practice:${c.ticker}`).flatMap((k) => candleTicks(k)) }));
     expect(rows[0]!.prices).toHaveLength(steps);
     const half = await n.org("prepare_practice_market", n.eventId, PRACTICE.tickSeconds, steps, JSON.stringify(rows.slice(0, 2)));
     expect(half).toMatchObject({ loaded: 2, ready: false, added_ticks: 2 * steps });
     expect(half.missing).toEqual(list.slice(2).map((c) => c.id));
     const all = await n.org("prepare_practice_market", n.eventId, PRACTICE.tickSeconds, steps, JSON.stringify(rows));
-    expect(all).toMatchObject({ loaded: 4, ready: true, added_ticks: 2 * steps, missing: [] });
+    expect(all).toMatchObject({ loaded: 6, ready: true, added_ticks: 4 * steps, missing: [] });
     expect(await n.org("prepare_practice_market", n.eventId, PRACTICE.tickSeconds, steps, JSON.stringify(rows))).toMatchObject({ added_ticks: 0, ready: true });
     const bad = [{ ticker: list[0]!.id, prices: [100, 200] }];
     expect(await n.call(n.lead, "prepare_practice_market", n.eventId, 5, steps, JSON.stringify(bad))).toMatchObject({ ok: false, code: "BAD_CONTENT" });
     const stranger = [{ ticker: n.teamId(squads[0]!.f_code), prices: rows[0]!.prices }];
     expect(await n.call(n.lead, "prepare_practice_market", n.eventId, 5, steps, JSON.stringify(stranger))).toMatchObject({ ok: false, code: "BAD_CONTENT" });
-    expect((await n.one("select count(*)::int as n from practice_ticks where event_id = $1", [n.eventId])).n).toBe(4 * steps);
-    expect(await n.org("practice_market_status", n.eventId)).toMatchObject({ prepared: true, companies: 4, loaded: 4, ready: true });
+    expect((await n.one("select count(*)::int as n from practice_ticks where event_id = $1", [n.eventId])).n).toBe(6 * steps);
+    expect(await n.org("practice_market_status", n.eventId)).toMatchObject({ prepared: true, companies: 6, loaded: 6, ready: true });
 
     // A seated fund trades a simulated company; the left-out fund cannot. A team reads the companies (names only).
     await n.ok(n.team(squads[0]!.f_code), "practice_trade", list[0]!.id, "BUY", 10);

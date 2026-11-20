@@ -14,9 +14,11 @@ export const STAFF_KINDS = {
   registration: { role: "REGISTRATION", label: "Registration desk" },
   judge: { role: "JUDGE", label: "Judging desk" },
   crisis: { role: "CRISIS", label: "Crisis desk" },
+  // Paste and collusion flags are readable and decidable by FAIRNESS only, and an open flag holds APPEALS.
+  fairness: { role: "FAIRNESS", label: "Fairness officer" },
 } as const;
 export type StaffKind = keyof typeof STAFF_KINDS;
-export const DEFAULT_COUNTS: Record<StaffKind, number> = { full: 10, display: 5, registration: 2, judge: 1, crisis: 2 };
+export const DEFAULT_COUNTS: Record<StaffKind, number> = { full: 10, display: 5, registration: 2, judge: 1, crisis: 2, fairness: 1 };
 
 /** Passwords are HMAC(CARD_SECRET, "staff:<email>"): separate from every event's team cards. */
 export const PASSWORD_SCOPE = "staff";
@@ -34,7 +36,7 @@ export interface StaffLogin {
 
 const DOMAIN = /^(?=.{3,253}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/;
 
-/** Counts from --full/--display/--registration/--judge/--crisis flags (whole numbers 0–99; others keep the default). */
+/** Counts from --full/--display/--registration/--judge/--crisis/--fairness flags (whole numbers 0–99; others keep the default). */
 export function staffCounts(args: Record<string, string | true>): Record<StaffKind, number> {
   const counts = { ...DEFAULT_COUNTS };
   for (const kind of Object.keys(STAFF_KINDS) as StaffKind[]) {

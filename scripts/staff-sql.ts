@@ -3,7 +3,7 @@
 // (every email and password; keep it private). Safe to run again: existing logins keep their ids and get the file's
 // password and role. Needs migration 20261210000074 (the desk roles).
 //
-//   pnpm staff-sql --domain primus.mrdev4u.com                       # 10 full, 5 display, 2 registration, 1 judge, 2 crisis
+//   pnpm staff-sql --domain primus.mrdev4u.com                       # 10 full, 5 display, 2 registration, 1 judge, 2 crisis, 1 fairness
 //   pnpm staff-sql --domain primus.mrdev4u.com --full 4 --judge 2    # other counts
 //
 // Passwords derive from CARD_SECRET (set it in .env to get the same passwords every time).

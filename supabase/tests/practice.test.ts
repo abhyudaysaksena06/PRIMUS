@@ -20,7 +20,7 @@ afterAll(async () => {
 });
 
 describe("practice market", () => {
-  test("scripted prices, trading rules, the prize for the top funds, and live round ranges", async () => {
+  test("scripted prices, trading rules, a ranking with no prize (practice only), and live round ranges", async () => {
     const n = await Night.create(db.pool, 4, "PRIMUS");
     const seed = sha256Hex("practice");
     await n.org("set_seed_commitment", n.eventId, sha256Hex(seed));
@@ -81,20 +81,21 @@ describe("practice market", () => {
     const acct = Object.fromEntries(
       (await n.q("select t.code, a.rank, a.equity_cents, a.edge_cents from practice_accounts a join teams t on t.id = a.team_id", [])).map((r) => [r.code, r]),
     );
-    // The three funds that traded are ranked by their result, and the prize is the same for each. Fund d never
-    // traded, so it has no practice account at all and wins nothing.
+    // The three funds that traded are ranked by their result. Practice only (migration 082): no prize, no real cash
+    // moves. Fund d never traded, so it has no practice account at all.
     expect([acct[b.f_code].rank, acct[a.f_code].rank, acct[c.f_code].rank]).toEqual([1, 2, 3]);
     expect(acct[d.f_code]).toBe(undefined);
-    for (const f of [a, b, c]) expect(Number(acct[f.f_code].edge_cents)).toBe(5_000_000);
+    for (const f of [a, b, c]) expect(Number(acct[f.f_code].edge_cents)).toBe(0);
     const cashAfter = Object.fromEntries((await n.q("select code, cash_cents from teams where event_id = $1 and track = 'FINANCE'", [n.eventId])).map((r) => [r.code, Number(r.cash_cents)]));
-    for (const f of [a, b, c]) expect(cashAfter[f.f_code]! - cashBefore[f.f_code]!).toBe(5_000_000);
+    for (const f of [a, b, c]) expect(cashAfter[f.f_code]! - cashBefore[f.f_code]!).toBe(0);
     expect(cashAfter[d.f_code]).toBe(cashBefore[d.f_code]);
     expect((await n.call(n.team(a.f_code), "practice_trade", products[0].id, "BUY", 1)).code).toBe("PRACTICE_CLOSED");
-    // Paid once, the bulletin names the winners, and the ledger balances.
+    // Settled once, nothing paid, the bulletin names the top funds, and the ledger balances.
     await n.q("select app.settle_practice($1)", [n.eventId]);
-    expect((await n.one("select count(*)::int as c from ledger_entries where event_id = $1 and kind = 'PRACTICE_EDGE' and team_id is not null", [n.eventId])).c).toBe(3);
+    expect((await n.one("select count(*)::int as c from ledger_entries where event_id = $1 and kind = 'PRACTICE_EDGE' and team_id is not null", [n.eventId])).c).toBe(0);
     const body = (await n.one("select body from bulletins where event_id = $1 and title = 'The practice market has closed'", [n.eventId])).body;
-    expect(body).toContain("$50,000");
+    expect(body).toContain("practice only");
+    expect(body).not.toContain("$50,000");
     expect(body).toContain(`${b.f_code} (#1)`);
     await n.checkInvariants();
 

@@ -72,7 +72,11 @@ export async function loadSquads(eventId: string): Promise<{ teams: TeamRow[]; s
       company: co ? { id: co.id, ticker: co.ticker, name: co.name, price: co.market_price } : null,
     };
   });
-  return { teams: t, squads: lines };
+  // Once the squads are drawn, only the teams in a squad are in the event (the rest were absent or left out): staff
+  // pages list and count those only.
+  if (lines.length === 0) return { teams: t, squads: lines };
+  const seated = new Set(lines.flatMap((l) => [l.product.id, l.consulting.id, l.finance.id]));
+  return { teams: t.filter((x) => seated.has(x.id)), squads: lines };
 }
 
 /** The current (not superseded) submissions of the event. */
