@@ -322,8 +322,8 @@
 
 /* The demo's text sizes: body copy at 12–13 px, capital labels and table heads. */
 .guide-admin .guide-panel-body,
-.guide-admin .guide-panel-body .text-sm,
-.guide-admin .guide-panel-body .text-base {
+.guide-admin .guide-panel-body .text-sm:not(.mx-key, .guide-btn, .guide-input, .guide-chip),
+.guide-admin .guide-panel-body .text-base:not(.mx-key, .guide-btn, .guide-input, .guide-chip) {
   font-size: 12.5px;
   line-height: 1.7;
 }
