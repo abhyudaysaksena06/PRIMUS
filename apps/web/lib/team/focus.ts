@@ -248,7 +248,19 @@ export function inThisRound(phase: PhaseCode, key: string): boolean {
 }
 
 /** Squad workspace tabs per stage: Overview and the case always; then the round's own writing task. */
-export function squadTabsFor(phase: PhaseCode): readonly string[] {
+export function squadTabsFor(phase: PhaseCode, track?: Track): readonly string[] {
+  const all = squadTabsForPhase(phase);
+  // Round 1 (organisers, 20 Nov): each team sees only its own brief. Product works on its sector's problem card and
+  // the PRD; Consulting on the ZestUp case and its memo. (A squad still has one problem card; the other track's brief
+  // only looked like a second problem statement.)
+  if (track && stageOf(phase) === "ROUND_1") {
+    const hide = track === "CONSULTING" ? ["/team/squad/problem", "/team/squad/pitch"] : track === "PRODUCT" ? ["/team/squad/memo"] : [];
+    return all.filter((t) => !hide.includes(t));
+  }
+  return all;
+}
+
+function squadTabsForPhase(phase: PhaseCode): readonly string[] {
   const stage = stageOf(phase);
   const base = ["/team/squad", "/team/squad/problem"];
   if (stage === "ROUND_1") return [...base, "/team/squad/pitch", "/team/squad/memo"];
@@ -260,8 +272,8 @@ export function squadTabsFor(phase: PhaseCode): readonly string[] {
 }
 
 /** The submissions (pitch, plan, flash) that belong to this round, for the squad overview. */
-export function submissionsFor(phase: PhaseCode): ("PITCH" | "MEMO" | "PLAN" | "FLASH")[] {
-  const tabs = squadTabsFor(phase);
+export function submissionsFor(phase: PhaseCode, track?: Track): ("PITCH" | "MEMO" | "PLAN" | "FLASH")[] {
+  const tabs = squadTabsFor(phase, track);
   return (["PITCH", "MEMO", "PLAN", "FLASH"] as const).filter((t) => tabs.includes(`/team/squad/${t.toLowerCase()}`));
 }
 

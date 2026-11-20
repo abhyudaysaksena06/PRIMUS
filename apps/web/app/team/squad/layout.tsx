@@ -22,7 +22,7 @@ export default async function SquadLayout({ children }: LayoutProps<"/team/squad
           : "Read the Round 1 crisis case, write your six-part crisis memo and submit it. Your memo score sets your firm's reputation, which Product teams see when they hire in Round 2."
       }
     >
-      <SquadTabs show={squadTabsFor(status.phase)} oneCase={oneCase} />
+      <SquadTabs show={squadTabsFor(status.phase, team.track)} oneCase={oneCase} />
       {children}
     </RoomShell>
   );

@@ -70,6 +70,12 @@ describe("focus mode", () => {
     expect(squadTabsFor("ROUNDS_13_21")).toContain("/team/squad/flash");
     expect(squadTabsFor("AWARDS")).toHaveLength(6);
     expect(submissionsFor("BUILD")).toEqual(["PITCH", "MEMO"]);
+    // Round 1: each track sees only its own brief.
+    expect(squadTabsFor("BUILD", "PRODUCT")).toEqual(["/team/squad", "/team/squad/problem", "/team/squad/pitch"]);
+    expect(squadTabsFor("BUILD", "CONSULTING")).toEqual(["/team/squad", "/team/squad/memo"]);
+    expect(submissionsFor("BUILD", "PRODUCT")).toEqual(["PITCH"]);
+    expect(submissionsFor("BUILD", "CONSULTING")).toEqual(["MEMO"]);
+    expect(squadTabsFor("PRESSURE", "CONSULTING")).toContain("/team/squad/pitch");
     expect(submissionsFor("RESCUE_1")).toEqual(["PLAN"]);
     expect(submissionsFor("ROUNDS_13_21")).toEqual(["PLAN", "FLASH"]);
     expect(submissionsFor("SETUP")).toEqual(["PITCH", "MEMO", "PLAN", "FLASH"]);

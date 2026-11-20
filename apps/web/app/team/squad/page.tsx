@@ -1,4 +1,4 @@
-import { submissionsFor } from "@/lib/team/focus";
+import { stageOf, submissionsFor } from "@/lib/team/focus";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SUBMISSION_TYPES, TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
@@ -30,11 +30,12 @@ export default async function SquadOverview() {
   const ws = await loadSquadWorkspace(ctx);
   const w = windowInput(ctx, ws);
   const pause = pauseOf(ctx);
-  const thisRound: string[] = submissionsFor(ctx.status.phase);
+  const thisRound: string[] = submissionsFor(ctx.status.phase, ctx.team.track);
   const pick = pickState({ ...pause, track: ctx.team.track, nowMs: w.nowMs, deadline: ws.deadlines.PROBLEM_PICK ?? null, dealt: squad.dealt_card_ids, chosenId: squad.chosen_card_id, byDefault: squad.chosen_by_default });
   const windows = SUBMISSION_TYPES.map((t) => submissionWindow(t, ctx.team.track, w));
   const statuses = SUBMISSION_TYPES.map((t, i) => submissionStatus(t, ws.drafts[t], ws.submissions, windows[i]!, pause));
   const chosen = ws.cards.find((c) => c.id === pick.chosenId) ?? null;
+  const consultingR1 = ctx.team.track === "CONSULTING" && stageOf(ctx.status.phase) === "ROUND_1";
   const ids: Record<Track, string> = { PRODUCT: squad.product_team_id, CONSULTING: squad.consulting_team_id, FINANCE: squad.finance_team_id };
   const pitchDraft = ws.drafts.PITCH?.content ?? {};
   const draftName = typeof pitchDraft.company_name === "string" ? pitchDraft.company_name.trim() : "";
@@ -48,27 +49,37 @@ export default async function SquadOverview() {
 
       <div className="guide-grid two">
         <GuidePanel
-          title={pick.oneCase ? "The case" : "Your problem card"}
-          tag={pick.oneCase ? "EVERY SQUAD" : "PROBLEM CARD"}
+          title={consultingR1 ? "Your case: ZestUp" : pick.oneCase ? "Your problem card" : "Your problem card"}
+          tag={consultingR1 ? "CRISIS MEMO" : "PROBLEM CARD"}
           actions={
-            <Link href="/team/squad/problem">
-              {pick.oneCase ? "Read the case" : pick.canPick ? (pick.chosenId ? "Change the pick" : "Pick a card") : "See the cards"}
-            </Link>
+            consultingR1 ? (
+              <Link href="/team/squad/memo">Read the case and write the memo</Link>
+            ) : (
+              <Link href="/team/squad/problem">
+                {pick.oneCase ? "Read the card" : pick.canPick ? (pick.chosenId ? "Change the pick" : "Pick a card") : "See the cards"}
+              </Link>
+            )
           }
         >
           <div data-testid="squad-problem">
-            {chosen ? (
+            {consultingR1 ? (
+              <>
+                <Chip tone="active">SQUAD {squadNo}</Chip>
+                <h3 className="mt-3 text-xl font-semibold text-paper">The ZestUp crisis memo</h3>
+                <p className="guide-muted mt-2">Round 1 for Consulting: read the ZestUp case and write your memo. Your Product partner works on the sector problem card.</p>
+              </>
+            ) : chosen ? (
               <>
                 <Chip tone="active">
                   SQUAD {squadNo} · {chosen.sector}
                 </Chip>{" "}
-                {pick.oneCase ? <Chip tone="green">Every squad</Chip> : pick.byDefault ? <Chip tone="amber">Chosen by default</Chip> : <Chip tone="green">Picked</Chip>}
+                {pick.oneCase ? null : pick.byDefault ? <Chip tone="amber">Chosen by default</Chip> : <Chip tone="green">Picked</Chip>}
                 <h3 className="mt-3 text-xl font-semibold text-paper">{chosen.title}</h3>
               </>
             ) : (
               <p className="text-xl font-semibold text-paper">Not picked yet.</p>
             )}
-            <p className="guide-muted mt-2">{pick.note}</p>
+            {consultingR1 ? null : <p className="guide-muted mt-2">{pick.note}</p>}
             {pick.oneCase ? null : (
               <div className="guide-alert mt-3">
                 <b>Pick closes:</b> <Due at={ws.deadlines.PROBLEM_PICK ?? null} {...pause} />
