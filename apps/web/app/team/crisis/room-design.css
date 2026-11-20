@@ -1,0 +1,258 @@
+/* The Product and Consulting pages in the /demo design (rescue, build, trade, Q&A, newsroom): warm amber glass for
+   Product, blue glass for Consulting, gold for Finance. Every page in this area wraps its content in .pd-root with the
+   team's track; the palette re-points the app's colour tokens (--mx-*, --term-*) inside it, so Tailwind classes and the
+   shared panels, badges, tables and buttons follow the track. Looks only: no layout here hides or moves content. */
+
+.pd-root {
+  --pd-accent: #ff9b45;
+  --pd-accent-2: #ffd1a8;
+  --pd-accent-hi: #ffc385;
+  --pd-accent-lo: #f97316;
+  --pd-soft: rgba(255, 155, 69, 0.12);
+  --pd-line: rgba(255, 155, 69, 0.26);
+  --pd-line-hi: rgba(255, 155, 69, 0.46);
+  --pd-text: #fff5eb;
+  --pd-body: #f0dac7;
+  --pd-muted: #cca98b;
+  --pd-label: #d9a679;
+  --pd-panel: linear-gradient(155deg, rgba(36, 18, 8, 0.9), rgba(17, 8, 4, 0.96));
+  --pd-card: linear-gradient(145deg, rgba(40, 19, 8, 0.48), rgba(20, 9, 4, 0.58));
+  --pd-head: linear-gradient(90deg, rgba(234, 110, 20, 0.14), rgba(48, 22, 8, 0.28) 60%, transparent);
+  --pd-well: rgba(15, 7, 3, 0.86);
+  --pd-shadow: 0 18px 48px rgba(10, 3, 0, 0.5), inset 0 1px 0 rgba(255, 205, 160, 0.12);
+  --pd-alert: linear-gradient(135deg, rgba(148, 64, 14, 0.26), rgba(48, 22, 7, 0.36));
+  --pd-ink: #1a0902;
+  --pd-good: #4ade80;
+  --pd-warn: #fbbf24;
+  --pd-bad: #ff6b6b;
+
+  /* The app's tokens, re-pointed at the track's palette. */
+  --mx-black: #0d0603;
+  --mx-green: var(--pd-accent);
+  --mx-green-mid: var(--pd-accent-2);
+  --mx-green-dim: var(--pd-line-hi);
+  --mx-green-deep: rgba(255, 155, 69, 0.14);
+  --mx-paper: var(--pd-text);
+  --mx-muted: var(--pd-muted);
+  --mx-amber: var(--pd-warn);
+  --mx-red: var(--pd-bad);
+  --mx-red-soft: #ff9b9b;
+  --mx-panel: #170a04;
+  --mx-raised: #24120a;
+  --mx-line: var(--pd-line);
+  --mx-glow-text: none;
+  --mx-glow-box: none;
+  --term-amber: var(--pd-accent);
+  --term-amber-dim: var(--pd-label);
+  --term-cyan: var(--pd-accent-2);
+  --term-green: var(--pd-good);
+  --term-red: var(--pd-bad);
+  --term-line: var(--pd-line);
+  color: var(--pd-body);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+[data-track="CONSULTING"] .pd-root,
+.pd-root[data-track="CONSULTING"] {
+  --pd-accent: #63a8ff;
+  --pd-accent-2: #7cc4ff;
+  --pd-accent-hi: #93c5fd;
+  --pd-accent-lo: #3b82f6;
+  --pd-soft: rgba(99, 168, 255, 0.14);
+  --pd-line: rgba(99, 168, 255, 0.26);
+  --pd-line-hi: rgba(99, 168, 255, 0.45);
+  --pd-text: #eaf3ff;
+  --pd-body: #cfe1f7;
+  --pd-muted: #96b2d6;
+  --pd-label: #8bb0de;
+  --pd-panel: linear-gradient(155deg, rgba(11, 24, 48, 0.9), rgba(5, 12, 26, 0.95));
+  --pd-card: linear-gradient(145deg, rgba(12, 26, 52, 0.45), rgba(6, 14, 29, 0.55));
+  --pd-head: linear-gradient(90deg, rgba(37, 99, 235, 0.12), rgba(12, 27, 54, 0.25) 60%, transparent);
+  --pd-well: rgba(4, 10, 22, 0.85);
+  --pd-shadow: 0 18px 48px rgba(0, 5, 18, 0.48), inset 0 1px 0 rgba(175, 212, 255, 0.12);
+  --pd-alert: linear-gradient(135deg, rgba(25, 68, 150, 0.24), rgba(10, 26, 58, 0.32));
+  --pd-ink: #04101f;
+  --mx-black: #030814;
+  --mx-green-deep: rgba(99, 168, 255, 0.14);
+  --mx-panel: #06101f;
+  --mx-raised: #0c1b36;
+}
+[data-track="FINANCE"] .pd-root,
+.pd-root[data-track="FINANCE"] {
+  --pd-accent: #ffd84d;
+  --pd-accent-2: #ffe792;
+  --pd-accent-hi: #ffe792;
+  --pd-accent-lo: #eab308;
+  --pd-soft: rgba(255, 216, 77, 0.12);
+  --pd-line: rgba(255, 216, 77, 0.24);
+  --pd-line-hi: rgba(255, 216, 77, 0.44);
+  --pd-text: #fffbe8;
+  --pd-body: #efe6c6;
+  --pd-muted: #c9b98a;
+  --pd-label: #d8c27a;
+  --pd-panel: linear-gradient(155deg, rgba(30, 26, 8, 0.9), rgba(12, 10, 3, 0.96));
+  --pd-card: linear-gradient(145deg, rgba(36, 30, 8, 0.46), rgba(16, 13, 4, 0.56));
+  --pd-head: linear-gradient(90deg, rgba(234, 179, 8, 0.12), rgba(40, 32, 8, 0.25) 60%, transparent);
+  --pd-well: rgba(12, 10, 3, 0.86);
+  --pd-shadow: 0 18px 48px rgba(8, 6, 0, 0.5), inset 0 1px 0 rgba(255, 236, 160, 0.1);
+  --pd-alert: linear-gradient(135deg, rgba(120, 96, 10, 0.24), rgba(40, 32, 7, 0.34));
+  --pd-ink: #141002;
+  --mx-black: #0b0903;
+  --mx-green-deep: rgba(255, 216, 77, 0.14);
+  --mx-panel: #141105;
+  --mx-raised: #221c08;
+}
+
+/* A page of its own (the public guide): the track's backdrop, as the demo's app background. */
+.pd-page-bg { background: radial-gradient(circle at 18% 0%, #2b1404 0%, #120803 45%, #090402 100%); }
+.pd-page-bg[data-track="CONSULTING"] { background: radial-gradient(circle at 18% 0%, #091a38 0%, #040b18 45%, #02060f 100%); }
+.pd-page-bg[data-track="FINANCE"] { background: radial-gradient(circle at 18% 0%, #262004 0%, #0f0c03 45%, #080602 100%); }
+
+/* ── Page head ─────────────────────────────────────────────────────────────────────────────────────────────────── */
+.pd-head { margin-bottom: 4px; }
+.pd-eyebrow { color: var(--pd-accent); font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.19em; text-transform: uppercase; }
+.pd-title { margin: 8px 0 6px; color: var(--pd-text); font-size: clamp(26px, 4vw, 40px); font-weight: 750; line-height: 1.05; letter-spacing: -0.045em; }
+.pd-lede { max-width: 760px; color: var(--pd-muted); font-size: 13px; line-height: 1.7; }
+
+/* ── Panels, cards, metrics ────────────────────────────────────────────────────────────────────────────────────── */
+.pd-root.pd-root .mx-panel,
+.pd-panel {
+  border: 1px solid var(--pd-line);
+  border-radius: 14px;
+  background: var(--pd-panel);
+  box-shadow: var(--pd-shadow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+}
+.pd-root.pd-root .mx-panel { overflow: hidden; }
+.pd-root.pd-root .mx-panel:hover,
+.pd-panel:hover { border-color: var(--pd-line-hi); }
+.pd-root.pd-root .mx-panel > header { background: var(--pd-head); }
+.pd-root.pd-root .mx-panel > header h2 { color: var(--pd-text); font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+.pd-panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--pd-line); background: var(--pd-head); }
+.pd-panel-head h2, .pd-panel-head h3 { color: var(--pd-text); font-size: 14px; font-weight: 700; }
+.pd-panel-head > span, .pd-panel-meta { color: var(--pd-label); font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+.pd-panel-body { padding: 18px; }
+
+.pd-card {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--pd-line);
+  border-radius: 11px;
+  background: var(--pd-card);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.pd-card:hover, .pd-card:focus-within { border-color: var(--pd-line-hi); }
+.pd-card-hot { border-color: var(--pd-accent); box-shadow: 0 0 0 1px var(--pd-soft), 0 10px 28px rgba(0, 0, 0, 0.3); }
+
+.pd-metrics { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 640px) { .pd-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pd-metric {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pd-line);
+  border-radius: 12px;
+  background: var(--pd-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.pd-metric > small, .pd-metric > p:first-child { display: block; color: var(--pd-label); font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.13em; text-transform: uppercase; }
+.pd-metric > b, .pd-metric > p:nth-child(2) { display: block; margin-top: 6px; color: var(--pd-text); font: 700 18px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.pd-metric.is-next { border-color: var(--pd-accent); background: linear-gradient(145deg, var(--pd-soft), rgba(0, 0, 0, 0.15)); }
+.pd-metric.is-next > p:nth-child(2) { color: var(--pd-accent); }
+.pd-metric.is-past > p:nth-child(2) { color: var(--pd-muted); text-decoration: line-through; }
+
+/* Chips and labels */
+.pd-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border: 1px solid var(--pd-line); border-radius: 999px; background: var(--pd-soft); color: var(--pd-accent-2); font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em; white-space: nowrap; }
+.pd-chip-solid { border-color: var(--pd-accent); background: var(--pd-accent); color: var(--pd-ink); }
+.pd-chip-quiet { background: transparent; color: var(--pd-muted); }
+.pd-chip-good { border-color: rgba(74, 222, 128, 0.4); background: rgba(74, 222, 128, 0.1); color: var(--pd-good); }
+.pd-label { display: inline-block; color: var(--pd-label); font: 700 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.13em; text-transform: uppercase; }
+.pd-code { color: var(--pd-accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+.pd-muted { color: var(--pd-muted); }
+
+/* Alerts (guide-alert): a left rule in the accent on a warm/cool wash. */
+.pd-alert { padding: 12px 16px; border: 1px solid var(--pd-line); border-left: 3px solid var(--pd-accent); border-radius: 10px; background: var(--pd-alert); color: var(--pd-text); font-size: 13px; line-height: 1.6; }
+
+/* ── The numbered steps of the crisis room ─────────────────────────────────────────────────────────────────────── */
+.pd-step { min-width: 0; overflow: hidden; border: 1px solid var(--pd-line); border-radius: 14px; background: var(--pd-panel); box-shadow: var(--pd-shadow); transition: border-color 0.22s ease, box-shadow 0.22s ease; }
+.pd-step:hover { border-color: var(--pd-line-hi); }
+.pd-step[data-state="now"] { border-color: var(--pd-accent); box-shadow: 0 0 0 1px var(--pd-soft), 0 18px 48px rgba(0, 0, 0, 0.45), 0 0 32px var(--pd-soft); }
+.pd-step > details > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; list-style: none; background: var(--pd-head); }
+.pd-step > details > summary::-webkit-details-marker { display: none; }
+.pd-step > details[open] > summary { border-bottom: 1px solid var(--pd-line); }
+.pd-step-n { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border: 1px solid var(--pd-line-hi); border-radius: 10px; background: rgba(0, 0, 0, 0.25); color: var(--pd-muted); font: 800 14px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.pd-step[data-state="now"] .pd-step-n { border-color: var(--pd-accent); background: linear-gradient(135deg, var(--pd-accent-hi), var(--pd-accent-lo)); color: var(--pd-ink); box-shadow: 0 4px 14px var(--pd-soft); }
+.pd-step[data-state="done"] .pd-step-n { border-color: rgba(74, 222, 128, 0.45); background: rgba(74, 222, 128, 0.1); color: var(--pd-good); }
+.pd-step-title { color: var(--pd-text); font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.pd-step[data-state="now"] .pd-step-title { color: var(--pd-accent); }
+.pd-step-summary { display: block; margin-top: 2px; color: var(--pd-muted); font-size: 13px; line-height: 1.5; }
+.pd-step-caret { color: var(--pd-muted); transition: transform 0.18s ease; }
+.pd-step > details[open] .pd-step-caret { transform: rotate(90deg); }
+.pd-step-body { padding: 18px; overflow-wrap: anywhere; }
+
+/* ── Forms and controls inside the area ────────────────────────────────────────────────────────────────────────── */
+.pd-root.pd-root :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="hidden"], [type="range"]), select, textarea) {
+  border: 1px solid var(--pd-line);
+  border-radius: 10px;
+  background: var(--pd-well);
+  color: var(--pd-text);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.pd-root.pd-root :is(input, select, textarea):focus { border-color: var(--pd-accent); outline: none; box-shadow: 0 0 0 3px var(--pd-soft), inset 0 2px 6px rgba(0, 0, 0, 0.45); }
+.pd-root.pd-root .mx-key { border-color: var(--pd-line); border-radius: 9px; background: rgba(0, 0, 0, 0.22); color: var(--pd-accent-2); transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease; }
+.pd-root.pd-root .mx-key:hover:not(:disabled) { border-color: var(--pd-accent); color: var(--pd-text); }
+.pd-root.pd-root .mx-key-solid { border-color: var(--pd-accent); background: linear-gradient(135deg, var(--pd-accent-hi), var(--pd-accent-lo)); color: var(--pd-ink); box-shadow: 0 6px 22px var(--pd-soft); }
+.pd-root.pd-root .mx-key-solid:hover:not(:disabled) { color: var(--pd-ink); transform: translateY(-1px); }
+.pd-root.pd-root .mx-tag { border-color: var(--pd-line); border-radius: 999px; background: var(--pd-soft); padding: 2px 9px; letter-spacing: 0.06em; }
+.pd-root.pd-root table thead tr { color: var(--pd-label); }
+.pd-root.pd-root table th { background: rgba(0, 0, 0, 0.18); }
+.pd-root.pd-root table tbody tr:nth-child(odd) { background: rgba(255, 255, 255, 0.02); }
+.pd-root details > summary { list-style: none; }
+.pd-root details > summary::-webkit-details-marker { display: none; }
+
+/* A folded block (history, rules): a quiet panel with the accent caret. */
+.pd-fold { border: 1px solid var(--pd-line); border-radius: 14px; background: var(--pd-panel); box-shadow: var(--pd-shadow); overflow: hidden; }
+.pd-fold > summary { padding: 14px 18px; cursor: pointer; background: var(--pd-head); color: var(--pd-text); font-size: 15px; font-weight: 700; }
+.pd-fold > summary::before { content: "▸"; display: inline-block; margin-right: 10px; color: var(--pd-accent); transition: transform 0.18s ease; }
+.pd-fold[open] > summary::before { transform: rotate(90deg); }
+.pd-fold[open] > summary { border-bottom: 1px solid var(--pd-line); }
+
+/* Tabs (squad workspace, filters): pill buttons, the active one in the accent. */
+.pd-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.pd-tab { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border: 1px solid var(--pd-line); border-radius: 8px; background: rgba(0, 0, 0, 0.25); color: var(--pd-muted); font: 700 11px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.04em; text-decoration: none; transition: all 0.16s ease; }
+.pd-tab:hover { border-color: var(--pd-line-hi); color: var(--pd-text); }
+.pd-tab[aria-current="page"], .pd-tab.is-active { border-color: var(--pd-accent); background: var(--pd-soft); color: var(--pd-accent); }
+
+/* Message bubbles (messages page). */
+.pd-bubble { max-width: 46rem; padding: 10px 14px; border: 1px solid var(--pd-line); border-radius: 12px; background: var(--pd-card); }
+.pd-bubble-mine { margin-left: auto; border-color: var(--pd-line-hi); background: linear-gradient(135deg, var(--pd-soft), rgba(0, 0, 0, 0.2)); }
+
+/* Leaderboard rows. */
+.pd-rank { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--pd-line); border-radius: 9px; color: var(--pd-accent); font: 800 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* Small boxed figures (the demo's "base equity / current ask / auto-calc value" row). */
+.pd-mini-metrics > div { min-width: 0; padding: 8px 10px; border: 1px solid var(--pd-line); border-radius: 9px; background: rgba(0, 0, 0, 0.2); }
+.pd-mini-metrics dt { color: var(--pd-label); font: 700 9px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; text-transform: uppercase; }
+.pd-mini-metrics dd { margin-top: 3px; font-weight: 700; }
+
+/* The auto-calculated value under an equity field: a well, like the demo's "auto-calc value" box. */
+.pd-well-note { padding: 9px 12px; border: 1px dashed var(--pd-line); border-radius: 10px; background: rgba(0, 0, 0, 0.22); }
+
+/* A summary that opens a form ("Make an offer", "Counter"): a pill button in the accent, like the demo's offer keys. */
+.pd-summary-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 8px 15px; border: 1px solid var(--pd-accent); border-radius: 9px; background: linear-gradient(135deg, var(--pd-accent-hi), var(--pd-accent-lo)); color: var(--pd-ink); cursor: pointer; font: 800 11px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 6px 22px var(--pd-soft); transition: transform 0.16s ease, box-shadow 0.16s ease; }
+.pd-summary-btn::after { content: "→"; }
+.pd-summary-btn:hover { transform: translateY(-1px); }
+details[open] > .pd-summary-btn { background: transparent; color: var(--pd-accent); box-shadow: none; }
+details[open] > .pd-summary-btn::after { content: "×"; }
+
+@media (max-width: 640px) {
+  .pd-step > details > summary { padding: 12px 14px; gap: 10px; }
+  .pd-step-body, .pd-panel-body { padding: 14px; }
+  .pd-card { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-root *, .pd-panel, .pd-step, .pd-card, .pd-tab { transition: none !important; }
+  .pd-root.pd-root .mx-key-solid:hover:not(:disabled), .pd-summary-btn:hover { transform: none; }
+}

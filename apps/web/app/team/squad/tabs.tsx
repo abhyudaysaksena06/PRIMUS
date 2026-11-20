@@ -17,7 +17,7 @@ const TABS = [
 export function SquadTabs({ show, oneCase = false }: { show: readonly string[]; oneCase?: boolean }) {
   const pathname = usePathname();
   return (
-    <nav className="flex flex-wrap gap-2" aria-label="Squad workspace">
+    <nav className="pd-tabs" aria-label="Squad workspace">
       {TABS.filter((t) => show.includes(t.href)).map((t) => {
         const active = pathname === t.href;
         return (
@@ -25,9 +25,7 @@ export function SquadTabs({ show, oneCase = false }: { show: readonly string[]; 
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-xl px-4 py-2 text-sm font-bold ${
-              active ? "bg-phosphor-deep text-phosphor" : "bg-panel text-paper ring-1 ring-inset ring-line hover:bg-raised"
-            }`}
+            className={`pd-tab ${active ? "is-active" : ""}`}
           >
             {oneCase && t.href === "/team/squad/problem" ? "The case" : t.label}
           </Link>

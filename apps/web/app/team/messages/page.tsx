@@ -14,6 +14,7 @@ import { ChatForm } from "../chat/chat";
 import { companyLabel } from "../crisis/parts";
 import { postHireMessage } from "./actions";
 import { KeepNewestInView } from "./scroll";
+import { RoomShell } from "../crisis/room-shell";
 
 export const metadata: Metadata = { title: "Hire chat" };
 
@@ -38,6 +39,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
 
   if (threads.length === 0) {
     return (
+      <RoomShell track={ctx.team.track} eyebrow="Private 1-to-1" title="Hire chat">
       <Panel title="Hire chat">
         <Notice>
           {product
@@ -54,6 +56,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
           </Link>
         )}
       </Panel>
+      </RoomShell>
     );
   }
 
@@ -74,31 +77,37 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
   const deals = data.engagements.filter((e) => e.company_id === active.company_id && e.firm_team_id === active.firm_team_id).sort((a, b) => b.k - a.k);
 
   return (
+    <RoomShell
+      track={ctx.team.track}
+      eyebrow="Private 1-to-1"
+      title="Hire chat"
+      lede={product ? "Talk terms with a firm before you hire, then work the crisis together." : "Pitch a company before it hires you, then advise your client."}
+    >
     <div className="grid gap-4 md:grid-cols-[16rem_1fr]">
       <AutoRefresh everyMs={5_000} active={open} />
       <KeepNewestInView newest={log.at(-1)?.id ?? null} />
-      <nav className="border border-line bg-panel" aria-label="Conversations">
-        <h2 className="border-b border-line bg-raised px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">
+      <nav className="pd-panel h-fit overflow-hidden" aria-label="Conversations">
+        <h2 className="pd-panel-head pd-eyebrow">
           {product ? "Your firms" : "Your clients"}
         </h2>
-        <ul>
+        <ul className="space-y-1 p-2">
           {threads.map((t) => {
             const l = label(t);
             const last = messages.get(pairKey(t.company_id, t.firm_team_id))?.at(-1);
             const current = t === active;
             return (
-              <li key={pairKey(t.company_id, t.firm_team_id)} className="border-b border-line last:border-b-0">
+              <li key={pairKey(t.company_id, t.firm_team_id)}>
                 <Link
                   href={`/team/messages?c=${t.company_id}&f=${t.firm_team_id}`}
                   aria-current={current ? "page" : undefined}
-                  className={`block px-3 py-2 ${current ? "bg-[var(--term-amber)] text-black" : "hover:bg-raised"}`}
+                  className={`block rounded-[10px] border px-3 py-2 transition-colors ${current ? "border-[var(--term-amber)] bg-[var(--pd-soft)]" : "border-transparent hover:border-line hover:bg-raised"}`}
                   data-testid={`thread-${l.title}`}
                 >
                   <span className="flex items-baseline gap-2">
-                    <span className={`font-mono font-semibold ${current ? "" : "text-[var(--term-amber)]"}`}>{l.title}</span>
-                    <span className={`truncate text-xs ${current ? "" : "text-muted"}`}>{l.sub}</span>
+                    <span className="font-mono font-semibold text-[var(--term-amber)]">{l.title}</span>
+                    <span className="truncate text-xs text-muted">{l.sub}</span>
                   </span>
-                  <span className={`block truncate text-xs ${current ? "" : "text-paper"}`}>
+                  <span className="block truncate text-xs text-paper">
                     {last ? `${last.team_id === ctx.team.id ? "You: " : ""}${last.body}` : "No messages yet"}
                   </span>
                 </Link>
@@ -126,7 +135,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
         <p className="text-sm text-paper">
           A private chat between {product ? "your company and this firm" : "your firm and this client"}. Organisers and the fairness officer can read it too, so keep it fair.
         </p>
-        <div id="chat-log" className="mt-3 max-h-[55vh] min-h-[12rem] overflow-y-auto border border-line bg-raised p-3" data-testid="chat-log">
+        <div id="chat-log" className="mt-3 max-h-[55vh] min-h-[12rem] overflow-y-auto rounded-xl border border-line bg-[var(--pd-well)] p-3" data-testid="chat-log">
           {log.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
               No messages yet. {product ? "Tell the firm what you need, and what you will pay." : "Tell the company what you can do, and what you ask for it."}
@@ -137,7 +146,7 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
                 const mine = m.team_id === ctx.team.id;
                 return (
                   <li key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <article className={`max-w-[85%] px-3 py-2 text-sm ${mine ? "bg-phosphor-deep text-phosphor" : "bg-panel text-phosphor"}`}>
+                    <article className={`pd-bubble max-w-[85%] text-sm text-paper ${mine ? "pd-bubble-mine" : ""}`}>
                       <header className="mb-0.5 flex items-center gap-2 text-xs">
                         <span className="font-semibold text-[var(--term-amber)]">{mine ? "You" : head.title}</span>
                         <time dateTime={m.created_at} className="text-muted">
@@ -165,5 +174,6 @@ export default async function HireChatPage({ searchParams }: { searchParams: Pro
         </div>
       </Panel>
     </div>
+    </RoomShell>
   );
 }

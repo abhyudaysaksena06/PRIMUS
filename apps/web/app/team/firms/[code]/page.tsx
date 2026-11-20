@@ -12,6 +12,7 @@ import { sectionAllowed } from "@/lib/team/sections";
 import { pauseOf } from "@/lib/team/squad-data";
 import { ActionForm } from "@/components/ui/action";
 import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/ui";
+import { RoomShell } from "../../crisis/room-shell";
 import { makeOffer } from "../../crisis/actions";
 import { EngagementTable, OfferCard, TermsFields } from "../../crisis/parts";
 
@@ -65,17 +66,17 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
   ];
 
   return (
-    <div className="space-y-6">
+    <RoomShell track={ctx.team.track}>
       <p className="text-sm">
         <Link href="/team/firms" className="text-[var(--term-amber)] hover:underline">
           ← All firms
         </Link>
       </p>
 
-      <section className="border border-line bg-panel" aria-label="Firm" data-testid="firm-profile">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line bg-raised px-4 py-3">
-          <span className="font-mono text-2xl font-bold text-[var(--term-amber)]">{f.code}</span>
-          <span className="text-lg text-paper">{f.name}</span>
+      <section className="pd-panel overflow-hidden" aria-label="Firm" data-testid="firm-profile">
+        <div className="pd-panel-head justify-start">
+          <span className="pd-chip pd-chip-solid text-sm">{f.code}</span>
+          <span className="pd-title my-0 text-2xl sm:text-3xl">{f.name}</span>
           <Badge tone="slate">#{rank} by value</Badge>
           {isMe ? <Badge tone="violet">Your firm</Badge> : null}
           {hiredThisFirm ? <Badge tone="green">Hired by you</Badge> : null}
@@ -85,18 +86,18 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
             </Badge>
           ) : null}
         </div>
-        <div className="px-4 py-3">
+        <div className="pd-panel-body">
           <p className="text-base font-semibold text-paper">{p?.headline || <span className="font-normal text-muted">This firm has not written a headline yet.</span>}</p>
           {p?.specialities.length ? (
             <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Specialities">
               {p.specialities.map((s) => (
-                <li key={s} className="border border-[var(--term-cyan)] px-2 py-0.5 text-xs text-[var(--term-cyan)]">
+                <li key={s} className="pd-chip">
                   {s}
                 </li>
               ))}
             </ul>
           ) : null}
-          <dl className="mt-4 grid grid-cols-2 gap-px bg-line text-sm sm:grid-cols-3 lg:grid-cols-6">
+          <dl className="pd-mini-metrics mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
             {[
               ["Firm value", money(f.value_cents), "text-[var(--term-green)]"],
               ["Cash", money(f.cash_cents), "text-paper"],
@@ -106,8 +107,8 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
               ["Asking fee", p && p.asking_cents > 0 ? money(p.asking_cents) : "—", "text-[var(--term-amber)]"],
               ...rateCells,
             ].map(([label, value, tone]) => (
-              <div key={label} className="bg-ink px-3 py-2">
-                <dt className="text-[11px] uppercase tracking-wider text-[var(--term-amber-dim)]">{label}</dt>
+              <div key={label}>
+                <dt>{label}</dt>
                 <dd className={`font-mono ${tone}`}>{value}</dd>
               </div>
             ))}
@@ -118,7 +119,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="About the firm">
           {p?.about ? <p className="whitespace-pre-wrap text-sm text-paper">{p.about}</p> : <p className="text-sm text-muted">Nothing written yet.</p>}
-          <h3 className="mb-1 mt-4 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">Rate card</h3>
+          <h3 className="pd-label mb-1 mt-5">Rate card</h3>
           {p?.rate_card ? <p className="whitespace-pre-wrap text-sm text-paper">{p.rate_card}</p> : <p className="text-sm text-muted">No rate card yet.</p>}
           <p className="mt-3 text-xs text-muted">Profile {profileCompleteness(p)}/5 complete.</p>
           {isMe ? (
@@ -138,8 +139,8 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
                 return (
                   <li key={r} className="flex items-center gap-2 text-sm">
                     <span className="w-14 font-mono text-[var(--term-amber)]">{"★".repeat(r)}</span>
-                    <span className="h-2 flex-1 bg-raised">
-                      <span className="block h-2 bg-[var(--term-amber)]" style={{ width: `${(n / stars.rated) * 100}%` }} />
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-raised">
+                      <span className="block h-2 rounded-full bg-[var(--term-amber)]" style={{ width: `${(n / stars.rated) * 100}%` }} />
                     </span>
                     <span className="w-6 text-right font-mono text-paper">{n}</span>
                   </li>
@@ -201,7 +202,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
                   }
                 />
                 <label className="mt-2 block text-sm">
-                  <span className="font-semibold text-paper">Note to the firm (optional)</span>
+                  <span className="pd-label">Note to the firm (optional)</span>
                   <input name="note" maxLength={300} placeholder="What you need help with" className={`${inputClass} mt-1`} />
                 </label>
               </ActionForm>
@@ -209,7 +210,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
           )}
           {offers.length ? (
             <>
-              <h3 className="mb-2 mt-4 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">Your offers to {f.code}</h3>
+              <h3 className="pd-label mb-2 mt-5">Your offers to {f.code}</h3>
               <ul className="space-y-2">
                 {offers.map((o) => (
                   <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={f.code} priceCents={mine?.market_price ?? null} />
@@ -221,6 +222,6 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
       ) : null}
 
       <EngagementTable data={data} rows={[...record].reverse()} title={`Track record · ${f.code}`} />
-    </div>
+    </RoomShell>
   );
 }

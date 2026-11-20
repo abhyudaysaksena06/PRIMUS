@@ -48,10 +48,10 @@ export default async function SquadOverview() {
       <Panel title={`Squad ${String(squad.number).padStart(2, "0")}`}>
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Company</h3>
+            <h3 className="pd-label">Company</h3>
             {ctx.company?.ticker ? (
-              <p className="mt-1 text-lg font-semibold text-phosphor" data-testid="squad-company">
-                {ctx.company.name ?? "—"} <span className="font-mono">({ctx.company.ticker})</span>
+              <p className="mt-2 text-2xl font-bold tracking-tight text-paper" data-testid="squad-company">
+                {ctx.company.name ?? "—"} <span className="font-mono text-[var(--term-amber)]">({ctx.company.ticker})</span>
               </p>
             ) : (
               <p className="mt-1 text-sm text-paper" data-testid="squad-company">
@@ -66,12 +66,12 @@ export default async function SquadOverview() {
             )}
           </div>
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Teams</h3>
+            <h3 className="pd-label">Teams</h3>
             <ul className="mt-1 space-y-2 text-sm" aria-label="Squad teams">
               {TRACKS.map((t) => {
                 const mine = ids[t] === ctx.team.id;
                 return (
-                  <li key={t} className={mine ? "rounded-md bg-phosphor-deep/40 px-2 py-1 ring-1 ring-inset ring-phosphor-dim" : "px-2 py-1"}>
+                  <li key={t} className={mine ? "pd-card pd-card-hot px-3 py-2" : "pd-card px-3 py-2"}>
                     <span className="font-semibold text-phosphor">{TRACK_LABELS[t]}</span>{" "}
                     {mine ? (
                       <Badge tone="blue">Your team · {ctx.team.code}</Badge>
@@ -142,9 +142,9 @@ function StatusCard({
   pause: { paused: boolean; pausedAt: string | null };
 }) {
   return (
-    <li className="rounded-md border border-line p-3" aria-label={s.label} data-testid={`status-${s.type}`}>
+    <li className="pd-card" aria-label={s.label} data-testid={`status-${s.type}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold text-phosphor">{s.label}</h3>
+        <h3 className="text-base font-bold text-paper">{s.label}</h3>
         <Badge tone={s.state.tone}>{s.state.text}</Badge>
       </div>
       <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
@@ -183,7 +183,7 @@ function StatusCard({
         ) : null}
       </dl>
       {s.changedSinceSubmit ? <p className="mt-2 text-xs text-warn">The saved draft differs from the submitted version.</p> : null}
-      <Link href={SUBMISSION_PATHS[s.type]} className="mt-2 inline-block text-sm font-semibold underline">
+      <Link href={SUBMISSION_PATHS[s.type]} className="pd-chip mt-3 hover:underline">
         Open the {s.label.toLowerCase()}
       </Link>
     </li>

@@ -145,8 +145,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
           </ul>
         )}
         {hiring && clients.length < FIRM_CLIENTS_PER_SUBROUND ? (
-          <details className="mt-3 border border-line bg-raised p-3" data-testid="pitch-a-company">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">Pitch a company yourself</summary>
+          <details className="pd-card mt-3" data-testid="pitch-a-company">
+            <summary className="pd-summary-btn">Pitch a company yourself</summary>
             <p className="mt-2 text-sm text-paper">
               You do not have to wait to be asked. Write to a company to talk terms, or send it an offer and it answers first.
             </p>
@@ -155,7 +155,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
               {pitchable.map((co) => (
                 <li key={co.id} className="border-b border-line pb-3 last:border-b-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-mono font-semibold text-[var(--term-amber)]">{companyLabel(co)}</span>
+                    <span className="pd-code">{companyLabel(co)}</span>
                     <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[var(--term-amber)] hover:underline">
                       Talk to them →
                     </Link>
@@ -210,9 +210,9 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
               const cur = memoSent(e.company_id);
               const squadOf = { product_team_id: c?.product_team_id ?? "", consulting_team_id: me, finance_team_id: "" };
               return (
-                <section key={e.id} id={`client-${e.company_id}`} className="scroll-mt-32 border border-line bg-panel p-3" aria-label={`Client ${label}`} data-testid="client">
+                <section key={e.id} id={`client-${e.company_id}`} className="pd-card scroll-mt-32" aria-label={`Client ${label}`} data-testid="client">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-mono text-base font-bold text-[var(--term-amber)]">Client {label}</h3>
+                    <h3 className="pd-code text-base">Client {label}</h3>
                     <span className="font-mono text-sm text-paper">fee {termsText(money(e.cash_cents), e.shares)}</span>
                     {cur ? <Badge tone="green">Memo sent {clock(cur.submitted_at)}</Badge> : <Badge tone="amber">Memo not sent</Badge>}
                     <Link href={`/team/messages?c=${e.company_id}&f=${me}`} className="ml-auto text-sm font-semibold text-[var(--term-amber)] hover:underline">
@@ -230,8 +230,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                     </div>
                   )}
                   {r3 ? null : (
-                    <details className="mt-3 border border-line p-3" open={!!(planSub ?? planDraft)}>
-                      <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">
+                    <details className="pd-card mt-3" open={!!(planSub ?? planDraft)}>
+                      <summary className="pd-summary-btn">
                         The client&apos;s response plan {planSub ? <Badge tone="green">Submitted {clock(planSub.submitted_at)}</Badge> : planDraft ? <Badge tone="amber">Draft v{planDraft.version}</Badge> : <Badge tone="slate">Not started</Badge>}
                       </summary>
                       <div className="mt-2">
@@ -239,7 +239,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                       </div>
                     </details>
                   )}
-                  <h4 className="mb-2 mt-4 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">Your advice memo · up to {RULES.WORD_LIMIT[memo]} words</h4>
+                  <h4 className="pd-label mb-2 mt-5">Your advice memo · up to {RULES.WORD_LIMIT[memo]} words</h4>
                   <DraftEditor
                     type={memo}
                     draft={toSnapshot(draftRow) ?? EMPTY}
@@ -260,8 +260,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                     </p>
                   ) : null}
                   {r3 ? (
-                    <details className="mt-4 border border-line p-3" data-testid="solution-coedit">
-                      <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">
+                    <details className="pd-card mt-4" data-testid="solution-coedit">
+                      <summary className="pd-summary-btn">
                         The solution, written with your client · up to {RULES.WORD_LIMIT.SOLUTION} words
                       </summary>
                       <p className="my-2 text-sm text-paper">You can edit it with your client: each save shows for both. Your client submits it.</p>
@@ -299,9 +299,9 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
 
       {r3 ? <StatementBoard data={data} /> : null}
 
-      <details className="mx-panel rounded-lg" data-testid="firm-results">
-        <summary className="cursor-pointer px-4 py-3 text-base font-bold text-phosphor">Your results: clients, ratings and the firm league</summary>
-        <div className="space-y-4 border-t border-line p-4">
+      <details className="pd-fold" data-testid="firm-results">
+        <summary>Your results: clients, ratings and the firm league</summary>
+        <div className="space-y-4 p-4 sm:p-5">
           <EngagementTable data={data} rows={data.engagements.filter((e) => e.firm_team_id === me)} title="Your engagements" />
           <FirmLeague data={data} me={me} />
         </div>

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { parseMarkdown } from "@/lib/team/markdown";
 import { GUIDE_TRACKS, type GuideTrack } from "@/lib/team/qr";
 import { Markdown } from "@/app/team/judging/markdown";
+import "@/app/team/crisis/room-design.css";
 
 // The public track guide (/guide/product, /guide/consulting, /guide/finance): docs/event/primus/<TRACK>.md as a page,
 // opened from the QR code on a team's Home without signing in. Built once at `next build` (static), when the repository
@@ -45,11 +46,14 @@ export default async function GuidePage({ params }: PageProps<"/guide/[track]">)
   if (!isTrack(track)) notFound();
   const text = await readGuide(track);
   return (
-    <main className="min-h-dvh bg-ink px-4 py-6 text-paper">
+    <main className="pd-root pd-page-bg min-h-dvh px-4 py-8 text-paper sm:py-12" data-track={track.toUpperCase()}>
       <div className="mx-auto max-w-3xl">
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-[var(--term-amber,#ffb000)]">PRIMUS · {TITLES[track]} guide</p>
+        <div className="pd-head mb-5">
+          <p className="pd-eyebrow">PRIMUS · {TITLES[track]} guide</p>
+          <p className="pd-title">How the {TITLES[track]} track plays.</p>
+        </div>
         {text ? (
-          <article className="mt-2" data-testid="guide">
+          <article className="pd-panel mt-2 p-5 sm:p-7" data-testid="guide">
             <Markdown blocks={parseMarkdown(text)} label={`${TITLES[track]} guide`} />
           </article>
         ) : (
@@ -57,13 +61,13 @@ export default async function GuidePage({ params }: PageProps<"/guide/[track]">)
             The guide is not available here. Ask a member of staff.
           </p>
         )}
-        <nav className="mt-8 flex flex-wrap gap-4 border-t border-line pt-4 text-sm">
+        <nav className="pd-tabs mt-8 border-t border-line pt-5">
           {GUIDE_TRACKS.filter((t) => t !== track).map((t) => (
-            <Link key={t} href={`/guide/${t}`} className="underline underline-offset-2">
+            <Link key={t} href={`/guide/${t}`} className="pd-tab">
               {TITLES[t]} guide
             </Link>
           ))}
-          <Link href="/login" className="underline underline-offset-2">
+          <Link href="/login" className="pd-tab is-active">
             Sign in
           </Link>
         </nav>
