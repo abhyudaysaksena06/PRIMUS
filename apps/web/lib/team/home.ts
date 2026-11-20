@@ -77,6 +77,8 @@ export interface PrimusFacts {
     pickNo: number;
     picked: boolean;
     byDefault: boolean;
+    /** Not one of its sector's 10 pickers (migration 088): given a statement at random. */
+    auto?: boolean;
     statement: { number: number; title: string } | null;
     myTurn: boolean;
     closesAt: string | null;
@@ -486,7 +488,7 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
           key: "DRAFT",
           title: "Your problem statement",
           detail: d.statement
-            ? `You work on statement ${d.statement.number}: ${d.statement.title}${d.byDefault ? " (given to you: no pick in time)" : ""}.`
+            ? `You work on statement ${d.statement.number}: ${d.statement.title}${d.auto ? " (given at random: only the 10 lowest-scoring companies in each sector pick)" : d.byDefault ? " (given to you: no pick in time)" : ""}.`
             : "Your statement is set.",
           href: CRISIS_ROOM,
           state: "done",
@@ -497,7 +499,7 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
           task: {
             key: "DRAFT",
             title: "Your pick: choose a problem statement",
-            detail: "Pick now. If your 20 seconds run out, you get the statement with the fewest companies.",
+            detail: "Pick now: each statement can be picked only once. If your 20 seconds run out, you get a random statement nobody has picked yet.",
             href: CRISIS_ROOM,
             linkLabel: "Pick a statement",
             due: d.closesAt,
@@ -505,11 +507,21 @@ export function primusTasks(f: HomeFacts): { code: DeadlineCode | null; task: Ho
             state: "todo",
           },
         });
+      } else if (d.auto) {
+        add("DRAFT", {
+          key: "DRAFT",
+          title: "The draft: your statement is given at random",
+          detail:
+            "Only the 10 lowest-scoring companies in each sector pick. When they are done, your company is given a statement at random, spread evenly across the ten. Read the statements while you wait.",
+          href: CRISIS_ROOM,
+          state: "waiting",
+          stateLabel: "Waiting for the pickers",
+        });
       } else {
         add("DRAFT", {
           key: "DRAFT",
           title: "The draft: wait for your pick",
-          detail: `${d.ahead === 1 ? "1 company picks" : `${count(d.ahead)} companies pick`} before you (the lowest score so far goes first). Read the statements while you wait.`,
+          detail: `${d.ahead === 1 ? "1 company picks" : `${count(d.ahead)} companies pick`} before you (the 10 lowest-scoring companies in each sector pick, lowest first). Read the statements while you wait.`,
           href: CRISIS_ROOM,
           state: "waiting",
           stateLabel: "Waiting for your turn",

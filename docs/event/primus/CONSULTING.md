@@ -18,8 +18,10 @@ earn: **fees + bonuses + the value of any shares you were paid in.**
    - write an **advice memo** for each client before the due time: **at least 150 words** (up to 500). **No memo,
      or a memo under 150 words, = no fee**: it goes back to the client;
    - your clients **rate you** 1 to 5 stars. Good memos and good stars earn a bonus; poor ones cost you.
-3. **Round 3 · The last job (04:45–06:30).** Get hired again (hiring opens when the draft ends, about 05:00, until
-   05:15) and help your client write its solution.
+3. **Round 3 · The last job (04:45–06:30).** First the companies' draft: the 10 lowest-scoring companies in each
+   sector pick a statement, lowest first, 20 seconds each, each statement once; every other company in the sector is
+   given a statement at random, spread evenly across the ten. Then get hired again (hiring opens when the draft ends,
+   about 04:50, until 05:15) and help your client write its solution.
 
 ## Writing tonight
 

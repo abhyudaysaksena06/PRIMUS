@@ -275,6 +275,11 @@ describe("a PRIMUS event's Rounds 2 and 3", () => {
     expect(picked.DRAFT!.detail).toBe("You work on statement 2: Farm credit.");
     expect(picked.HIRE!.detail).toContain("worth 5–20% of your cash");
     expect(picked.PLAN_K!.title).toBe("Write and submit your solution");
+    // Migration 088: a company beyond its sector's 10 pickers waits for a statement at random.
+    const other = byKey(primus("PRODUCT", "SATURATION", "04:46", { k: 5, hiringK: null, workOpen: false, draft: { ...d, auto: true, ahead: 9 } })).DRAFT!;
+    expect(other).toMatchObject({ state: "waiting", title: "The draft: your statement is given at random", stateLabel: "Waiting for the pickers" });
+    const given = byKey(primus("PRODUCT", "SATURATION", "04:50", { k: 5, hiringK: 5, workOpen: true, engagement: null, draft: { ...d, auto: true, picked: true, byDefault: true, statement: { number: 7, title: "Cold chain" } } }));
+    expect(given.DRAFT!.detail).toBe("You work on statement 7: Cold chain (given at random: only the 10 lowest-scoring companies in each sector pick).");
   });
 
   test("Consulting: the profile, offers to answer, and a memo per client", () => {

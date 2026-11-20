@@ -76,7 +76,7 @@ const WHAT_R2: Record<StepKey, string> = {
 
 const WHAT_R3: Record<StepKey, string> = {
   CARD: "",
-  DRAFT: "The draft: companies pick a problem statement one by one, the lowest score first.",
+  DRAFT: "The draft: the 10 lowest-scoring companies in each sector pick a statement, lowest first, each statement once; the others are given one at random.",
   HIRE: "Every company has its problem statement. Companies hire a firm for the last time.",
   WORK: "Companies write their solutions; their firms write a memo and help.",
   RATE: "Writing is closed. Companies rate their firms while the judge scores the solutions.",

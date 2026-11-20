@@ -14,8 +14,8 @@
 | by +65 min | **Response plan** | Up to 500 words. Missing = 0. Its score moves your price (a strong plan lifts it). |
 | +65 to +80 min | **Rate your firm** 1–5 stars | No rating = 3 stars. |
 | Round 2 (optional) | **Raise money** | Sell 1–10% of your company to a fund at the market price, once per crisis. You always keep at least 40,000 shares (40%). |
-| 04:45 | **The draft** | Lowest score so far picks first, 20 seconds each, from **your sector's** statements only; the three sectors draft at once. No pick = a random statement of your sector with room. |
-| from the end of the draft (about 05:00) to 05:15 | **Hire a firm for Round 3** | The fee must be worth 5–20% of your cash. |
+| 04:45 | **The draft** | The 10 lowest-scoring companies in each sector pick a statement, lowest first, 20 seconds each, each statement once. Every other company in the sector is given a statement at random, spread evenly across the ten. The three sectors draft at once. A picker with no pick in time = a random statement nobody has picked yet. |
+| from the end of the draft (about 04:50) to 05:15 | **Hire a firm for Round 3** | The fee must be worth 5–20% of your cash. |
 | by 06:00 | **Solution** (with your firm) | Up to 600 words. A price rise is scaled from ×1.25 for the weakest company (by score so far) to ×0.25 for the strongest; a fall applies in full. Then rate your firm by 06:15. |
 | 07:10 | Awards | |
 

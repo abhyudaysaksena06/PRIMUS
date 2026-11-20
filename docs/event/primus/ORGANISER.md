@@ -18,8 +18,11 @@
 - **Round 3**: after 06:00, judge and **release the solutions** the same way: the last trading round waits for them,
   and with auto-advance on the night waits too (the market does not close without that round). The round then opens
   with its full 15 minutes and everything after it moves later. Release the Round 3 advice memos once ratings close.
-- **Round 3**: the overview shows the draft live (who is on the clock, each sector's statements) and warns in red if
-  statements are missing or a sector lacks room. The big screen shows the draft by itself.
+- **Round 3**: the overview shows the draft live (who is on the clock in each sector, each sector's statements) and
+  warns in red if statements are missing or a sector lacks room. The big screen shows the draft by itself. The rule:
+  the 10 lowest-scoring companies in each sector pick a statement, lowest first, 20 seconds each, each statement once.
+  Every other company in the sector is given a statement at random, spread evenly across the ten (never above a
+  statement's cap). The draft takes about 3 min 40 s; hiring opens as soon as every company has its statement.
 - Something wrong? **Pause** freezes every deadline; **Extend** adds minutes to everything after now.
 
 ## Timeline

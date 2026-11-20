@@ -43,7 +43,7 @@ and every round's candle has its real wicks.
 | Piece | How |
 | --- | --- |
 | Problem statements | Organisers upload them (suggested 10, cap 5 companies each). |
-| Draft | Product teams ranked by score so far (PRD + Round 2 plans, average); lowest picks first, 20 seconds each; no pick = the least-crowded open statement. |
+| Draft | Product teams ranked by score so far (PRD + Round 2 plans, average), one queue per sector, the sectors at once. The 10 lowest-scoring companies in each sector pick a statement, lowest first, 20 seconds each, each statement once (`STATEMENT_TAKEN`); a missed pick = a random statement no picker has taken. Every other company in the sector is given a statement at random, spread evenly across the ten: in the order md5(event id ‖ company id), the statement with the fewest companies so far (ties: md5(event id ‖ company id ‖ number)), never above its cap (`app.allocate_rest`, migration 088). A sector with 10 or fewer companies: everyone picks. |
 | Negotiation | The firm posts an asking fee; offers and counters, at most 3 counters each; a fee band (5–20% of the company's cash); binding once accepted; 2 clients per firm. |
 | Solution | `SOLUTION`, 600 words, with the hired firm; judged with the statement as context. |
 | Catch-up | Every company in Round 3 is ranked by its score so far (PRD + Round 2 plans, averaged; the draft order). A positive solution tier is scaled from ×1.25 for the weakest to ×0.25 for the strongest, evenly spaced; ties share the higher multiplier; negative tiers apply in full (migration 64). |
@@ -135,7 +135,9 @@ team size and prizes are not modelled by the platform.
 
 - The Round 3 draft starts only when there are problem statements with room for every company (at the start of
   Round 3, or when they are uploaded); statements can be replaced until the first pick. When it starts, the `DRAFT`
-  deadline moves later if needed so that each company gets its 20 seconds.
+  deadline moves later if needed so that each picker gets its 20 seconds (10 pickers per sector: 3 min 40 s). Only
+  the 10 lowest-scoring companies of each sector pick; the others are placed at random, spread evenly, the moment
+  their sector's last picker is done (migration 088).
 - The heartbeat broadcasts when hiring closes, when escrow is settled and when ratings close.
 - An offer's broadcast names its Product team and firm; other teams' screens ignore it, and every team screen waits
   a random moment (up to 1.2 s) before re-reading after a broadcast, so the pages do not all load at once.

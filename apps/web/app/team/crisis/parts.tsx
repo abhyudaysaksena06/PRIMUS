@@ -12,6 +12,7 @@ import {
   OFFER_STATUS_TONE,
   countersLeft,
   crisisSealed,
+  DRAFT_RULE,
   draftHeads,
   draftState,
   sameSector,
@@ -215,7 +216,9 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
       <OnTheClock data={data} />
       {draftState(data.picks, null).bySector && !draftState(data.picks, null).done ? (
         // Picks are not broadcast to every screen while the sectors draft: this board catches up when the draft ends.
-        <p className="mt-1 text-xs text-muted">The sectors pick at the same time. This board updates when the draft ends; reload the page to see the latest picks.</p>
+        <p className="mt-1 text-xs text-muted">
+          {DRAFT_RULE} The sectors pick at the same time. This board updates when the draft ends; reload the page to see the latest picks.
+        </p>
       ) : null}
       <p className="guide-muted mb-3 mt-1">
         Each company is judged on its own solution; sharing a statement does not change anyone&apos;s price move. A rise is scaled by the score so far across

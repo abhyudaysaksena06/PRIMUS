@@ -144,6 +144,20 @@ With one queue, 200 companies take 200 × 20 s ≈ 67 minutes.
 - Picks no longer go to every screen: staff and the projector hear them; draft screens re-read every 3 seconds. The
   "Your pick!" alert is back for the company on the clock.
 
+**The organisers' rule for 20 Nov (088, with `draft_by_sector`).** The 10 lowest-scoring companies in each sector pick
+a statement, lowest first, 20 seconds each, each statement once. Every other company in the sector is given a
+statement at random, spread evenly across the ten.
+
+- Pickers: the first `app.draft_pickers()` (10) of each sector's queue, never more than the sector's statements; a
+  sector with 10 or fewer companies, everyone picks. The others are `draft_picks.auto` and are never on the clock
+  (`NOT_A_PICKER`).
+- A statement a picker took is refused to the later pickers (`STATEMENT_TAKEN`). A missed pick gets the first
+  statement in the company's seeded order that no picker has taken (switch off: the lowest-numbered untaken one).
+- When the sector's last picker is done, `app.allocate_rest` places the others, in the order md5(event id ‖ company
+  id), each on the statement with the fewest companies so far (ties: md5(event id ‖ company id ‖ statement number)),
+  never above its cap: deterministic per event, so a restore or a re-run of the same picks gives the same statements.
+- The draft's planned length is 10 × 20 s + 20 s = 3 min 40 s; hiring opens when every company has its statement.
+
 The statement is the judge's context for the solution (`SOLUTION`) and the firm's Round 3 memo (`ADVICE_5`).
 
 ## 4. Bulletins
