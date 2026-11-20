@@ -148,6 +148,8 @@ describe("grants", () => {
       "sign_deal",
       "snapshot_data",
       "snapshots_list",
+      "staff_accounts",
+      "staff_activity",
       "start_calibration",
       "start_judging",
       "start_next_phase_now",

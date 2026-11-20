@@ -28,6 +28,9 @@ export const DESK_SECTIONS: Record<DeskRole, readonly string[]> = {
   CRISIS: ["/content"],
 };
 
+/** Sections for organisers only: not the fairness officer, not a desk (the Activity page: what every staff account did). */
+export const ORGANISER_SECTIONS: readonly string[] = ["/activity"];
+
 export const ROLE_LABELS: Record<Role, string> = {
   TEAM: "Team",
   ORGANISER: "Organiser",
@@ -75,7 +78,9 @@ export function adminSectionOf(path: string): { slug: string; section: string } 
 
 /** May this role open this control-panel section (a path under /admin/<slug>, "" for the overview)? */
 export function canOpenSection(role: Role, section: string): boolean {
-  if (role === "ORGANISER" || role === "FAIRNESS") return true;
+  if (role === "ORGANISER") return true;
+  if (ORGANISER_SECTIONS.some((s) => section === s || section.startsWith(`${s}/`))) return false;
+  if (role === "FAIRNESS") return true;
   if (!isDeskRole(role)) return false;
   return DESK_SECTIONS[role].some((s) => (s === "" ? section === "" : section === s || section.startsWith(`${s}/`)));
 }
