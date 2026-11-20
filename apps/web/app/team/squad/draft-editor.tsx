@@ -43,7 +43,8 @@ import { SUBMISSION_LABELS, deadlinePassed, otherSaver, roleOf, whoLabel, type S
 import { useCarryOver } from "@/lib/live/feedback";
 import { ActionButton, ResultMessage } from "@/components/ui/action";
 import { safely } from "@/components/ui/action-helpers";
-import { Badge, Notice, buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass } from "@/components/ui/ui";
+import { Chip, GuideAlert } from "../crisis/guide";
 import { saveDraft, submitDraft, type DraftResult } from "./actions";
 
 export interface DraftEditorProps {
@@ -88,6 +89,8 @@ export function DraftEditor(props: DraftEditorProps) {
   const router = useRouter();
   const uid = useId();
   const [state, dispatch] = useReducer(editorReducer, undefined, () => initEditor(type, draft));
+  // The section being written: its tab is lit, as in the demo's editor.
+  const [focused, setFocused] = useState<string | null>(null);
 
   // A page refresh brings the latest saved version: shown at once if nothing was typed here, merged otherwise.
   const [seen, setSeen] = useState(draft.version);
@@ -231,8 +234,8 @@ export function DraftEditor(props: DraftEditorProps) {
   const ticker = fields.ticker ?? "";
   const confirm = `Click again to ${dirty ? "save and " : ""}submit ${words(stats.total)}${type === "PITCH" && ticker ? ` as ${ticker}` : ""}`;
   const who = (teamId: string | null) => whoLabel(squad, me, teamId);
-  const fieldClass = (readOnly: boolean, conflict = false) =>
-    `${inputClass} ${readOnly ? "bg-raised text-paper" : ""} ${conflict ? "border-warn/60 ring-2 ring-warn/60" : ""}`;
+  const fieldClass = (readOnly: boolean, conflict = false, base = "guide-input") =>
+    `${base} ${readOnly ? "opacity-90" : ""} ${conflict ? "!border-warn/60 ring-2 ring-warn/60" : ""}`;
   const inConflict = (key: string) => live && state.conflicts.includes(key);
   const describedBy = (key: string, ...ids: string[]) => [...ids, inConflict(key) ? `${uid}-${key}-conflict` : ""].filter(Boolean).join(" ") || undefined;
   const conflictFor = (key: string, label: string) =>
@@ -280,7 +283,30 @@ export function DraftEditor(props: DraftEditorProps) {
         save();
       }}
     >
-      <p className="flex flex-wrap items-center gap-2 text-sm text-paper" data-testid="draft-version">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <b className="text-sm text-paper">Write your {SUBMISSION_LABELS[type]}</b>
+          <p className="guide-muted">
+            {TEMPLATES[type].length} sections · each has its own box. Save keeps a draft; Submit sends the version that is judged.
+          </p>
+        </div>
+        <span className="text-right">
+          <span data-testid="word-total" className={`guide-status block tabular-nums ${stats.over > 0 ? "!text-danger-soft" : ""}`}>
+            {stats.total.toLocaleString("en-US")} / {stats.limit.toLocaleString("en-US")} words
+          </span>
+          {stats.over > 0 ? <span className="guide-status block !text-danger-soft">{words(stats.over)} over the limit</span> : null}
+        </span>
+      </div>
+
+      <nav className="guide-tabs !mb-0" aria-label={`${SUBMISSION_LABELS[type]} sections`}>
+        {TEMPLATES[type].map((f, i) => (
+          <a key={f.key} href={`#${uid}-${f.key}`} className={focused === f.key ? "active" : ""}>
+            {String(i + 1).padStart(2, "0")} · {f.label}
+          </a>
+        ))}
+      </nav>
+
+      <p className="flex flex-wrap items-center gap-2 text-xs text-paper" data-testid="draft-version">
         {version.version > 0 ? (
           <span>
             Version {version.version} · saved by <strong className="text-phosphor">{who(version.updatedBy)}</strong> at{" "}
@@ -290,7 +316,7 @@ export function DraftEditor(props: DraftEditorProps) {
           <span>Not saved yet.</span>
         )}
         {dirty && live ? (
-          <Badge tone="amber">{pending ? "Saving…" : "Unsaved changes"}</Badge>
+          <Chip tone="amber">{pending ? "Saving…" : "Unsaved changes"}</Chip>
         ) : autoSavedAt && live ? (
           <span className="text-xs text-muted" data-testid="autosaved">
             Saved automatically
@@ -299,13 +325,13 @@ export function DraftEditor(props: DraftEditorProps) {
       </p>
 
       {!live ? (
-        <Notice tone={editable ? "amber" : "slate"}>
+        <GuideAlert tone={editable ? "warn" : "info"}>
           <span data-testid="draft-closed">{editable ? `The ${SUBMISSION_LABELS[type].toLowerCase()} closed at ${clock(deadline, true)}.` : props.closedNote}</span>
-        </Notice>
+        </GuideAlert>
       ) : null}
 
       {closed?.unsaved ? (
-        <div className="rounded-md bg-warn/10 p-3 text-sm text-warn ring-1 ring-inset ring-warn/60" data-testid="draft-unsaved">
+        <div className="guide-alert guide-warning" data-testid="draft-unsaved">
           <p className="font-semibold">Not saved: the text below was typed on this screen but never saved, so it is not part of the draft.</p>
           <details className="mt-2">
             <summary className="cursor-pointer font-medium">See the unsaved text</summary>
@@ -315,7 +341,7 @@ export function DraftEditor(props: DraftEditorProps) {
       ) : null}
 
       {live && choosing ? (
-        <div role="alert" className="rounded-md bg-warn/10 p-3 text-sm text-warn ring-1 ring-inset ring-warn/60" data-testid="draft-conflict">
+        <div role="alert" className="guide-alert guide-warning" data-testid="draft-conflict">
           <p className="font-semibold">
             {otherSaver(squad, me, state.base.updatedBy)} saved version {state.base.version} at {clock(state.base.updatedAt, true)} while you were
             editing.
@@ -338,7 +364,7 @@ export function DraftEditor(props: DraftEditorProps) {
       ) : null}
 
       {state.stash ? (
-        <div className="rounded-md bg-raised p-3 text-sm ring-1 ring-inset ring-line" data-testid="draft-stash">
+        <div className="guide-alert" data-testid="draft-stash">
           <p className="font-semibold text-phosphor">
             {state.stash.why === "loaded"
               ? `You chose their text in ${sectionNames(type, Object.keys(state.stash.fields))}. Your text there is set aside here.`
@@ -362,7 +388,7 @@ export function DraftEditor(props: DraftEditorProps) {
       ) : null}
 
       {state.notice && (live || state.notice.kind === "updated") ? (
-        <div role="status" className="flex flex-wrap items-start justify-between gap-2 rounded-md bg-phosphor-deep/40 px-3 py-2 text-sm text-phosphor-mid ring-1 ring-inset ring-phosphor-dim">
+        <div role="status" className="guide-alert flex flex-wrap items-start justify-between gap-2">
           <span>{noticeText(state.notice)}</span>
           <button type="button" className="text-xs font-semibold underline" onClick={() => dispatch({ type: "dismissNotice" })}>
             Dismiss
@@ -373,7 +399,7 @@ export function DraftEditor(props: DraftEditorProps) {
       {blockPaste ? (
         <p
           role="status"
-          className={`text-sm ${pasteBlockedAt !== null ? "rounded-md bg-warn/10 px-3 py-2 font-semibold text-warn ring-1 ring-inset ring-warn/60" : "text-muted"}`}
+          className={pasteBlockedAt !== null ? "guide-alert guide-warning font-semibold" : "guide-muted"}
           data-testid="paste-blocked"
           data-state={pasteBlockedAt !== null ? "blocked" : "hint"}
         >
@@ -384,7 +410,7 @@ export function DraftEditor(props: DraftEditorProps) {
       {type === "PITCH" ? (
         <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
           <div>
-            <label htmlFor={`${uid}-company_name`} className="pd-label">
+            <label htmlFor={`${uid}-company_name`} className="guide-label uppercase">
               Company name
             </label>
             <input
@@ -399,7 +425,7 @@ export function DraftEditor(props: DraftEditorProps) {
             />
           </div>
           <div>
-            <label htmlFor={`${uid}-ticker`} className="pd-label">
+            <label htmlFor={`${uid}-ticker`} className="guide-label uppercase">
               Ticker
             </label>
             <input
@@ -415,7 +441,7 @@ export function DraftEditor(props: DraftEditorProps) {
               className={`${fieldClass(!live, inConflict("ticker"))} font-mono uppercase`}
             />
           </div>
-          <p id={`${uid}-ticker-hint`} className="text-xs text-muted sm:col-span-2">
+          <p id={`${uid}-ticker-hint`} className="guide-muted sm:col-span-2">
             The ticker is 3 or 4 capital letters and must be unique; it is claimed when you submit. The name and ticker are not counted in the word limit.
           </p>
           {conflictFor("company_name", "Company name")}
@@ -428,74 +454,67 @@ export function DraftEditor(props: DraftEditorProps) {
         const n = stats.perField[f.key] ?? 0;
         const text = fields[f.key] ?? "";
         return (
-          <div key={f.key}>
-            <div className="flex items-baseline justify-between gap-2">
-              <label htmlFor={id} className="pd-label">
-                {f.label}
-              </label>
-              <span id={`${id}-words`} className="text-xs tabular-nums text-muted" data-testid={`words-${f.key}`}>
-                {words(n)}
-              </span>
-            </div>
+          <div key={f.key} className="scroll-mt-24">
+            <label htmlFor={id} className="guide-label uppercase">
+              <span aria-hidden>{String(TEMPLATES[type].indexOf(f) + 1).padStart(2, "0")} · </span>
+              {f.label}
+            </label>
             <textarea
               id={id}
               value={text}
               onChange={(e) => dispatch({ type: "edit", key: f.key, value: e.target.value })}
               readOnly={!live}
               rows={rowsFor(text, type === "FLASH" ? 5 : 3)}
+              onFocus={() => setFocused(f.key)}
               aria-describedby={describedBy(f.key, `${id}-words`)}
-              className={`${fieldClass(!live, inConflict(f.key))} resize-y`}
+              className={fieldClass(!live, inConflict(f.key), "guide-textarea")}
             />
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <span className="guide-muted tabular-nums">
+                <span id={`${id}-words`} data-testid={`words-${f.key}`}>
+                  {words(n)}
+                </span>{" "}
+                in this section
+              </span>
+            </div>
             {conflictFor(f.key, f.label)}
           </div>
         );
       })}
 
-      <div className="rounded-xl border border-line bg-raised px-3 py-2 text-sm">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <span data-testid="word-total" className={`font-semibold tabular-nums ${stats.over > 0 ? "text-danger-soft" : "text-phosphor"}`}>
-            {stats.total.toLocaleString("en-US")} / {stats.limit.toLocaleString("en-US")} words
-          </span>
-          {stats.over > 0 ? <span className="font-medium text-danger-soft">{words(stats.over)} over the limit</span> : null}
-        </div>
-        <div className="mt-1 h-1.5 overflow-hidden rounded bg-phosphor-deep" aria-hidden>
-          <div className={`h-full ${stats.over > 0 ? "bg-danger" : "bg-[var(--term-amber)]"}`} style={{ width: `${Math.min(100, (stats.total / stats.limit) * 100)}%` }} />
-        </div>
-      </div>
-
-      {tooBig && live ? <Notice tone="red">This draft is too long to save (the limit is {MAX_CONTENT_CHARS.toLocaleString("en-US")} characters).</Notice> : null}
+      {tooBig && live ? <GuideAlert tone="bad">This draft is too long to save (the limit is {MAX_CONTENT_CHARS.toLocaleString("en-US")} characters).</GuideAlert> : null}
 
       {props.submitted ? (
         isSubmitted ? (
-          <p className="text-sm text-phosphor" data-testid="submitted-state">
+          <p className="guide-status" data-testid="submitted-state">
             This text is the submitted version (submitted at {clock(props.submitted.submittedAt, true)}).
           </p>
         ) : (
-          <p className="text-sm text-warn" data-testid="submitted-state">
+          <p className="guide-alert guide-warning" data-testid="submitted-state">
             This text differs from the version submitted at {clock(props.submitted.submittedAt, true)}. Only the submitted version is judged
             {live ? ": submit again to replace it." : "."}
           </p>
         )
       ) : live && opensAt ? (
-        <p className="text-sm text-paper" data-testid="submitted-state">
+        <p className="guide-muted" data-testid="submitted-state">
           Not submitted yet. Submit opens at {clock(opensAt)}, 5 minutes before the deadline at {clock(deadline)}. Changes save automatically when
           you pause typing, and if nobody submits, your last saved version is submitted for you at the deadline.
         </p>
       ) : live ? (
-        <p className="text-sm text-paper" data-testid="submitted-state">
+        <p className="guide-muted" data-testid="submitted-state">
           Not submitted yet. Submit when it is ready (you can submit again until the deadline). Changes save automatically when you pause
           typing, and if you forget to submit, your last saved version is submitted for you at the deadline.
         </p>
       ) : null}
 
       {live ? (
-        <div>
+        <div className="border-t border-[#294832] pt-4">
           {problem ? (
             <p className="mb-2 text-sm text-paper" data-testid="submit-problem">
               Cannot submit yet: {problem.message}
             </p>
           ) : null}
-          <div className="flex flex-wrap items-start gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
             <button type="submit" disabled={!dirty || choosing || pending || submitting} className={buttonClass.secondary}>
               {pending ? "Saving…" : dirty ? "Save draft" : "Saved"}
             </button>
@@ -538,7 +557,7 @@ function FieldsText({ type, fields, only }: { type: SubmissionType; fields: Fiel
         .filter((f) => !only || only.includes(f.key))
         .map((f) => (
           <div key={f.key}>
-            <dt className="pd-label">{f.label}</dt>
+            <dt className="guide-label uppercase">{f.label}</dt>
             <dd className="whitespace-pre-wrap break-words text-phosphor">
               {(fields[f.key] ?? "").trim() === "" ? <span className="text-muted">—</span> : fields[f.key]}
             </dd>
@@ -565,7 +584,7 @@ function ConflictChoice(props: {
 }) {
   const text = (t: string) => (t.trim() === "" ? <span className="text-muted">— (empty)</span> : t);
   return (
-    <div id={props.id} className="mt-2 rounded-md bg-warn/10 p-3 sm:col-span-2 text-sm text-warn ring-1 ring-inset ring-warn/60" data-testid={props.testId}>
+    <div id={props.id} className="guide-alert guide-warning mt-2 sm:col-span-2" data-testid={props.testId}>
       <p className="font-semibold">{props.label} was changed here and in version {props.version}: which text do you keep?</p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         <div className="min-w-0 rounded bg-panel p-2 ring-1 ring-inset ring-warn/60" data-testid="conflict-mine">

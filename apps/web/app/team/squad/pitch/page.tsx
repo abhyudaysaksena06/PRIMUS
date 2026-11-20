@@ -3,7 +3,7 @@ import { RULES } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { submissionWindow } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
-import { Panel } from "@/components/ui/ui";
+import { GuidePanel } from "../../crisis/guide";
 import { Due } from "../due";
 import { squadGate } from "../parts";
 import { SubmissionEditor } from "../submission";
@@ -20,15 +20,16 @@ export default async function PitchPage() {
   const ws = await loadSquadWorkspace(ctx);
   const win = submissionWindow("PITCH", ctx.team.track, windowInput(ctx, ws));
   return (
-    <Panel
+    <GuidePanel
       title="PRD"
+      tag={`7 SECTIONS · ${RULES.WORD_LIMIT.PITCH} WORDS TOTAL`}
       actions={
-        <span className="text-sm text-paper">
-          Due <Due at={win.deadline} {...pauseOf(ctx)} testId="pitch-due" />
+        <span className="guide-status">
+          DUE <Due at={win.deadline} {...pauseOf(ctx)} testId="pitch-due" />
         </span>
       }
     >
-      <div className="mb-4">
+      <div className="guide-alert mb-4">
         <DoThis testId="pitch-todo">Write your company&apos;s plan in seven short parts (up to {RULES.WORD_LIMIT.PITCH} words), then press Submit.</DoThis>
         <HowItWorks label="How it is scored" testId="pitch-rules">
           <p>
@@ -39,6 +40,6 @@ export default async function PitchPage() {
         </HowItWorks>
       </div>
       <SubmissionEditor ctx={ctx} ws={ws} type="PITCH" win={win} />
-    </Panel>
+    </GuidePanel>
   );
 }

@@ -17,17 +17,17 @@ const TABS = [
 export function SquadTabs({ show, oneCase = false }: { show: readonly string[]; oneCase?: boolean }) {
   const pathname = usePathname();
   return (
-    <nav className="pd-tabs" aria-label="Squad workspace">
-      {TABS.filter((t) => show.includes(t.href)).map((t) => {
+    <nav className="guide-tabs" aria-label="Squad workspace">
+      {TABS.filter((t) => show.includes(t.href)).map((t, i) => {
         const active = pathname === t.href;
         return (
           <Link
             key={t.href}
             href={t.href}
             aria-current={active ? "page" : undefined}
-            className={`pd-tab ${active ? "is-active" : ""}`}
+            className={active ? "active" : ""}
           >
-            {oneCase && t.href === "/team/squad/problem" ? "The case" : t.label}
+            {String(i + 1).padStart(2, "0")} · {oneCase && t.href === "/team/squad/problem" ? "The case" : t.label}
           </Link>
         );
       })}

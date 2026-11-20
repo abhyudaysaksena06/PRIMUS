@@ -4,7 +4,7 @@ import { clock } from "@/lib/format";
 import { loadTeamContext } from "@/lib/team/context";
 import { submissionWindow } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
-import { Panel } from "@/components/ui/ui";
+import { GuidePanel } from "../../crisis/guide";
 import { Due } from "../due";
 import { squadGate } from "../parts";
 import { SubmissionEditor } from "../submission";
@@ -20,13 +20,13 @@ export default async function FlashPage() {
   const ws = await loadSquadWorkspace(ctx);
   const win = submissionWindow("FLASH", ctx.team.track, windowInput(ctx, ws));
   return (
-    <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
-      <Panel title="Flash bulletin">
+    <div className="guide-grid two">
+      <GuidePanel title="Flash bulletin" tag="NEWS">
         {ws.flash ? (
           <article data-testid="flash-bulletin">
-            <p className="text-xs text-muted">Published at {clock(ws.flash.published_at)}</p>
-            <h3 className="mt-1 text-lg font-bold text-paper">{ws.flash.title}</h3>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-paper">{ws.flash.body}</p>
+            <p className="guide-chip active">Published at {clock(ws.flash.published_at)}</p>
+            <h3 className="mt-3 text-xl font-semibold text-paper">{ws.flash.title}</h3>
+            <p className="guide-muted mt-2 whitespace-pre-wrap">{ws.flash.body}</p>
           </article>
         ) : (
           <p className="text-sm text-paper">
@@ -34,21 +34,22 @@ export default async function FlashPage() {
             is out.
           </p>
         )}
-      </Panel>
-      <Panel
+      </GuidePanel>
+      <GuidePanel
         title="Flash answer"
+        tag={`${RULES.WORD_LIMIT.FLASH} WORDS`}
         actions={
-          <span className="text-sm text-paper">
-            Due <Due at={win.deadline} {...pauseOf(ctx)} testId="flash-due" />
+          <span className="guide-status">
+            DUE <Due at={win.deadline} {...pauseOf(ctx)} testId="flash-due" />
           </span>
         }
       >
-        <p className="mb-4 text-sm text-paper">
+        <p className="guide-alert mb-4">
           Up to {RULES.WORD_LIMIT.FLASH} words, written together by your squad&apos;s Product and Consulting teams. The judge scores how you respond to the
           news (50), how realistic it is (30) and how clear (20).
         </p>
         <SubmissionEditor ctx={ctx} ws={ws} type="FLASH" win={win} />
-      </Panel>
+      </GuidePanel>
     </div>
   );
 }
