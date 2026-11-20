@@ -248,10 +248,8 @@ describe("score releases and pending books", () => {
   // KNOWN FLAW, outside the trading functions (release_primus / release_scores, not this workstream's files): the
   // "no release while trading is open" guard uses app.open_round, which ignores a round past its closing time that
   // the tick has not cleared yet (up to ~2 s, longer if the tick is slow). A release in that window moves the price
-  // the pending book then clears at: buys fill up to 37.5% above the price they reserved for. The fix is one line in
-  // both functions (refuse while any round of the event has status OPEN). test.fails passes while the flaw is there;
-  // when it is fixed this test fails and should become a plain test.
-  test.fails("a release is refused while a closed round waits for its clearing", async () => {
+  // the pending book then clears at: buys fill up to 37.5% above the price they reserved for. Fixed in migration 081.
+  test("a release is refused while a closed round waits for its clearing", async () => {
     const { n, squads: s } = await toPressure(db.pool, 3, "edges-release");
     await n.openRound(1);
     await n.ok(n.team(s[1]!.f_code), "place_order", s[0]!.company_id, "BUY", 1_000);
