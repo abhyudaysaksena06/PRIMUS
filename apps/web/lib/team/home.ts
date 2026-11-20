@@ -714,7 +714,7 @@ export function homePlan(f: HomeFacts): HomePlan {
         task(f, null, {
           key: "PRACTICE",
           title: "Trade the practice market",
-          detail: "$100,000 of practice money on candlestick charts named after the Product teams. It is practice only: nothing from it carries into the real game. Trade at least once to be ranked.",
+          detail: "$100,000 of practice money on candlestick charts named after the Product teams. The practice money stays there, but the 3 funds worth the most win $50,000 each in real cash before the IPO. Trade at least once to be ranked.",
           href: "/team/trade/practice",
           linkLabel: "Open the practice market",
           state: "todo",

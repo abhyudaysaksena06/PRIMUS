@@ -232,13 +232,13 @@ export function PracticeTerminal({
         <DeskKpi label="Practice fund value" tag={<span className="text-[#00D68F]">LIVE</span>} value={money(equity)} foot={`Started at ${money(PRACTICE.startCents)}`} />
         <DeskKpi label="Profit" tag="NET" tone={profit > 0 ? "up" : profit < 0 ? "down" : "plain"} value={`${profit >= 0 ? "+" : "−"}${money(Math.abs(profit))}`} foot={`${trades.length} trades`} />
         <DeskKpi label="Cash" value={money(cash)} foot="Practice money" />
-        <DeskKpi label="Purpose" tag="PRACTICE" tone="accent" value="Learning" foot="Nothing carries into the game" />
+        <DeskKpi label="Prize" tag={`TOP ${PRACTICE.winners}`} tone="accent" value={money(PRACTICE.prizeCents)} foot="Real cash before the IPO" />
       </div>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="text-base font-semibold text-[#F2F5F3]">Practice market · Round 1</h1>
         <p className="text-xs text-[#BACBB9]">
-          A candle every {tickSeconds * per} s, a price every {tickSeconds} s. Practice only: nothing here carries into the real game.
-          Trade at least once to be ranked.
+          A candle every {tickSeconds * per} s, a price every {tickSeconds} s. The practice money stays here, but the {PRACTICE.winners} funds worth the most
+          when Round 1 ends each win {money(PRACTICE.prizeCents)} in real cash. Trade at least once to be ranked.
         </p>
       </div>
       {paused ? <p className="rounded-md border border-[color:var(--desk-accent-line)] bg-[var(--desk-accent-soft)] px-3 py-2 text-sm text-[color:var(--desk-accent)]">The event is paused: trading is stopped.</p> : null}
@@ -372,9 +372,9 @@ export function PracticeTerminal({
                 {profit >= 0 ? "+" : "−"}
                 {money(Math.abs(profit))}
               </dd>
-              <dt className="text-muted">Real-game effect</dt>
+              <dt className="text-muted">Prize if top {PRACTICE.winners}</dt>
               <dd className="text-right text-phosphor" data-testid="practice-prize">
-                none (practice)
+                {money(PRACTICE.prizeCents)}
               </dd>
             </dl>
             {positions.some((p) => p.qty !== 0) ? (
