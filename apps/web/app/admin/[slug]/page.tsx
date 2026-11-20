@@ -33,11 +33,15 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
   const schema = schemaState(dbVersion);
   const organiser = viewer!.role === "ORGANISER";
   const sb = await supabaseServer();
-  const [deadlines, picks, companies] = await Promise.all([
+  const [deadlines, picks, companies, phases] = await Promise.all([
     sb.from("deadlines").select("code, at").eq("event_id", event.id).gt("at", status.server_time).order("at").limit(5),
     sb.from("draft_picks").select("company_id, pick_no, closes_at, statement_id, sector, auto").eq("event_id", event.id).order("pick_no"),
     sb.from("companies").select("id, ticker").eq("event_id", event.id),
+    sb.from("phases").select("code, seq, starts_at, ends_at, started_at, ended_at").eq("event_id", event.id).order("seq"),
   ]);
+  // The whole night in order (organisers, 20 Nov): every phase with its time, the current one marked.
+  const flow = ((phases.data ?? []) as { code: keyof typeof PHASE_LABELS; seq: number; starts_at: string; ends_at: string; started_at: string | null; ended_at: string | null }[]);
+  const currentSeq = flow.find((f) => f.code === status.phase)?.seq ?? -1;
   // Round 3's draft, while a company is on the clock: with one queue per sector, each sector's picker on the clock
   // (only the 10 lowest-scoring of each sector pick; the others are given a statement at random, migration 088).
   const draftPicks = (picks.data ?? []) as { company_id: string; pick_no: number; closes_at: string; statement_id: string | null; sector?: string | null; auto?: boolean }[];
@@ -56,7 +60,7 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
           <div className="grid gap-3 sm:grid-cols-4">
             <Stat label="Phase" value={PHASE_LABELS[status.phase]} hint={status.phase_started_at ? `since ${clock(status.phase_started_at)}` : undefined} />
             <Stat
-              label="Planned end"
+              label={`${PHASE_LABELS[status.phase]} ends in`}
               value={<Countdown to={status.phase_ends_at} passed="due" />}
               hint={status.phase_ends_at ? clock(status.phase_ends_at) : undefined}
             />
@@ -225,6 +229,35 @@ export default async function PhaseControl({ params }: PageProps<"/admin/[slug]"
       </div>
 
       <div className="min-w-0 space-y-6">
+        <Panel title="Event flow" actions={<Link href={`/admin/${slug}/schedule`} className="text-sm underline">Full schedule</Link>}>
+          <ol className="space-y-1" data-testid="event-flow">
+            {flow.map((f) => {
+              const now = f.code === status.phase;
+              const done = f.seq < currentSeq;
+              return (
+                <li
+                  key={f.code}
+                  data-current={now ? "true" : undefined}
+                  className={`flex items-baseline justify-between gap-3 rounded px-2 py-1 text-sm ${now ? "border border-phosphor bg-raised font-semibold text-phosphor" : done ? "text-muted line-through" : "text-paper"}`}
+                >
+                  <span>
+                    {now ? "▶ " : done ? "✓ " : ""}
+                    {PHASE_LABELS[f.code]}
+                  </span>
+                  <span className="font-mono text-xs tabular-nums">
+                    {clock(f.started_at ?? f.starts_at)}
+                    {now ? (
+                      <>
+                        {" · "}
+                        <Countdown to={status.phase_ends_at} passed="due" />
+                      </>
+                    ) : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </Panel>
         <Panel title="Next deadlines" actions={<Link href={`/admin/${slug}/schedule`} className="text-sm underline">Full schedule</Link>}>
           {(deadlines.data ?? []).length === 0 ? (
             <p className="guide-muted">No deadline left.</p>
