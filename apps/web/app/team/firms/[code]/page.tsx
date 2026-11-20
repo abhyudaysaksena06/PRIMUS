@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { featureOn } from "@/lib/event-status";
 import { clock, money } from "@/lib/format";
 import { RULES } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { loadCrisisRoom } from "@/lib/team/crisis-data";
 import { FIRM_CLIENTS_PER_SUBROUND, currentSubround, feeBand, hiringOpen, stepAt, subroundTitle } from "@/lib/team/crisis";
 import { profileCompleteness, ratingSummary } from "@/lib/team/hire";
+import { aboutText, minBidText, rateShares, rateText } from "@/lib/team/hire-lists";
 import { sectionAllowed } from "@/lib/team/sections";
 import { pauseOf } from "@/lib/team/squad-data";
 import { ActionForm } from "@/components/ui/action";
@@ -53,6 +55,14 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
   const openOffers = k !== null && mine ? data.offers.filter((o) => o.company_id === mine.id && o.k === k && o.status === "OPEN" && o.opened_by === "COMPANY").length : 0;
   const stars = ratingSummary(data.engagements, f.team_id);
   const band = k === 5 ? feeBand(ctx.team.cash) : null;
+  // Tonight's hiring rules (migration 071): the firm's base rate is its minimum bid and what a drawn client pays.
+  const minBidOn = featureOn(ctx.status, "hire_min_bid");
+  const drawOn = featureOn(ctx.status, "hire_base_rate");
+  const rate = minBidOn || drawOn ? f.base_rate_bp : null;
+  const rateCells: string[][] = [
+    ...(rate !== null ? [["Base rate", rateText(rate), "text-[var(--term-amber)]"]] : []),
+    ...(rate !== null && minBidOn && f.min_bid_cents !== null ? [["Your minimum bid", aboutText(f.min_bid_cents), "text-[var(--term-amber)]"]] : []),
+  ];
 
   return (
     <div className="space-y-6">
@@ -94,6 +104,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
               ["Clients so far", String(f.clients), "text-paper"],
               ["Avg rating", f.avg_rating === null ? "—" : `★ ${f.avg_rating.toFixed(2)}`, "text-paper"],
               ["Asking fee", p && p.asking_cents > 0 ? money(p.asking_cents) : "—", "text-[var(--term-amber)]"],
+              ...rateCells,
             ].map(([label, value, tone]) => (
               <div key={label} className="bg-ink px-3 py-2">
                 <dt className="text-[11px] uppercase tracking-wider text-[var(--term-amber-dim)]">{label}</dt>
@@ -176,7 +187,19 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
                 {band ? ` In Round 3 the fee must be worth ${money(band.min)}–${money(band.max)} (5–20% of your cash).` : ""}
               </p>
               <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit={`Send offer to ${f.code}`} resetOnSuccess>
-                <TermsFields cash={0} priceCents={mine?.market_price ?? null} hint={p && p.asking_cents > 0 ? `The firm asks for about ${money(p.asking_cents)}.` : undefined} />
+                <TermsFields
+                  cash={0}
+                  shares={minBidOn && rate !== null ? rateShares(rate) : 0}
+                  priceCents={mine?.market_price ?? null}
+                  hint={
+                    [
+                      minBidOn && rate !== null ? `Minimum bid: ${minBidText(rate, mine?.market_price)}; less is refused.` : "",
+                      p && p.asking_cents > 0 ? `The firm asks for about ${money(p.asking_cents)}.` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined
+                  }
+                />
                 <label className="mt-2 block text-sm">
                   <span className="font-semibold text-paper">Note to the firm (optional)</span>
                   <input name="note" maxLength={300} placeholder="What you need help with" className={`${inputClass} mt-1`} />

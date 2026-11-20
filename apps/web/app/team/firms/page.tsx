@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { featureOn } from "@/lib/event-status";
 import { money } from "@/lib/format";
 import { loadTeamContext } from "@/lib/team/context";
 import { loadCrisisRoom } from "@/lib/team/crisis-data";
 import { FIRM_CLIENTS_PER_SUBROUND, currentSubround, hiringOpen, subroundTitle } from "@/lib/team/crisis";
 import { FIRM_SORTS, parseSort, profileCompleteness, searchFirms } from "@/lib/team/hire";
+import { minBidText, openFirms, rateText } from "@/lib/team/hire-lists";
 import { sectionAllowed } from "@/lib/team/sections";
 import { pauseOf } from "@/lib/team/squad-data";
 import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/ui";
@@ -12,7 +14,8 @@ import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/u
 export const metadata: Metadata = { title: "Firms" };
 
 // The Consulting firm directory: every firm of the event with its profile, value, clients and rating, searchable and
-// sortable. A Product team opens a firm's profile to hire it; a firm sees the field it competes in.
+// sortable. A Product team opens a firm's profile to hire it; a firm sees the field it competes in. While hiring is
+// open a full firm is not listed (locked = gone: the hire_locked message makes the page re-read as one fills).
 export default async function FirmsPage({ searchParams }: { searchParams: Promise<{ q?: string; sort?: string }> }) {
   const ctx = await loadTeamContext();
   if (!sectionAllowed(ctx.team.track, "/firms")) return <Notice>This section is not part of your team&apos;s portal.</Notice>;
@@ -27,7 +30,11 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
   const product = ctx.team.track === "PRODUCT";
   const mine = product ? data.companies.find((c) => c.product_team_id === ctx.team.id) ?? null : null;
   const hiredNow = k !== null && mine ? data.engagements.find((e) => e.company_id === mine.id && e.k === k) : undefined;
-  const firms = searchFirms(data.firms, data.profiles, query, sort);
+  const found = searchFirms(data.firms, data.profiles, query, sort);
+  const firms = hiring && k !== null ? openFirms(found, data.engagements, k) : found;
+  const fullHidden = found.length - firms.length;
+  const minBidOn = featureOn(ctx.status, "hire_min_bid");
+  const drawOn = featureOn(ctx.status, "hire_base_rate");
 
   return (
     <div className="space-y-6">
@@ -74,8 +81,19 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
         </form>
       </Panel>
 
+      {fullHidden > 0 ? (
+        <p className="text-sm text-muted" data-testid="full-firms-hidden">
+          {fullHidden === 1 ? "1 firm is" : `${fullHidden} firms are`} full for this {k === 5 ? "round" : "crisis"} and not shown.
+        </p>
+      ) : null}
       {firms.length === 0 ? (
-        <Notice>{data.firms.length === 0 ? "No Consulting firm in this event yet." : "No firm matches that search."}</Notice>
+        <Notice>
+          {data.firms.length === 0
+            ? "No Consulting firm in this event yet."
+            : found.length === 0
+              ? "No firm matches that search."
+              : `Every firm${query ? " that matches" : ""} is full for this ${k === 5 ? "round" : "crisis"}.`}
+        </Notice>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2" aria-label="Firms">
           {firms.map((f) => {
@@ -115,6 +133,11 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
                     <dd className="font-mono text-paper">{f.avg_rating === null ? "—" : `★ ${f.avg_rating.toFixed(1)}`}</dd>
                   </div>
                 </dl>
+                {f.base_rate_bp !== null && (minBidOn || drawOn) ? (
+                  <p className="mt-2 text-xs text-[var(--term-amber)]" data-testid={`directory-rate-${f.code}`}>
+                    {minBidOn && mine ? `Minimum bid: ${minBidText(f.base_rate_bp, mine.market_price)}.` : `Base rate: ${rateText(f.base_rate_bp)} of a company.`}
+                  </p>
+                ) : null}
                 <div className="mt-3 flex items-center gap-2">
                   <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className={buttonClass.primary}>
                     {product && hiring && !hiredNow && f.team_id !== ctx.team.id ? "View profile & hire" : "View profile"}

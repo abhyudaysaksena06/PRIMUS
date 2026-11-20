@@ -27,6 +27,15 @@ export interface FirmRow {
   value_cents: number;
   clients: number;
   avg_rating: number | null;
+  /** The firm's base rate in basis points (migration 071): 2% + 0.04% per ZestUp point over 50, 1–4%. Null before 071. */
+  base_rate_bp: number | null;
+  /** For a Product team: that rate of its own company at today's price, in cents (the minimum bid). Null otherwise. */
+  min_bid_cents: number | null;
+}
+
+/** An engagement as the crisis room reads it: `assigned` is a company placed when hiring closed (migration 061/071). */
+export interface RoomEngagement extends EngagementRow {
+  assigned: boolean;
 }
 
 export interface FirmProfile {
@@ -66,7 +75,7 @@ export interface CrisisRoomData {
   firms: FirmRow[];
   profiles: Map<string, FirmProfile>;
   offers: OfferRow[];
-  engagements: EngagementRow[];
+  engagements: RoomEngagement[];
   statements: StatementRow[];
   picks: DraftPickRow[];
   /** A firm's clients' drafts and submissions (the sub-rounds it was hired for). */
@@ -110,7 +119,7 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
     sb.rpc("firm_values", { p_event: eventId }),
     sb.from("firm_profiles").select("team_id, headline, specialities, rate_card, about, asking_cents").eq("event_id", eventId),
     sb.from("offers").select("id, k, company_id, firm_team_id, cash_cents, shares, note, status, turn, opened_by, company_counters, firm_counters, updated_at").eq("event_id", eventId).order("updated_at", { ascending: false }),
-    sb.from("engagements").select("id, k, company_id, firm_team_id, cash_cents, shares, escrow, rating, rating_default, bonus_cents").eq("event_id", eventId).order("k"),
+    sb.from("engagements").select("id, k, company_id, firm_team_id, cash_cents, shares, escrow, rating, rating_default, bonus_cents, assigned").eq("event_id", eventId).order("k"),
     sb.from("problem_statements").select("id, number, title, body, cap, sector").eq("event_id", eventId).order("number"),
     sb.from("draft_picks").select("company_id, pick_no, score_avg, opens_at, closes_at, statement_id, picked_at, by_default").eq("event_id", eventId).order("pick_no"),
     sb.from("ledger_entries").select("cash_delta_cents").eq("team_id", ctx.team.id).eq("kind", "INJECTION"),
@@ -135,10 +144,11 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
   ] as const) {
     if (r.error) throw new Error(`Could not read ${what}: ${r.error.message}`);
   }
-  const engagementRows = ((engagements.data ?? []) as EngagementRow[]).map((e) => ({
+  const engagementRows = ((engagements.data ?? []) as RoomEngagement[]).map((e) => ({
     ...e,
     cash_cents: Number(e.cash_cents),
     bonus_cents: num(e.bonus_cents),
+    assigned: e.assigned === true,
   }));
   // A firm reads the drafts and submissions of the clients it was hired by (policy submission_drafts_firm_read).
   const clientIds = [...new Set(engagementRows.filter((e) => e.firm_team_id === ctx.team.id).map((e) => e.company_id))];
@@ -174,6 +184,8 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
       fee_share_value_cents: Number(f.fee_share_value_cents),
       value_cents: Number(f.value_cents),
       avg_rating: num(f.avg_rating),
+      base_rate_bp: num(f.base_rate_bp),
+      min_bid_cents: num(f.min_bid_cents),
     })),
     profiles: new Map(((profiles.data ?? []) as FirmProfile[]).map((p) => [p.team_id, { ...p, asking_cents: Number(p.asking_cents) }])),
     offers: ((offers.data ?? []) as OfferRow[]).map((o) => ({ ...o, cash_cents: Number(o.cash_cents) })),
