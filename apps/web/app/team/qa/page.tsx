@@ -6,11 +6,10 @@ import { loadQaCompanies, loadQaPage, loadUnanswered } from "@/lib/team/qa-data"
 import { boardRole, boardState, parseQaQuery, qaHref, type QaQuery, type QuestionRow, type Thread } from "@/lib/team/qa";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, count, dateTime } from "@/lib/format";
-import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/ui";
+import { GuidePageTitle, GuidePanel } from "@/components/guide/guide";
 import { Countdown } from "@/components/ui/countdown";
 import { answerQuestion, postQuestion } from "./actions";
 import { AnswerForm, AskForm } from "./forms";
-import { RoomShell } from "../crisis/room-shell";
 
 export const metadata: Metadata = { title: "Q&A" };
 
@@ -32,14 +31,15 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
 
   if (state === "NOT_YET") {
     return (
-      <RoomShell track={team.track} eyebrow="Public board" title="Q&A board">
-      <Panel title="Q&A board">
-        <Notice>
+      <>
+      <GuidePageTitle as="p" eyebrow={`${team.track} DESK / PUBLIC BOARD`} title="Q&A board." />
+      <GuidePanel title="Q&A board" tag="OPENS AT READING">
+        <p className="guide-alert">
           The Q&A board opens {startOf("READING") ? `at ${clock(startOf("READING"))} ` : ""}(Reading) with the pitch book. Finance teams ask questions; each Product
           team answers questions about its own company, in up to 100 words. Everything on the board is public.
-        </Notice>
-      </Panel>
-      </RoomShell>
+        </p>
+      </GuidePanel>
+      </>
     );
   }
 
@@ -54,16 +54,17 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
   const closes = startOf("CLOSE");
 
   return (
-    <RoomShell
-      track={team.track}
-      eyebrow="Public board"
-      title="Q&A board"
-      lede="Finance teams ask, each Product team answers about its own company in up to 100 words. Everything here is public."
-    >
+    <div className="space-y-4">
+      <GuidePageTitle
+        as="p"
+        eyebrow={`${team.track} DESK / PUBLIC BOARD`}
+        title="Q&A board."
+        sub="Finance teams ask, each Product team answers about its own company in up to 100 words. Everything here is public."
+      />
       {state === "CLOSED" ? (
-        <Notice>The Q&A board closed at the close. Every question and answer stays readable.</Notice>
+        <p className="guide-alert">The Q&A board closed at the close. Every question and answer stays readable.</p>
       ) : (
-        <p className="text-sm text-paper" data-testid="qa-open">
+        <p className="guide-alert guide-warning" data-testid="qa-open">
           Open until the close
           {closes ? (
             <>
@@ -76,19 +77,19 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
       )}
 
       {state === "OPEN" && role === "ASK" ? (
-        <Panel title="Ask a question">
+        <GuidePanel title="Ask a question" tag="UP TO 100 WORDS · PUBLIC">
           <AskForm action={postQuestion} companies={companies} initial={filtered?.id ?? null} />
-        </Panel>
+        </GuidePanel>
       ) : null}
 
       {state === "OPEN" && role === "ANSWER" && ownListed ? (
-        <Panel title={`Waiting for your answer (${count(waiting.length)})`}>
+        <GuidePanel title={`Waiting for your answer (${count(waiting.length)})`} tag={ownListed.ticker}>
           {waiting.length === 0 ? (
-            <p className="text-sm text-muted">No question to {ownListed.ticker} is waiting for an answer.</p>
+            <p className="guide-muted">No question to {ownListed.ticker} is waiting for an answer.</p>
           ) : (
             <ul className="space-y-4" aria-label="Questions waiting for your answer">
               {waiting.map((w) => (
-                <li key={w.id} className="pd-card pd-card-hot">
+                <li key={w.id} className="guide-qa-card is-hot">
                   <QuestionHead ticker={ownListed.ticker} at={w.created_at} />
                   <p className="mt-1 whitespace-pre-wrap text-sm text-phosphor">{w.body}</p>
                   <div className="mt-2">
@@ -98,14 +99,14 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
               ))}
             </ul>
           )}
-        </Panel>
+        </GuidePanel>
       ) : null}
 
-      <Panel title="Questions">
+      <GuidePanel title="Questions" tag="NEWEST FIRST">
         <Form action={PATH} className="flex flex-wrap items-end gap-2">
           <label className="block">
-            <span className="pd-label">Company</span>
-            <select name="company" defaultValue={q.company ?? ""} className={`${inputClass} w-48`}>
+            <span className="guide-label">COMPANY</span>
+            <select name="company" defaultValue={q.company ?? ""} className="guide-select w-48">
               <option value="">All companies</option>
               {companies.map((c) => (
                 <option key={c.id} value={c.ticker}>
@@ -115,11 +116,11 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
               ))}
             </select>
           </label>
-          <button type="submit" className={buttonClass.primary}>
+          <button type="submit" className="guide-btn">
             Show
           </button>
           {q.company ? (
-            <Link href={PATH} className={buttonClass.secondary}>
+            <Link href={PATH} className="guide-btn secondary">
               All
             </Link>
           ) : null}
@@ -127,13 +128,13 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
 
         {!page ? (
           <div className="mt-4">
-            <Notice tone="amber">No listed company has the ticker {q.company}.</Notice>
+            <p className="guide-alert guide-warning">No listed company has the ticker {q.company}.</p>
           </div>
         ) : (
           <>
             <Pager q={q} page={page.paging.page} pages={page.paging.pages} label={page.paging.label} />
             {page.threads.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">{filtered ? `No questions to ${filtered.ticker} yet.` : "No questions yet."}</p>
+              <p className="guide-muted mt-3">{filtered ? `No questions to ${filtered.ticker} yet.` : "No questions yet."}</p>
             ) : (
               <ul className="mt-3 space-y-3" aria-label="Questions and answers">
                 {page.threads.map((t) => (
@@ -149,15 +150,15 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
             {page.paging.pages > 1 ? <Pager q={q} page={page.paging.page} pages={page.paging.pages} label={page.paging.label} bottom /> : null}
           </>
         )}
-      </Panel>
-    </RoomShell>
+      </GuidePanel>
+    </div>
   );
 }
 
 function QuestionHead({ ticker, at }: { ticker: string; at: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-      <Link href={`/team/market/${ticker}`} className="pd-chip pd-chip-solid hover:underline">
+      <Link href={`/team/market/${ticker}`} className="guide-chip hover:underline">
         {ticker}
       </Link>
       <span>A fund asked</span>
@@ -170,15 +171,15 @@ function QuestionHead({ ticker, at }: { ticker: string; at: string }) {
 
 function ThreadItem({ t, ticker, canAnswer }: { t: Thread; ticker: string; canAnswer: boolean }) {
   return (
-    <li className="pd-card" data-testid="qa-thread">
+    <li className="guide-qa-card" data-testid="qa-thread">
       <QuestionHead ticker={ticker} at={t.question.created_at} />
       <p className="mt-1 whitespace-pre-wrap text-sm text-phosphor">{t.question.body}</p>
       {t.answers.length === 0 ? (
         <p className="mt-2 text-xs text-muted">
-          <Badge tone="amber">No answer yet</Badge>
+          <span className="guide-chip guide-chip-warn">No answer yet</span>
         </p>
       ) : (
-        <ul className="mt-3 space-y-2 border-l-2 border-[var(--term-amber)] pl-3">
+        <ul className="mt-3 space-y-2 border-l-2 border-[var(--track-accent)] pl-3">
           {t.answers.map((a) => (
             <li key={a.id} className="text-sm">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">

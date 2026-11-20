@@ -14,7 +14,6 @@ import { count } from "@/lib/format";
 import { ResultMessage } from "@/components/ui/action";
 import { useCarried, useCarrier } from "@/lib/live/feedback";
 import { safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
 
 type Action = (prev: ActionResult | null, form: FormData) => Promise<ActionResult>;
 
@@ -71,8 +70,8 @@ function AskFields({ companies, initial, pending }: { companies: { id: string; t
   return (
     <div className="grid gap-3">
       <label className="block">
-        <span className="pd-label">Company</span>
-        <select name="company" required defaultValue={initial ?? ""} className={inputClass}>
+        <span className="guide-label">Company</span>
+        <select name="company" required defaultValue={initial ?? ""} className="guide-input">
           <option value="" disabled>
             Choose a company…
           </option>
@@ -85,14 +84,14 @@ function AskFields({ companies, initial, pending }: { companies: { id: string; t
         </select>
       </label>
       <label className="block">
-        <span className="pd-label">Question</span>
-        <textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={QUESTION_MAX_CHARS * 2} className={inputClass} />
+        <span className="guide-label">Question</span>
+        <textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={QUESTION_MAX_CHARS * 2} className="guide-input" />
       </label>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`text-xs tabular-nums ${check.chars > QUESTION_MAX_CHARS ? "font-semibold text-danger-soft" : "text-muted"}`} aria-live="polite">
           {count(check.chars)} / {count(QUESTION_MAX_CHARS)} characters
         </span>
-        <button type="submit" disabled={pending || !check.ok} className={buttonClass.primary}>
+        <button type="submit" disabled={pending || !check.ok} className="guide-btn">
           {pending ? "Posting…" : "Post question"}
         </button>
       </div>
@@ -111,14 +110,14 @@ function AnswerFields({ pending }: { pending: boolean }) {
   return (
     <div className="grid gap-2">
       <label className="block">
-        <span className="pd-label">Your answer (up to {ANSWER_MAX_WORDS} words, public)</span>
-        <textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={ANSWER_MAX_CHARS} className={inputClass} />
+        <span className="guide-label">Your answer (up to {ANSWER_MAX_WORDS} words, public)</span>
+        <textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={ANSWER_MAX_CHARS} className="guide-input" />
       </label>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className={`text-xs tabular-nums ${over ? "font-semibold text-danger-soft" : "text-muted"}`} aria-live="polite" data-testid="answer-words">
           {count(check.words)} / {ANSWER_MAX_WORDS} words
         </span>
-        <button type="submit" disabled={pending || !check.ok} className={buttonClass.primary}>
+        <button type="submit" disabled={pending || !check.ok} className="guide-btn">
           {pending ? "Posting…" : "Post answer"}
         </button>
       </div>

@@ -1,363 +1,460 @@
-/* The team shell in the PRIMUS demo's look (app/demo/layout.tsx and demo.css: .guide-app, .guide-sidebar, .guide-top,
-   .guide-taskbar). Colours come from the track's tokens (globals.css, [data-track] on .mx-shell). Phones first: the
-   sections are a sticky row of tabs under the banner; from 900 px they are a fixed sidebar on the left. */
+/* The team shell is the PRIMUS demo's shell: app/demo/demo.css and header-links.css (loaded by app/team/layout.tsx)
+   style .guide-app, .guide-sidebar, .guide-top, .guide-taskbar, .guide-content, .guide-footer and the ticker. This file
+   only adds what the real screens carry and the demo has no rule for: the phone's menu, the live clock and sound
+   switch in the top bar, the price strip, the round banner, and a heading-safe page title. Shared by every team page. */
 
-.mx-shell {
-  position: relative;
-  isolation: isolate;
+/* ── Page head: the demo's .guide-page-head h1, for a title that is not an h1 (the team code is the page's h1) ── */
+.guide-page-head .guide-page-title,
+.guide-app .guide-page-head p.guide-page-title {
+  margin: 12px 0 7px;
+  font-family: var(--font-mono);
+  font-size: clamp(28px, 4vw, 43px);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.05em;
+  color: #f0f1f5 !important; /* over the demo's .guide-app[data-track] .guide-page-head p (muted, !important) */
 }
-/* The page's own atmosphere (behind everything, never takes a click). */
-.mx-shell-atmos {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: var(--mx-backdrop);
+.guide-page-head .guide-page-title + p {
+  margin-top: 0;
 }
-.mx-shell-atmos::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.012) 0 1px, transparent 1px 4px);
+.guide-app[data-track] .guide-page-head small {
+  color: var(--track-accent);
 }
 
-/* ── Top bar ── */
-.mx-shell-top {
-  position: relative;
-  z-index: 2;
-  border-bottom: 1px solid var(--mx-panel-line);
-  background: color-mix(in srgb, var(--mx-black) 86%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 4px 24px rgb(0 0 0 / 0.3);
+/* ── Top bar extras ── */
+.guide-top .guide-team-code {
+  margin: 0;
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  color: var(--track-accent, #39ff88);
 }
-.mx-shell-top-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem 1rem;
-  padding: 0.6rem 1rem;
+.guide-top-name {
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.mx-shell-logo {
-  height: 22px;
-  width: auto;
-  filter: drop-shadow(0 0 10px var(--mx-accent-glow));
-}
-.mx-shell-code {
-  color: var(--mx-green);
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-shadow: none;
-}
-.mx-shell-name {
-  color: var(--mx-muted);
-  font-size: 0.8rem;
-}
-.mx-shell-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem 0.9rem;
-  color: var(--mx-muted);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-}
-.mx-shell-tools button {
-  border: 1px solid var(--mx-accent-line);
-  border-radius: var(--mx-r-md);
-  padding: 0.3rem 0.6rem;
-  color: var(--mx-paper);
-  background: color-mix(in srgb, var(--mx-raised) 55%, transparent);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  text-decoration: none;
-  transition: border-color 160ms, color 160ms;
-}
-.mx-shell-tools button:hover {
-  border-color: var(--mx-green);
-  color: var(--mx-heading);
-}
-.mx-shell-clock {
-  color: var(--mx-amber);
-  font-weight: 700;
-}
-/* The two facts (cash, and the fund's trading or the squad's company), as the demo's stat pairs. */
-.mx-shell-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-top: 1px solid var(--mx-panel-line);
-}
-.mx-shell-stats > div {
-  min-width: 0;
-  padding: 0.45rem 1rem 0.55rem;
-}
-.mx-shell-stats > div + div {
-  border-left: 1px solid var(--mx-panel-line);
-}
-.mx-shell-stats dt {
-  color: var(--mx-muted);
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+.guide-sector {
+  padding: 4px 7px;
+  font: 800 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.mx-shell-stats dd {
-  margin-top: 0.15rem;
+.guide-top-right .guide-cash,
+.guide-top-right .guide-ticker {
+  white-space: nowrap;
+}
+.guide-top-right .guide-cash b,
+.guide-top-right .guide-ticker b {
+  font-variant-numeric: tabular-nums;
+}
+.guide-top-sub {
+  margin-left: 4px;
+  font: 600 8px ui-monospace, monospace;
+  color: #9ba2af;
+}
+.guide-top-warn {
+  color: #ffb85d;
+}
+.guide-top-right [data-realtime] {
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guide-top-right [data-testid="sound-toggle"] {
+  border-radius: 0;
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.guide-menu-btn {
+  display: none;
 }
 
-/* ── Sections: a sticky row of tabs on a phone, a sidebar from 900 px ── */
-.mx-shell-navwrap {
-  position: sticky;
-  top: 0;
-  z-index: 40;
+/* ── Sidebar extras: the connection box follows the real channel; sign-out is the demo's quiet link ── */
+.guide-online[data-live="no"] i {
+  background: #ffb85d !important;
+  box-shadow: 0 0 9px #ffb85d !important;
 }
-.mx-team-command-nav {
-  display: flex;
-  flex-direction: column;
-  background: color-mix(in srgb, var(--mx-black) 94%, transparent);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-.mx-team-command-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.2rem 0.45rem 1.4rem;
-  border-bottom: 1px solid var(--mx-panel-line);
-  color: var(--mx-heading);
+.guide-sidebar-bottom form button.guide-signout {
   text-decoration: none;
+  color: #829a87;
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
-.mx-team-command-brand img {
-  width: 52px;
+.guide-sidebar-bottom form button.guide-signout::before {
+  content: "← ";
+}
+.guide-brand img {
+  width: 58px;
   height: auto;
 }
-.mx-team-command-brand strong {
-  display: block;
-  font: 800 13px var(--font-mono);
-  letter-spacing: 0.1em;
+.guide-menu-scrim {
+  display: none;
 }
-.mx-team-command-brand strong i {
-  color: var(--mx-green);
+
+/* ── The DO THIS NOW strip: the title takes the room, the deadline and the button sit right ── */
+.guide-taskbar > b {
+  flex: 1;
+  min-width: 10rem;
+  overflow-wrap: anywhere;
+}
+.guide-taskbar > small {
+  white-space: nowrap;
+}
+.guide-taskbar-left {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.guide-taskbar-here {
+  padding: 7px 10px;
+  border: 1px solid currentColor;
+  font: 800 8px ui-monospace, monospace;
   font-style: normal;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
 }
-.mx-team-command-brand small {
-  display: block;
-  margin-top: 4px;
-  color: var(--mx-muted);
-  font: 700 9px var(--font-mono);
-  letter-spacing: 0.2em;
+.guide-taskbar a {
+  white-space: nowrap;
 }
-.mx-team-command-label {
-  margin: 1.4rem 0.55rem 0.6rem;
-  color: var(--mx-muted);
-  font: 700 10px var(--font-mono);
-  letter-spacing: 0.2em;
+
+/* ── Price strip under the task band, and the shell's notices ── */
+.guide-price-strip {
+  padding: 0 !important;
+  border-bottom: 0;
 }
-.mx-team-command-label b {
-  margin-left: 0.4rem;
-  color: var(--mx-green);
+.guide-price-strip:empty {
+  display: none;
 }
-.mx-team-command-links {
+.guide-shell-notice {
+  margin: 0;
+  padding-inline: 26px;
+  text-align: center;
+  font-size: 12px;
+}
+.guide-shell-danger {
+  border-left-color: #ff5d6c;
+  background: rgba(128, 22, 34, 0.22);
+  color: #ffc7cd;
+}
+
+/* ── Round banner. Home: the demo's panel, in the content column. Other pages: a strip under the task band. ── */
+/* Home: the page's own blocks and the round card share one column, so the card can sit after the greeting (the demo's
+   dashboard starts with "Good evening"). The home root is display: contents; only the order changes, not the DOM. */
+.guide-content:has(.guide-home) {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  overflow: auto;
 }
-.mx-team-command-links a {
+.guide-home {
+  display: contents;
+}
+.guide-home > .guide-page-head {
+  order: -2;
+}
+.guide-home-banner {
+  order: -1;
+}
+.guide-home-banner:has(.guide-round-card) {
+  margin-bottom: 16px;
+}
+.guide-round-label {
+  color: var(--track-accent, #39ff88);
+  font: 700 9px ui-monospace, monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.guide-round-chips {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-height: 40px;
-  padding: 0 0.7rem;
-  border: 1px solid transparent;
-  border-radius: var(--mx-r-md);
-  color: var(--mx-muted);
-  font-size: 0.85rem;
-  text-decoration: none;
-  transition: background-color 160ms, border-color 160ms, color 160ms;
+  gap: 5px;
+  font: 800 10px ui-monospace, monospace;
 }
-.mx-team-command-links a small {
-  min-width: 1.1rem;
-  color: color-mix(in srgb, var(--mx-muted) 75%, transparent);
-  font: 700 10px var(--font-mono);
-}
-.mx-team-command-links a i {
-  margin-left: auto;
-  color: var(--mx-green);
-  font-style: normal;
-  opacity: 0;
-  transition: opacity 160ms;
-}
-.mx-team-command-links a:hover {
-  border-color: var(--mx-accent-line);
-  background: var(--mx-accent-soft);
-  color: var(--mx-heading);
-}
-.mx-team-command-links a.is-active {
-  border-color: var(--mx-green);
-  background: var(--mx-accent-soft);
-  color: var(--mx-green);
-  box-shadow: inset 3px 0 0 var(--mx-green);
-}
-.mx-team-command-links a.is-active small,
-.mx-team-command-links a:hover i,
-.mx-team-command-links a.is-active i {
-  color: var(--mx-green);
-  opacity: 1;
-}
-.mx-team-command-footer {
-  display: grid;
-  gap: 0.8rem;
-  margin-top: auto;
-  padding: 1rem 0.3rem 0.2rem;
-  border-top: 1px solid var(--mx-panel-line);
-  color: var(--mx-muted);
-  font: 700 10px var(--font-mono);
-  letter-spacing: 0.1em;
-}
-.mx-team-command-live {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.mx-team-command-live i,
-.mx-shell-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--mx-green);
-  box-shadow: 0 0 10px var(--mx-green);
-}
-.mx-team-command-team {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.mx-team-command-avatar {
+.guide-round-chips li {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--mx-accent-line);
-  border-radius: var(--mx-r-md);
-  background: var(--mx-accent-soft);
-  color: var(--mx-green);
-  font: 800 11px var(--font-mono);
+  min-width: 26px;
+  height: 26px;
+  padding-inline: 6px;
+  border: 1px solid var(--line-neutral, #2b3340);
+  color: #8f97a4;
 }
-.mx-team-command-team b {
-  display: block;
-  color: var(--mx-heading);
-  font: 600 12px var(--font-sans);
-  letter-spacing: 0;
+.guide-round-chips li.is-done {
+  border-color: var(--track-line);
+  color: var(--track-accent);
 }
-.mx-team-command-team small {
-  display: block;
-  margin-top: 3px;
-  color: var(--mx-green);
-  font: 700 9px var(--font-mono);
+.guide-round-chips li.is-now {
+  border-color: var(--track-accent);
+  background: var(--track-accent);
+  color: #090a0e;
+}
+.guide-round-icon {
+  color: var(--track-accent);
+  font-size: 30px;
+  line-height: 1;
+}
+.guide-round-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: #f0f1f5;
+}
+.guide-round-card.is-danger {
+  border-color: rgba(255, 93, 108, 0.45) !important;
+}
+.guide-round-card.is-danger .guide-round-title {
+  color: #ffb3bb;
+  --mx-cipher-color: #ff5d6c;
+}
+.guide-round-phase {
+  color: var(--track-accent, #39ff88);
+  font: 700 11px ui-monospace, monospace;
+  letter-spacing: 0.04em;
+}
+.guide-round-trading {
+  font: 700 12px ui-monospace, monospace;
+}
+.guide-roundbar {
+  display: grid;
+  gap: 8px;
+  padding: 9px 26px;
+  border-bottom: 1px solid var(--line-neutral, rgba(77, 151, 94, 0.16));
+  background: rgba(9, 10, 14, 0.82);
+}
+.guide-roundbar.is-danger {
+  border-bottom-color: rgba(255, 93, 108, 0.32);
+  background: rgba(60, 10, 16, 0.55);
+}
+.guide-roundbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+.guide-roundbar-row .guide-phase {
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-color: var(--track-line);
+  color: var(--track-accent);
+}
+.guide-roundbar.is-danger .guide-phase {
+  border-color: rgba(255, 93, 108, 0.5);
+  color: #ffb3bb;
+}
+.guide-roundbar h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f1f5;
+}
+.guide-roundbar-trading {
+  margin-left: auto;
+  color: var(--track-accent);
+  font: 700 11px ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+/* ── Phones (the demo's 760 px break): the sidebar opens as a menu over the page ── */
+@media (max-width: 760px) {
+  .guide-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 9px;
+    border: 1px solid var(--track-line, #34503a);
+    background: var(--track-soft, transparent);
+    color: var(--track-accent, #9eb3a2);
+    font: 800 9px ui-monospace, monospace;
+    letter-spacing: 0.1em;
+  }
+  .guide-app[data-menu="open"] .guide-sidebar {
+    display: flex;
+    z-index: 60;
+    width: min(84vw, 300px);
+    box-shadow: 18px 0 50px rgba(0, 0, 0, 0.6);
+  }
+  .guide-app[data-menu="open"] .guide-menu-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .guide-top-right {
+    row-gap: 6px;
+  }
+  .guide-top-right .guide-clock {
+    display: none;
+  }
+  .guide-shell-notice,
+  .guide-roundbar {
+    padding-inline: 14px;
+  }
+  .guide-taskbar > b {
+    flex-basis: 100%;
+  }
+  .guide-taskbar a {
+    margin-left: auto;
+  }
+}
+
+/* ── The newsroom's stories (app/demo/newsroom: a row per story under a hairline) ── */
+.guide-news-story {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line-neutral, #294832);
+}
+li:last-child > .guide-news-story {
+  border-bottom: 0;
+}
+.guide-news-story .guide-status {
+  color: var(--track-accent, #39ff88);
+  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-
-@media (max-width: 899px) {
-  .mx-team-command-nav {
-    border-bottom: 1px solid var(--mx-panel-line);
-    padding: 0.4rem 0.6rem;
-  }
-  .mx-team-command-brand,
-  .mx-team-command-label,
-  .mx-team-command-footer {
-    display: none;
-  }
-  .mx-team-command-links {
-    flex-direction: row;
-    gap: 0.35rem;
-    scrollbar-width: none;
-  }
-  .mx-team-command-links::-webkit-scrollbar {
-    display: none;
-  }
-  .mx-team-command-links a {
-    min-height: 36px;
-    white-space: nowrap;
-    border-color: var(--mx-panel-line);
-    background: color-mix(in srgb, var(--mx-raised) 50%, transparent);
-  }
-  .mx-team-command-links a.is-active {
-    box-shadow: none;
-  }
-  .mx-team-command-links a i {
-    display: none;
-  }
+.guide-news-story[data-kind="CRISIS"] .guide-status {
+  color: #ff7a86;
 }
-@media (min-width: 900px) {
-  .mx-shell-main {
-    margin-left: 240px;
-  }
-  .mx-team-command-nav {
-    position: fixed;
-    z-index: 45;
-    inset: 0 auto 0 0;
-    width: 240px;
-    padding: 1.4rem 1rem 1rem;
-    border-right: 1px solid var(--mx-panel-line);
-    box-shadow: 8px 0 32px rgb(0 0 0 / 0.35);
-  }
-  .mx-shell-navwrap {
-    position: static;
+.guide-news-story[data-kind="FLASH"] .guide-status {
+  color: #ffb85d;
+}
+.guide-news-time {
+  color: #8f97a4;
+  font: 600 9px ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.guide-news-story h3 {
+  color: #f0f1f5;
+}
+.guide-top-right .guide-ticker {
+  text-transform: uppercase;
+}
+.guide-top-right .guide-ticker b {
+  text-transform: none;
+}
+@media (min-width: 761px) {
+  .guide-top-right [data-realtime] {
+    display: none;
   }
 }
 
-/* ── "Do this now": the demo's task band ── */
-.mx-taskbar {
-  position: sticky;
-  top: 52px;
-  z-index: 30;
-  border-bottom: 1px solid var(--mx-accent-line);
-  background: var(--mx-task-bg);
-  color: var(--mx-heading);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.32);
+/* ── Home: the task rows of the "Do this now" panel (the demo's feed rows) ── */
+.guide-task-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 11px 12px;
+  border: 1px solid var(--line-neutral, #294832);
+  background: rgba(255, 255, 255, 0.015);
 }
-@media (min-width: 900px) {
-  .mx-taskbar {
-    top: 0;
-  }
+.guide-task-row + .guide-task-row {
+  margin-top: 8px;
 }
+.guide-task-row h3 {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f0f1f5;
+}
+.guide-task-due {
+  font: 700 9px ui-monospace, monospace;
+  letter-spacing: 0.06em;
+  color: #9ba2af;
+  white-space: nowrap;
+}
+.guide-task-due b {
+  display: block;
+  margin-top: 2px;
+  color: var(--track-accent, #ffbd66);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.guide-task-big {
+  padding: 16px 18px;
+}
+.guide-task-big h3 {
+  font-family: var(--font-mono);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: #f0f1f5;
+}
+.guide-task-big .guide-task-due b {
+  font-size: 24px;
+}
+
+/* ── My timeline: the demo's "night at a glance" rows ── */
+.guide-timeline li {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line-neutral, #294832);
+  font-size: 12px;
+  color: #d5d9e2;
+}
+.guide-timeline li:last-child {
+  border-bottom: 0;
+}
+.guide-timeline li[data-state="past"] {
+  color: #7d8592;
+}
+.guide-timeline li[data-state="next"] {
+  color: #f0f1f5;
+  font-weight: 700;
+}
+.guide-timeline-at {
+  display: inline-block;
+  width: 4rem;
+  color: var(--track-accent, #ffbd66);
+  font: 700 10px ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.guide-score-now b {
+  font-size: clamp(24px, 3vw, 34px);
+}
+.guide-app[data-track] .guide-chip.guide-chip-down {
+  border-color: rgba(255, 93, 108, 0.5) !important;
+  color: #ff8a95 !important;
+  background: rgba(128, 22, 34, 0.2) !important;
+}
+
+/* ── Q&A threads and the leaderboard's own row (the demo's feed rows and table) ── */
+.guide-qa-card {
+  padding: 12px 13px;
+  border: 1px solid var(--line-neutral, #294832);
+  background: rgba(255, 255, 255, 0.015);
+  font-size: 12px;
+}
+.guide-qa-card.is-hot {
+  border-color: var(--track-line);
+  background: var(--track-soft);
+}
+.guide-qa-card p {
+  color: #e2e5ec;
+}
+.guide-app[data-track] .guide-chip.guide-chip-warn {
+  border-color: rgba(255, 184, 93, 0.5) !important;
+  color: #ffb85d !important;
+}
+.guide-table .guide-row-mine td {
+  background: var(--track-soft);
+}
+.guide-table .guide-row-mine td:first-child {
+  box-shadow: inset 3px 0 0 var(--track-accent);
+}
+.guide-app .guide-textarea,
+.guide-app textarea.guide-input {
+  min-height: 84px;
+}
+
+/* Home's "Do this now" pill (kept for its big task card). */
 .mx-taskbar-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.6rem;
-  border-radius: var(--mx-r-md);
-  background: var(--mx-green);
-  color: var(--mx-on-accent);
-  font: 800 0.7rem var(--font-mono);
+  padding: 5px 7px;
+  background: var(--track-accent, var(--mx-green));
+  color: #090a0e;
+  font: 800 8px ui-monospace, monospace;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   white-space: nowrap;
-  box-shadow: 0 2px 10px var(--mx-accent-glow);
-}
-
-/* ── Page head (Home's greeting, as the demo's "Good evening, Team XC01.") ── */
-.mx-page-head h1,
-.mx-page-head .mx-page-title {
-  margin: 0.55rem 0 0.4rem;
-  color: var(--mx-heading);
-  font-family: var(--font-mono);
-  font-size: clamp(1.75rem, 4.4vw, 2.7rem);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mx-team-command-links a,
-  .mx-team-command-links a i,
-  .mx-shell-tools button {
-    transition: none;
-  }
 }

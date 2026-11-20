@@ -1,11 +1,13 @@
 "use client";
 
-// "Do this now": the one open task of this team that closes first, on every team page but Home (its big card), with its countdown and a
-// button to the place that does it. Nothing to do: no bar. Drawn as the demo's task band (team.css, .mx-taskbar).
+// "Do this now": the one open task of this team that closes first, on every team page but Home (its big card), with its
+// deadline and a button to the place that does it. Nothing to do: no bar. The demo's task strip (.guide-taskbar):
+// DO THIS NOW · the task · DEADLINE 10:35 IST · 0:55 · OPEN TASK →.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Countdown } from "@/components/ui/countdown";
+import { clock } from "@/lib/format";
 
 export interface BarTask {
   title: string;
@@ -20,30 +22,19 @@ export function ActionBar({ task }: { task: BarTask | null }) {
   if (!task || path === "/team") return null;
   const here = path === task.href;
   return (
-    <div className="mx-taskbar" role="region" aria-label="Do this now" data-testid="action-bar">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-2.5 text-sm sm:px-6">
-        <span className="mx-taskbar-pill">Do this now</span>
-        {/* The title keeps at least 10rem: on a phone the countdown and the button wrap to a second line instead
-            of squeezing it. */}
-        <span className="min-w-[10rem] flex-1 font-semibold [overflow-wrap:anywhere]" data-testid="action-bar-title">
-          {task.title}
-        </span>
-        {/* On a phone the countdown and the button may wrap onto two lines rather than run past the screen edge. */}
-        <span className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-          {task.due ? (
-            <span className="whitespace-nowrap font-mono text-xs tracking-wide text-muted">
-              closes in <Countdown to={task.due} passed="now" className="text-sm font-bold text-paper" />
-            </span>
-          ) : null}
-          {here ? (
-            <span className="mx-tag text-xs text-phosphor-mid">You&apos;re on it</span>
-          ) : (
-            <Link href={task.href} className="mx-key mx-key-solid whitespace-nowrap rounded-md px-3 py-1.5 text-xs">
-              {task.linkLabel ?? "Open"} →
-            </Link>
-          )}
-        </span>
-      </div>
+    <div className="guide-taskbar" role="region" aria-label="Do this now" data-testid="action-bar">
+      <span>DO THIS NOW</span>
+      <b data-testid="action-bar-title">{task.title}</b>
+      {task.due ? (
+        <small>
+          DEADLINE {clock(task.due)} IST · <Countdown to={task.due} passed="now" className="guide-taskbar-left" /> LEFT
+        </small>
+      ) : null}
+      {here ? (
+        <em className="guide-taskbar-here">YOU&apos;RE ON IT</em>
+      ) : (
+        <Link href={task.href}>{task.linkLabel ?? "Open"} →</Link>
+      )}
     </div>
   );
 }

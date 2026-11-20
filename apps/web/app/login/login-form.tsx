@@ -11,15 +11,15 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(signIn, {});
 
   const tab = (m: "team" | "staff", label: string) => (
-    <button type="button" onClick={() => setMode(m)} aria-pressed={mode === m}>
+    <button type="button" onClick={() => setMode(m)} aria-pressed={mode === m} className={mode === m ? "active" : ""}>
       {label}
     </button>
   );
 
   return (
-    <form action={action} className="space-y-4">
-      <div className="mx-login-tabs">
-        {tab("team", "Team")}
+    <form action={action}>
+      <div className="guide-tabs">
+        {tab("team", "Team access")}
         {tab("staff", "Organiser")}
       </div>
       <input type="hidden" name="mode" value={mode} />
@@ -27,7 +27,7 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
 
       {mode === "team" ? (
         <label className="block">
-          <span className="mx-login-label">Team code</span>
+          <span className="guide-label">TEAM CODE (ON YOUR CARD, E.G. P07)</span>
           <input
             name="code"
             defaultValue={mode === "team" ? (state.login ?? code) : undefined}
@@ -35,25 +35,25 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
             autoComplete="username"
             autoCapitalize="characters"
             placeholder="P07"
-            className="mx-login-input font-mono uppercase tracking-wider"
+            className="guide-input font-mono uppercase"
           />
         </label>
       ) : (
         <label className="block">
-          <span className="mx-login-label">Email</span>
+          <span className="guide-label">ORGANISER EMAIL</span>
           <input
             name="email"
             type="email"
             defaultValue={mode === "staff" ? state.login : undefined}
             required
             autoComplete="username"
-            className="mx-login-input"
+            className="guide-input"
           />
         </label>
       )}
 
       <label className="block">
-        <span className="mx-login-label">Password</span>
+        <span className="guide-label">PASSWORD</span>
         <input
           name="password"
           type="password"
@@ -61,19 +61,18 @@ export function LoginForm({ next, code }: { next?: string; code?: string }) {
           autoComplete="current-password"
           autoFocus={mode === "team" && !!code}
           placeholder={mode === "team" ? "XXXX-XXXX-XXXX" : undefined}
-          className="mx-login-input font-mono tracking-wider"
+          className="guide-input font-mono"
         />
       </label>
 
       {state.error ? (
-        <p role="alert" className="mx-sys rounded-md border border-danger/70 bg-danger/10 px-3 py-2 text-sm text-danger-soft">
+        <p role="alert" className="guide-alert mt-4 border-l-[#ff5d6c] bg-[rgba(128,22,34,.22)] text-[#ffc7cd]">
           {state.error}
         </p>
       ) : null}
 
-      <button type="submit" disabled={pending} className="mx-login-submit">
-        <span>{pending ? "Signing in…" : "Sign in"}</span>
-        <span aria-hidden>→</span>
+      <button type="submit" disabled={pending} className="demo-login-submit mt-5 w-full px-4 py-3 text-left font-mono text-[10px] font-bold uppercase tracking-[.15em] hover:brightness-110 disabled:opacity-60">
+        {pending ? "Signing in…" : "Sign in"} <span className="float-right" aria-hidden>→</span>
       </button>
     </form>
   );
