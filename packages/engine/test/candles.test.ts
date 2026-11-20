@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { candlesFromTicks, candleTicks, detectPatterns, patternAt, practiceCandles, practicePrize, practiceProfit, PRACTICE } from "../src/candles";
+import { candlesFromTicks, candleTicks, detectPatterns, hashRandom, patternAt, practiceCandles, practicePrize, practiceProfit, PRACTICE } from "../src/candles";
 
 const c = (open: number, close: number, high = Math.max(open, close), low = Math.min(open, close)) => ({ open, close, high, low });
 
@@ -93,5 +93,94 @@ describe("the practice market", () => {
     expect(practicePrize(PRACTICE.winners)).toBe(PRACTICE.prizeCents);
     expect(practicePrize(PRACTICE.winners + 1)).toBe(0);
     expect(practicePrize(null)).toBe(0);
+  });
+});
+
+describe("the live practice path (hashRandom candles, random ticks inside each candle)", () => {
+  const live = (seed: string) => {
+    const ticks = hashRandom(`${seed}:ticks`);
+    const cs = practiceCandles(seed, PRACTICE.candles, hashRandom(`${seed}:candles`));
+    return { cs, ticks: cs.flatMap((k) => candleTicks(k, PRACTICE.candleTicks, ticks)) };
+  };
+  const seeds = Array.from({ length: 200 }, (_, i) => `secret-hmac-${i}`);
+
+  it("is deterministic per seed and differs between seeds", () => {
+    expect(live(seeds[0]!).ticks).toEqual(live(seeds[0]!).ticks);
+    expect(live(seeds[0]!).ticks).not.toEqual(live(seeds[1]!).ticks);
+  });
+
+  it("keeps every price positive, whole and sane over 200 paths x 1,080 ticks", () => {
+    let lo = Infinity;
+    let hi = 0;
+    let maxMove = 0;
+    let sum = 0;
+    let moves = 0;
+    for (const s of seeds) {
+      const { ticks } = live(s);
+      expect(ticks).toHaveLength(PRACTICE.candles * PRACTICE.candleTicks);
+      for (let i = 0; i < ticks.length; i++) {
+        expect(Number.isInteger(ticks[i])).toBe(true);
+        lo = Math.min(lo, ticks[i]!);
+        hi = Math.max(hi, ticks[i]!);
+        if (i) {
+          const m = Math.log(ticks[i]! / ticks[i - 1]!);
+          maxMove = Math.max(maxMove, Math.abs(m));
+          sum += m;
+          moves++;
+        }
+      }
+    }
+    expect(lo).toBeGreaterThanOrEqual(150);
+    expect(hi).toBeLessThan(2_000_000); // under $20,000 a share; starts are $12-$45
+    expect(maxMove).toBeLessThan(0.05); // no 5-second move beyond 5%
+    expect(Math.abs(sum / moves)).toBeLessThan(0.001); // no runaway drift across the paths
+  });
+
+  it("rebuilds exactly the scripted candles from the ticks (low <= open, close <= high)", () => {
+    for (const s of seeds.slice(0, 50)) {
+      const { cs, ticks } = live(s);
+      const back = candlesFromTicks(ticks);
+      expect(back).toEqual(cs.map(({ open, high, low, close }) => ({ open, high, low, close })));
+      for (const k of back) {
+        expect(k.low).toBeLessThanOrEqual(Math.min(k.open, k.close));
+        expect(k.high).toBeGreaterThanOrEqual(Math.max(k.open, k.close));
+      }
+    }
+  });
+
+  it("gives no riskless trade inside a candle: no tick's move fixes the next one's direction", () => {
+    // For each tick position inside a candle: how often the next move goes the same way as the last one.
+    const rates = (paths: number[][]) => {
+      const pos: [number, number][] = [1, 2, 3, 4].map(() => [0, 0]);
+      for (const t of paths)
+        for (let c = 0; c + 6 <= t.length; c += 6)
+          for (let k = 1; k <= 4; k++) {
+            const m1 = t[c + k]! - t[c + k - 1]!;
+            const m2 = t[c + k + 1]! - t[c + k]!;
+            if (m1 === 0 || m2 === 0) continue;
+            pos[k - 1]![1]++;
+            if (Math.sign(m1) === Math.sign(m2)) pos[k - 1]![0]++;
+          }
+      return pos.map(([same, total]) => same! / total!);
+    };
+    // The straight path (no generator given): open → half way → extreme → half way → extreme → close. Every move
+    // told the next one for sure (carry on, turn, carry on, turn).
+    expect(rates(seeds.slice(0, 50).map((s) => practiceCandles(s).flatMap((k) => candleTicks(k))))).toEqual([1, 0, 1, 0]);
+    // Now no position is a sure thing either way.
+    for (const r of rates(seeds.slice(0, 100).map((s) => live(s).ticks))) {
+      expect(r).toBeGreaterThan(0.15);
+      expect(r).toBeLessThan(0.85);
+    }
+  });
+
+  it("hashRandom is uniform on [0, 1)", () => {
+    const r = hashRandom("u");
+    const bins = new Array(10).fill(0);
+    for (let i = 0; i < 100_000; i++) {
+      const x = r();
+      expect(x >= 0 && x < 1).toBe(true);
+      bins[Math.floor(x * 10)]++;
+    }
+    for (const b of bins) expect(Math.abs(b - 10_000)).toBeLessThan(500);
   });
 });

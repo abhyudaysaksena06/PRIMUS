@@ -8,7 +8,8 @@
 
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { candleTicks, practiceCandles, PRACTICE } from "@msim/engine";
+import { createHmac } from "node:crypto";
+import { candleTicks, hashRandom, practiceCandles, PRACTICE } from "@msim/engine";
 import { supabaseService } from "@/lib/supabase/service";
 import { admittedOnly, deskCheckInOn } from "@/lib/admin/admitted";
 
@@ -54,8 +55,28 @@ export const PRACTICE_STEPS = PRACTICE.candles * PRACTICE.candleTicks;
 /** The seed of a simulated company's price path: fixed by the event and the ticker, so a retry stores the same path. */
 export const practicePathKey = (eventId: string, ticker: string) => `${eventId}:practice:${ticker}`;
 
-/** One company's price path, in cents, one price per tick. */
-export const practicePath = (key: string) => practiceCandles(key).flatMap((c) => candleTicks(c));
+/**
+ * The secret a path's seed is keyed with: the event's id and the tickers are visible to every team and the generator
+ * is in the repository, so a seed made of them alone let a team compute every future price. A server-only secret
+ * (PRACTICE_SEED_SECRET, else the service-role key) keeps the path fixed for this deployment and unknown outside it.
+ */
+function seedSecret(): string {
+  return process.env.PRACTICE_SEED_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+}
+
+/** The path's private seed for a key (an HMAC of the key with the server's secret). */
+export const practiceSeed = (key: string, secret: string = seedSecret()) =>
+  secret ? createHmac("sha256", secret).update(key).digest("hex") : key;
+
+/**
+ * One company's price path, in cents, one price per tick: the candles and the ticks inside them drawn from two
+ * streams of a 256-bit generator seeded by the private seed (the same key and secret always give the same path).
+ */
+export const practicePath = (key: string, secret: string = seedSecret()) => {
+  const seed = practiceSeed(key, secret);
+  const ticks = hashRandom(`${seed}:ticks`);
+  return practiceCandles(seed, PRACTICE.candles, hashRandom(`${seed}:candles`)).flatMap((c) => candleTicks(c, PRACTICE.candleTicks, ticks));
+};
 
 const asTickers = (companies: MarketRow["companies"]): PracticeTicker[] | null =>
   Array.isArray(companies) ? companies.map((c) => ({ id: c.id, code: c.ticker, name: c.name })) : null;

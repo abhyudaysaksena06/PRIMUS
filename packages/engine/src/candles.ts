@@ -1,3 +1,6 @@
+import { sha256 } from "@noble/hashes/sha2.js";
+import { utf8ToBytes } from "@noble/hashes/utils.js";
+
 // Candlesticks: the patterns traders read (detected on any series of open/high/low/close candles), and the scripted
 // price paths of the Round 1 practice market (deterministic per event and ticker, with the same patterns planted in
 // them; most of them follow through, as the textbooks say, but not all).
@@ -149,6 +152,23 @@ export function seededRandom(seed: string): () => number {
   };
 }
 
+/**
+ * A generator in [0, 1) with 256 bits of state (SHA-256 of the seed and a counter), for paths that must not be
+ * guessable from a few prices: seededRandom keeps 32 bits of state, so 2^32 tries recover it from the first ticks.
+ */
+export function hashRandom(seed: string): () => number {
+  let block = 0;
+  let words: number[] = [];
+  return () => {
+    if (words.length === 0) {
+      const bytes = sha256(utf8ToBytes(`${seed}:${block++}`));
+      words = [];
+      for (let i = 0; i < 32; i += 4) words.push(((bytes[i]! << 24) | (bytes[i + 1]! << 16) | (bytes[i + 2]! << 8) | bytes[i + 3]!) >>> 0);
+    }
+    return words.shift()! / 4294967296;
+  };
+}
+
 /** A scripted candle and the pattern planted on it, if any. */
 export interface ScriptedCandle extends Ohlc {
   planted: PatternName | null;
@@ -158,8 +178,8 @@ export interface ScriptedCandle extends Ohlc {
  * The practice path for one ticker: `n` candles of trends, ranges and reversals, with patterns planted where a
  * trader would look for them. About 70% of planted signals follow through (the next segment goes their way).
  */
-export function practiceCandles(seed: string, n: number = PRACTICE.candles): ScriptedCandle[] {
-  const rnd = seededRandom(seed);
+export function practiceCandles(seed: string, n: number = PRACTICE.candles, rng?: () => number): ScriptedCandle[] {
+  const rnd = rng ?? seededRandom(seed);
   const between = (a: number, b: number) => a + (b - a) * rnd();
   const out: ScriptedCandle[] = [];
   let price = Math.round(between(1200, 4500));
@@ -243,9 +263,27 @@ export function practiceCandles(seed: string, n: number = PRACTICE.candles): Scr
  * The ticks inside one candle: `PRACTICE.candleTicks` prices from the open to the close, touching the high and the
  * low (the low first on a candle that ends up, so a hammer is seen falling and then recovering).
  */
-export function candleTicks(c: Ohlc, ticks: number = PRACTICE.candleTicks): number[] {
+export function candleTicks(c: Ohlc, ticks: number = PRACTICE.candleTicks, rnd?: () => number): number[] {
   const lowFirst = c.close >= c.open;
   const [a, b] = lowFirst ? [c.low, c.high] : [c.high, c.low];
+  if (rnd && ticks === 6) {
+    // The live market's ticks: the open, then the two extremes (the low first on a candle that ends up) at random
+    // places among ticks 1-4, the other two anywhere between the low and the high, then the close. A straight
+    // open → extreme → extreme → close path told a trader the next tick from the one before (tick 1 is half way to
+    // tick 2), a riskless trade every candle; here no tick says where the next one goes.
+    const i = 1 + Math.floor(rnd() * 3);
+    const j = i + 1 + Math.floor(rnd() * (4 - i));
+    const path = [c.open, 0, 0, 0, 0, c.close];
+    // A tick that is not an extreme goes part of the way to the next one (or the close) half the time, and lands
+    // anywhere in the candle's range the other half: neither a steady drift nor a steady snap-back to read.
+    const anchor = (k: number) => (k < i ? a : k < j ? b : c.close);
+    for (let k = 1; k <= 4; k++) {
+      if (k === i) path[k] = a;
+      else if (k === j) path[k] = b;
+      else path[k] = rnd() < 0.5 ? path[k - 1]! + (anchor(k) - path[k - 1]!) * rnd() : c.low + (c.high - c.low) * rnd();
+    }
+    return path.map((v) => Math.min(c.high, Math.max(c.low, Math.round(v))));
+  }
   const path = [c.open, (c.open + a) / 2, a, (a + b) / 2, b, c.close];
   if (ticks !== 6) {
     // Resample the six-point path to `ticks` points (the first open, the last close).
