@@ -2,7 +2,7 @@
 -- event SQL. It changes nothing. Every row should read OK; anything else says what to fix.
 -- Set the event slug on the next line if it is not primus-2026.
 with ev as (select * from public.events where slug = 'primus-2026'),
-expected as (select '20270103000098'::text as v),
+expected as (select '20270106000101'::text as v),
 checks as (
   select 1 as n, 'Schema version' as item, public.schema_version() as found, (select v from expected) as want,
          public.schema_version() = (select v from expected) as ok

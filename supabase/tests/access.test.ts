@@ -119,6 +119,7 @@ describe("grants", () => {
       "rankings",
       "rate_firm",
       "release_scores",
+      "remove_unadmitted",
       "request_correction",
       "request_restore",
       "request_snapshot",

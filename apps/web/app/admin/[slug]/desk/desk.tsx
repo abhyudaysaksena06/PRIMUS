@@ -71,9 +71,12 @@ export function Desk({
   nextFree,
   editable,
   canCheckOut,
+  cardsRemoved = false,
 }: {
   eventId: string;
   list: ListTeam[];
+  /** The cards nobody admitted were removed after registration (migration 101): no card is free any more. */
+  cardsRemoved?: boolean;
   /** Per track, the lowest card code nobody is checked in on (null when the track has no free card). */
   nextFree?: Partial<Record<Track, string | null>>;
   editable: boolean;
@@ -206,7 +209,11 @@ export function Desk({
                   onClick={() => setDraft({ ...draft, pick: nextFree?.[draft.track] ?? "" })}
                   data-testid="desk-next-free"
                 >
-                  {nextFree?.[draft.track] ? `Next free card: ${nextFree[draft.track]}` : "No free card"}
+                  {nextFree?.[draft.track]
+                    ? `Next free card: ${nextFree[draft.track]}`
+                    : cardsRemoved
+                      ? "No free card — all unused cards were removed"
+                      : "No free card"}
                 </button>
               </div>
             </div>
