@@ -158,7 +158,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
               {pitchable.map((co) => (
                 <li key={co.id} className="border-b border-line pb-3 last:border-b-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="pd-code">{companyLabel(co)}</span>
+                    <span className="font-mono font-bold">{companyLabel(co)}</span>
                     <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[#39ff88] hover:underline">
                       Talk to them →
                     </Link>
@@ -216,7 +216,7 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
               return (
                 <section key={e.id} id={`client-${e.company_id}`} className="border border-[#294832] p-3.5 scroll-mt-32" aria-label={`Client ${label}`} data-testid="client">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="pd-code text-base">Client {label}</h3>
+                    <h3 className="font-mono text-base font-bold">Client {label}</h3>
                     <span className="font-mono text-sm text-paper">fee {termsText(money(e.cash_cents), e.shares)}</span>
                     {cur ? <Chip tone="green">Memo sent {clock(cur.submitted_at)}</Chip> : <Chip tone="amber">Memo not sent</Chip>}
                     <Link href={`/team/messages?c=${e.company_id}&f=${me}`} className="ml-auto text-sm font-semibold text-[#39ff88] hover:underline">

@@ -42,7 +42,7 @@ export function EquityFields({
       </label>
       {/* What the server reads. An unreadable percentage posts as text, so the server refuses it with a reason. */}
       <input type="hidden" name="shares" value={parsed === null ? pct : String(parsed)} />
-      <p id={`${testId}-value`} className="pd-well-note font-mono text-xs text-[var(--term-cyan)]" data-testid={`${testId}-value`}>
+      <p id={`${testId}-value`} className="font-mono text-xs text-[var(--term-cyan)]" data-testid={`${testId}-value`}>
         {parsed === null
           ? "Write a percentage with at most two decimals, e.g. 5 or 2.5."
           : parsed === 0
