@@ -17,7 +17,15 @@ export interface EventStatus {
   open_round: { number: number; closes_at: string } | null;
   next_round: { number: number; opens_at: string } | null;
   drawn: boolean;
+  /** The Run page switches (migration 070): key → on. Absent on a database older than 070. */
+  features?: Record<string, boolean>;
   server_time: string;
+}
+
+/** Is a Run page switch on? `fallback` is used when the database is older than 070 or the key is unknown. */
+export function featureOn(status: Pick<EventStatus, "features"> | null | undefined, key: string, fallback = false): boolean {
+  const v = status?.features?.[key];
+  return typeof v === "boolean" ? v : fallback;
 }
 
 export const loadEventStatus = cache(async (eventId: string): Promise<EventStatus> => {

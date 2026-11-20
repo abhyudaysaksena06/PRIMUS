@@ -54,3 +54,10 @@ export async function resetRehearsal(eventId: string, slug: string): Promise<Act
   if (r.ok) revalidatePath(`/admin/${slug}`, "layout");
   return r.ok ? { ...r, message: "The demo is back at Setup. Teams sign in with the same codes and passwords." } : r;
 }
+
+/** Turn one of tonight's switches on or off (migration 070). */
+export async function setFeature(eventId: string, key: string, on: boolean): Promise<ActionResult> {
+  const r = await rpc("set_feature", { p_event: eventId, p_key: key, p_on: on });
+  if (r.ok) revalidatePath("/admin", "layout");
+  return r.ok ? { ...r, message: on ? "Switched on." : "Switched off." } : r;
+}
