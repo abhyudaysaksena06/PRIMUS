@@ -286,7 +286,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 return (
                   <li key={f.team_id} className="border border-[#294832] p-3.5" data-testid={`firm-${f.code}`}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="guide-chip guide-chip-solid hover:underline">
+                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="guide-chip active hover:underline">
                         {f.code}
                       </Link>
                       <span className="font-semibold text-paper">{f.name}</span>

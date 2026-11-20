@@ -76,7 +76,7 @@ export default async function FirmProfilePage({ params }: { params: Promise<{ co
 
       <section className="pd-panel overflow-hidden" aria-label="Firm" data-testid="firm-profile">
         <div className="pd-panel-head justify-start">
-          <span className="guide-chip guide-chip-solid text-sm">{f.code}</span>
+          <span className="guide-chip active text-sm">{f.code}</span>
           <span className="pd-title my-0 text-2xl sm:text-3xl">{f.name}</span>
           <Chip tone="slate">#{rank} by value</Chip>
           {isMe ? <Chip tone="violet">Your firm</Chip> : null}

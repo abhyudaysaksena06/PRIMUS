@@ -50,7 +50,7 @@ const STEP_CHIP: Record<StepState, { text: string; cls: string } | null> = {
 
 /**
  * One numbered step of the crisis room: its number (a tick once done), a title, one plain line about where it
- * stands, and its content, folded away unless there is something to do in it (a tap opens any step).
+ * stands, and its content.
  */
 export function Step({
   n,
@@ -73,24 +73,22 @@ export function Step({
   children: ReactNode;
 }) {
   const chip = STEP_CHIP[state];
+  // Drawn as the demo's numbered panels ("1. Offer shares…", "4. Consulting teams…"): the step's state is the panel's
+  // tag, its line about where it stands opens the body. Every step is open, as every demo panel is.
+  void open;
   return (
-    <section id={id} className="guide-panel guide-step min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
-      <details open={open ?? (state === "now" || state === "read")} className="group">
-        <summary className="guide-panel-head cursor-pointer list-none">
-          <span className="min-w-[10rem] flex-1">
-            <h2>
-              <span aria-hidden>{state === "done" ? "✓ " : `${n}. `}</span>
-              {title}
-            </h2>
-            {summary ? <span className="guide-muted mt-1 block !font-sans !text-[11px] !tracking-normal">{summary}</span> : null}
-          </span>
-          {chip ? <span className={`guide-chip ${chip.cls}`}>{chip.text}</span> : null}
-          <span aria-hidden className="guide-step-caret">
-            ▸
-          </span>
-        </summary>
-        <div className="guide-panel-body">{children}</div>
-      </details>
+    <section id={id} className="guide-panel min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
+      <div className="guide-panel-head">
+        <h2>
+          <span aria-hidden>{state === "done" ? "✓ " : `${n}. `}</span>
+          {title}
+        </h2>
+        {chip ? <span className="uppercase">{chip.text}</span> : null}
+      </div>
+      <div className="guide-panel-body">
+        {summary ? <p className="guide-muted mb-3">{summary}</p> : null}
+        {children}
+      </div>
     </section>
   );
 }

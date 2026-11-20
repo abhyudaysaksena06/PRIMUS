@@ -1,0 +1,91 @@
+/* What the real Product and Consulting pages add to the /demo design (app/demo/demo.css, loaded by the team layout
+   inside .guide-app[data-track]). No demo rule is restyled here: only the parts the demo has no rule for, drawn the
+   way the demo draws its nearest part. */
+
+.guide-page-head small{text-transform:uppercase}
+/* The page title is not a heading (the layout's h1 is the team code), drawn as the demo's PageTitle h1. */
+.guide-page-head p.guide-title{display:block;max-width:none;margin:12px 0 7px;color:#f0f1f5;font-size:clamp(28px,4vw,43px);font-weight:750;letter-spacing:-.05em;line-height:1.2;font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+
+/* Tabs that are links (the squad workspace): every demo.css rule for its tab buttons, for links. */
+.guide-tabs a{padding:8px 11px;border:1px solid #314b37;color:#92a996;font:700 8px ui-monospace,monospace}
+.guide-tabs a.active{border-color:#39ff88;background:rgba(57,255,136,.1);color:#39ff88}
+.guide-tabs a.active{border-color:#39ff88;background:rgba(57,255,136,.1);color:#39ff88}
+.guide-app[data-track] .guide-tabs a.active{color:var(--track-accent)!important;border-color:var(--track-accent)!important;background:var(--track-soft)!important}
+.guide-app:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-tabs a{border-radius:8px;padding:8px 13px;transition:all .16s ease}
+.guide-app[data-track="CONSULTING"] .guide-tabs a{border-color:rgba(99,168,255,.24);background:rgba(8,19,38,.65);color:#97b7e0}
+.guide-app[data-track="CONSULTING"] .guide-tabs a:hover:not(:disabled){border-color:rgba(99,168,255,.5);color:#e2efff}
+.guide-app[data-track="PRODUCT"] .guide-tabs a{border-color:rgba(255,155,69,.24);background:rgba(28,13,5,.65);color:#d9b08c}
+.guide-app[data-track="PRODUCT"] .guide-tabs a:hover:not(:disabled){border-color:rgba(255,155,69,.5);color:#fff1e3}
+.guide-app[data-track] .guide-tabs a.active{color:var(--track-accent)!important;border-color:var(--track-accent)!important;background:var(--track-soft)!important}
+.guide-app[data-track] .guide-tabs a{border-color:var(--line-neutral)!important;color:#aab0bc!important}
+.guide-app[data-track] .guide-tabs a.active{background:var(--track-accent)!important;border-color:var(--track-accent)!important;color:#101116!important}
+.guide-app[data-track] .guide-tabs a{border-color:#343a45!important;background:#090c12!important;color:#e6e8ed!important;}
+.guide-app[data-track] .guide-tabs a.active{border-color:var(--track-accent)!important;background:var(--track-soft)!important;color:var(--track-accent)!important;}
+.guide-app .guide-tabs a.active{border-color:var(--track-accent,#ffd84d)!important;background:var(--track-soft,rgba(255,216,77,.08))!important;color:var(--track-accent,#ffd84d)!important}
+.guide-app[data-track="CONSULTING"] .guide-tabs a,.guide-app[data-track="PRODUCT"] .guide-tabs a{border-radius:8px!important}
+.guide-app[data-track="CONSULTING"] .guide-tabs a{border-color:rgba(99,168,255,.24)!important;background:rgba(8,19,38,.65)!important;color:#97b7e0!important}
+.guide-app[data-track="CONSULTING"] .guide-tabs a.active{border-color:#63a8ff!important;background:rgba(99,168,255,.16)!important;color:#63a8ff!important}
+.guide-app[data-track="PRODUCT"] .guide-tabs a{border-color:rgba(255,155,69,.24)!important;background:rgba(28,13,5,.65)!important;color:#d9b08c!important}
+.guide-app[data-track="PRODUCT"] .guide-tabs a.active{border-color:#ff9b45!important;background:rgba(255,155,69,.16)!important;color:#ff9b45!important}
+.guide-tabs a{text-decoration:none}
+
+/* The app's own buttons (ActionButton, ActionForm) on these pages: every demo.css rule for its guide-btn. */
+.guide-stack .mx-key{border-radius:0}
+.guide-stack .mx-key{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:10px 13px;background:#39ff88;color:#041008;text-decoration:none;border:0;font:800 9px ui-monospace,monospace;letter-spacing:.08em;cursor:pointer}
+.guide-stack .mx-key.mx-key-quiet{background:transparent;border:1px solid #356044;color:#bde9c8}
+.guide-stack .mx-key:disabled{opacity:.35;cursor:not-allowed}
+.guide-app[data-track] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:var(--track-accent)!important;color:#061009!important}
+.guide-app:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-stack .mx-key{border-radius:9px;padding:10px 15px;transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease}
+.guide-app:is([data-track="CONSULTING"],[data-track="PRODUCT"]) .guide-stack .mx-key:hover:not(:disabled){transform:translateY(-1px)}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:linear-gradient(135deg,#74b3ff,#3b82f6)!important;color:#030d1c!important;box-shadow:0 4px 16px rgba(59,130,246,.32),inset 0 1px 0 rgba(255,255,255,.35)}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger):hover:not(:disabled){background:linear-gradient(135deg,#93c5fd,#60a5fa)!important;box-shadow:0 6px 22px rgba(99,168,255,.45),inset 0 1px 0 rgba(255,255,255,.45)}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key.mx-key-quiet{border-color:rgba(99,168,255,.34);background:rgba(12,27,54,.55);color:#c7e0ff}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key.mx-key-quiet:hover:not(:disabled){border-color:#63a8ff;background:rgba(37,99,235,.18);color:#fff}
+.guide-app[data-track="PRODUCT"] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:linear-gradient(135deg,#ffae5e,#f97316)!important;color:#1a0902!important;box-shadow:0 4px 16px rgba(249,115,22,.32),inset 0 1px 0 rgba(255,255,255,.35)}
+.guide-app[data-track="PRODUCT"] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger):hover:not(:disabled){background:linear-gradient(135deg,#ffc385,#fb923c)!important;box-shadow:0 6px 22px rgba(255,155,69,.45),inset 0 1px 0 rgba(255,255,255,.45)}
+.guide-app[data-track="PRODUCT"] .guide-stack .mx-key.mx-key-quiet{border-color:rgba(255,155,69,.34);background:rgba(44,20,8,.55);color:#ffd9b8}
+.guide-app[data-track="PRODUCT"] .guide-stack .mx-key.mx-key-quiet:hover:not(:disabled){border-color:#ff9b45;background:rgba(234,110,20,.18);color:#fff}
+.guide-app[data-track] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:var(--track-accent)!important;color:#090a0d!important}
+.guide-app[data-track] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:var(--track-accent)!important;color:#101116!important}
+.guide-app[data-track] .guide-stack .mx-key.mx-key-quiet{border-color:var(--track-line)!important;color:var(--track-accent)!important;background:transparent!important}
+.guide-app[data-track] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:var(--track-accent)!important;color:#111318!important;}
+.guide-app[data-track] .guide-stack .mx-key.mx-key-quiet{border-color:var(--track-line)!important;color:var(--track-accent)!important;}
+.guide-app .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:var(--track-accent,#ffd84d)!important;color:#111318!important}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key,.guide-app[data-track="PRODUCT"] .guide-stack .mx-key{border-radius:9px!important}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:linear-gradient(135deg,#74b3ff,#3b82f6)!important;color:#030d1c!important;box-shadow:0 4px 16px rgba(59,130,246,.32)!important}
+.guide-app[data-track="CONSULTING"] .guide-stack .mx-key.mx-key-quiet{border-color:rgba(99,168,255,.34)!important;background:rgba(12,27,54,.55)!important;color:#c7e0ff!important}
+.guide-app[data-track="PRODUCT"] .guide-stack .mx-key:not(.mx-key-quiet):not(.mx-key-danger){background:linear-gradient(135deg,#ffae5e,#f97316)!important;color:#1a0902!important;box-shadow:0 4px 16px rgba(249,115,22,.32)!important}
+.guide-app[data-track="PRODUCT"] .guide-stack .mx-key.mx-key-quiet{border-color:rgba(255,155,69,.34)!important;background:rgba(44,20,8,.55)!important;color:#ffd9b8!important}
+.guide-stack .mx-key.mx-key-danger{background:transparent!important;border:1px solid rgba(255,107,107,.55)!important;color:#ff9b9b!important}
+
+/* A panel head with links next to its tag. */
+.guide-panel-head .guide-panel-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.guide-panel-head .guide-panel-actions a{font:700 9px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;text-decoration:underline;text-underline-offset:3px}
+.guide-panel-head h2{min-width:0;overflow-wrap:anywhere}
+.guide-panel-body{overflow-wrap:anywhere}
+
+/* Chip and alert tones for states the demo shows in words. */
+.guide-chip.good{border-color:rgba(74,222,128,.45)!important;color:#86efac!important}
+.guide-chip.warn{border-color:rgba(251,191,36,.45)!important;color:#fcd34d!important}
+.guide-chip.bad{border-color:rgba(255,107,107,.5)!important;color:#ff9b9b!important}
+a.guide-chip{text-decoration:none}
+.guide-btn.danger{background:transparent!important;border:1px solid rgba(255,107,107,.55)!important;color:#ff9b9b!important}
+.guide-alert.bad{border-left-color:#ff6b6b!important;background:rgba(120,20,20,.2)!important;color:#ffd0d0!important}
+
+/* Spacing and lists. */
+.guide-stack>*+*{margin-top:16px}
+ul.guide-grid,ol.guide-grid{list-style:none;padding-left:0}
+.guide-timeline{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.guide-metric.is-next{border-color:var(--track-accent)!important;background:var(--track-soft)!important}
+.guide-table-wrap{overflow-x:auto}
+
+/* An editor section that is not the open tab: kept in the page (reachable by its label, and opened when it takes
+   focus) but not drawn. */
+.guide-section-off{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;margin:-1px!important;padding:0!important;border:0!important}
+
+/* A fold the demo does not have (earlier crises): a demo panel whose head opens it. */
+.guide-fold>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;cursor:pointer;list-style:none;font-size:12px;font-weight:700}
+.guide-fold>summary::-webkit-details-marker{display:none}
+.guide-fold[open]>summary{border-bottom:1px solid rgba(91,139,100,.18)}
+
+@media(max-width:760px){.guide-panel-head{flex-wrap:wrap}.guide-page-head p.guide-title{font-size:26px}}
