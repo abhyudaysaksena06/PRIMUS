@@ -25,8 +25,8 @@ export default async function FlashPage() {
         {ws.flash ? (
           <article data-testid="flash-bulletin">
             <p className="text-xs text-muted">Published at {clock(ws.flash.published_at)}</p>
-            <h3 className="mt-1 text-lg font-semibold text-phosphor">{ws.flash.title}</h3>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-phosphor">{ws.flash.body}</p>
+            <h3 className="mt-1 text-lg font-bold text-paper">{ws.flash.title}</h3>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-paper">{ws.flash.body}</p>
           </article>
         ) : (
           <p className="text-sm text-paper">

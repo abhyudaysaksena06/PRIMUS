@@ -9,6 +9,7 @@ import { FIRM_SORTS, parseSort, profileCompleteness, searchFirms } from "@/lib/t
 import { minBidText, openFirms, rateText } from "@/lib/team/hire-lists";
 import { sectionAllowed } from "@/lib/team/sections";
 import { pauseOf } from "@/lib/team/squad-data";
+import { RoomShell } from "../crisis/room-shell";
 import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/ui";
 
 export const metadata: Metadata = { title: "Firms" };
@@ -37,7 +38,12 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
   const drawOn = featureOn(ctx.status, "hire_base_rate");
 
   return (
-    <div className="space-y-6">
+    <RoomShell
+      track={ctx.team.track}
+      eyebrow={k !== null ? subroundTitle(k) : "Firm marketplace"}
+      title="Consulting firms"
+      lede={product ? "Compare every firm's pitch, base rate, value and client ratings, then offer the one you want a stake in your company." : "The marketplace as Product teams see it when they choose whom to hire."}
+    >
       <Panel title="Consulting firm directory">
         <p className="text-sm text-paper">
           {product
@@ -57,11 +63,11 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
         ) : null}
         <form method="get" className="mt-3 flex flex-wrap items-end gap-2" role="search" aria-label="Search the firms">
           <label className="min-w-0 flex-1 text-sm">
-            <span className="font-semibold text-paper">Search</span>
+            <span className="pd-label">Search</span>
             <input name="q" defaultValue={query} placeholder="pricing, supply chain, C07…" className={`${inputClass} mt-1`} />
           </label>
           <label className="text-sm">
-            <span className="font-semibold text-paper">Sort by</span>
+            <span className="pd-label">Sort by</span>
             <select name="sort" defaultValue={sort} className={`${inputClass} mt-1`}>
               {FIRM_SORTS.map((s) => (
                 <option key={s.key} value={s.key}>
@@ -103,10 +109,10 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
             const openOffer = mine && k !== null ? data.offers.some((o) => o.company_id === mine.id && o.firm_team_id === f.team_id && o.k === k && o.status === "OPEN") : false;
             const complete = profileCompleteness(p);
             return (
-              <li key={f.team_id} className="flex flex-col border border-line bg-panel p-3" data-testid={`directory-${f.code}`}>
+              <li key={f.team_id} className={`pd-card flex flex-col ${hiredByMe ? "pd-card-hot" : ""}`} data-testid={`directory-${f.code}`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-lg font-semibold text-[var(--term-amber)]">{f.code}</span>
-                  <span className="text-paper">{f.name}</span>
+                  <span className="pd-chip pd-chip-solid">{f.code}</span>
+                  <span className="text-base font-semibold text-paper">{f.name}</span>
                   {f.team_id === ctx.team.id ? <Badge tone="violet">You</Badge> : null}
                   {hiredByMe ? <Badge tone="green">Hired by you</Badge> : null}
                   {openOffer ? <Badge tone="amber">Offer open</Badge> : null}
@@ -115,21 +121,21 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
                 <p className="mt-1 text-sm font-semibold text-paper">{p?.headline || <span className="font-normal text-muted">No headline yet.</span>}</p>
                 {p?.specialities.length ? <p className="mt-1 text-xs text-[var(--term-cyan)]">{p.specialities.join(" · ")}</p> : null}
                 {p?.about ? <p className="mt-1 line-clamp-2 text-xs text-muted">{p.about}</p> : null}
-                <dl className="mt-2 grid grid-cols-4 gap-2 text-xs">
+                <dl className="pd-mini-metrics mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                   <div>
-                    <dt className="text-muted">Value</dt>
+                    <dt>Value</dt>
                     <dd className="font-mono text-[var(--term-green)]">{money(f.value_cents)}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Asking</dt>
+                    <dt>Asking</dt>
                     <dd className="font-mono text-paper">{p && p.asking_cents > 0 ? money(p.asking_cents) : "—"}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Clients</dt>
+                    <dt>Clients</dt>
                     <dd className="font-mono text-paper">{f.clients}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Rating</dt>
+                    <dt>Rating</dt>
                     <dd className="font-mono text-paper">{f.avg_rating === null ? "—" : `★ ${f.avg_rating.toFixed(1)}`}</dd>
                   </div>
                 </dl>
@@ -149,6 +155,6 @@ export default async function FirmsPage({ searchParams }: { searchParams: Promis
           })}
         </ul>
       )}
-    </div>
+    </RoomShell>
   );
 }

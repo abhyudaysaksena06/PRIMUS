@@ -40,10 +40,10 @@ export const companyLabel = (c: RoomCompany | undefined) => (c ? `${c.ticker ?? 
 export type StepState = "now" | "done" | "later" | "closed" | "read";
 
 const STEP_CHIP: Record<StepState, { text: string; cls: string } | null> = {
-  now: { text: "Do this now", cls: "bg-[var(--term-amber)] text-black" },
-  done: { text: "Done", cls: "text-phosphor ring-1 ring-phosphor-dim" },
-  later: { text: "Later", cls: "text-muted ring-1 ring-line" },
-  closed: { text: "Closed", cls: "text-muted ring-1 ring-line" },
+  now: { text: "Do this now", cls: "pd-chip-solid" },
+  done: { text: "Done", cls: "pd-chip-good" },
+  later: { text: "Later", cls: "pd-chip-quiet" },
+  closed: { text: "Closed", cls: "pd-chip-quiet" },
   read: null,
 };
 
@@ -72,35 +72,23 @@ export function Step({
   children: ReactNode;
 }) {
   const chip = STEP_CHIP[state];
-  const hot = state === "now";
   return (
-    <section
-      id={id}
-      className={`mx-panel min-w-0 scroll-mt-32 rounded-lg ${hot ? "border-[var(--term-amber)]" : ""}`}
-      aria-label={`Step ${n}: ${title}`}
-      data-testid={testId}
-      data-state={state}
-    >
+    <section id={id} className="pd-step min-w-0 scroll-mt-32" aria-label={`Step ${n}: ${title}`} data-testid={testId} data-state={state}>
       <details open={open ?? (state === "now" || state === "read")} className="group">
-        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 px-4 py-3">
-          <span
-            aria-hidden
-            className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border font-mono text-sm font-extrabold ${
-              hot ? "border-[var(--term-amber)] bg-[var(--term-amber)] text-black" : state === "done" ? "border-phosphor-dim text-phosphor" : "border-line text-muted"
-            }`}
-          >
-            {state === "done" ? "✓" : n}
+        <summary>
+          <span aria-hidden className="pd-step-n">
+            {state === "done" ? "✓" : String(n).padStart(2, "0")}
           </span>
           <span className="min-w-[10rem] flex-1">
-            <h2 className={`text-base font-bold ${hot ? "text-[var(--term-amber)]" : "text-phosphor"}`}>{title}</h2>
-            {summary ? <span className="block text-sm text-paper">{summary}</span> : null}
+            <h2 className="pd-step-title">{title}</h2>
+            {summary ? <span className="pd-step-summary">{summary}</span> : null}
           </span>
-          {chip ? <span className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${chip.cls}`}>{chip.text}</span> : null}
-          <span aria-hidden className="text-muted transition-transform group-open:rotate-90">
+          {chip ? <span className={`pd-chip ${chip.cls}`}>{chip.text}</span> : null}
+          <span aria-hidden className="pd-step-caret">
             ▸
           </span>
         </summary>
-        <div className="border-t border-line p-4 [overflow-wrap:anywhere]">{children}</div>
+        <div className="pd-step-body">{children}</div>
       </details>
     </section>
   );
@@ -109,20 +97,20 @@ export function Step({
 export function Timeline({ k, steps }: { k: number; steps: TimelineStep[] }) {
   const next = steps.find((s) => !s.passed && s.at);
   return (
-    <div className="border border-line bg-panel" data-testid="subround-timeline">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line bg-raised px-3 py-1.5">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">{subroundTitle(k)}</h2>
+    <div className="pd-panel" data-testid="subround-timeline">
+      <div className="pd-panel-head">
+        <h2 className="pd-eyebrow">{subroundTitle(k)}</h2>
         {next ? (
-          <span className="text-xs text-muted">
+          <span className="pd-panel-meta">
             {next.label} in <Countdown to={next.at} className="text-[var(--term-amber)]" />
           </span>
         ) : null}
       </div>
-      <ol className="grid grid-cols-2 gap-px bg-line text-sm sm:grid-cols-4">
+      <ol className="pd-metrics p-3 sm:p-4">
         {steps.map((s) => (
-          <li key={s.code} className="bg-ink px-3 py-1.5">
-            <p className="text-[11px] uppercase tracking-wider text-[var(--term-amber-dim)]">{s.label}</p>
-            <p className={`font-mono ${s.passed ? "text-muted line-through" : s === next ? "text-[var(--term-amber)]" : "text-paper"}`}>{s.at ? clock(s.at) : "—"}</p>
+          <li key={s.code} className={`pd-metric ${s.passed ? "is-past" : s === next ? "is-next" : ""}`}>
+            <p>{s.label}</p>
+            <p>{s.at ? clock(s.at) : "—"}</p>
           </li>
         ))}
       </ol>
@@ -167,7 +155,7 @@ export function StatementCrowd({ group }: { group: StatementGroup }) {
           {group.companies.map((c) => (
             <li
               key={c.id}
-              className={`rounded border px-2 py-0.5 font-mono text-xs ${c.mine ? "border-[var(--term-amber)] bg-[var(--term-amber)] font-bold text-black" : "border-line text-paper"}`}
+              className={`pd-chip ${c.mine ? "pd-chip-solid" : "pd-chip-quiet"}`}
             >
               {c.label}
               {c.mine ? " (you)" : ""} <span className={c.mine ? "" : "text-muted"}>· {c.scoreAvg.toFixed(0)}</span>
@@ -194,7 +182,7 @@ export function OnTheClock({ data }: { data: CrisisRoomData }) {
       <ul className="space-y-1 text-sm font-semibold text-paper" data-testid="on-the-clock" aria-label="On the clock in each sector">
         {heads.map((h) => (
           <li key={h.queue}>
-            <span className="mr-2 rounded bg-[var(--term-amber)] px-1.5 py-0.5 text-xs font-black uppercase tracking-wide text-black">{name(h.queue)}</span>
+            <span className="mr-2 pd-chip pd-chip-solid">{name(h.queue)}</span>
             <span className="font-mono text-[var(--term-amber)]">{companyLabel(data.companies.find((x) => x.id === h.pick.company_id))}</span> · pick {h.place} of {h.size} ·{" "}
             <Countdown to={h.pick.closes_at} passed="time is up" className="font-mono text-[var(--term-amber)]" /> · {h.left} still to pick
           </li>
@@ -207,7 +195,7 @@ export function OnTheClock({ data }: { data: CrisisRoomData }) {
   const left = data.picks.filter((p) => p.statement_id === null).length;
   return (
     <p className="text-sm font-semibold text-paper" data-testid="on-the-clock">
-      <span className="mr-2 rounded bg-[var(--term-amber)] px-1.5 py-0.5 text-xs font-black uppercase tracking-wide text-black">On the clock</span>
+      <span className="mr-2 pd-chip pd-chip-solid">On the clock</span>
       <span className="font-mono text-[var(--term-amber)]">{companyLabel(c)}</span> · pick {d.current.pick_no} of {data.picks.length} ·{" "}
       <Countdown to={d.current.closes_at} passed="time is up" className="font-mono text-[var(--term-amber)]" /> · {left} still to pick
     </p>
@@ -233,7 +221,7 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
       </p>
       <ul className="grid gap-3 md:grid-cols-2" aria-label="Statements and their companies">
         {groups.map((g) => (
-          <li key={g.id} className="border border-line bg-panel p-3" data-testid={`board-${g.number}`}>
+          <li key={g.id} className="pd-card" data-testid={`board-${g.number}`}>
             <p className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-[var(--term-amber)]">#{g.number}</span>
               <span className="font-semibold text-paper">{g.title}</span>
@@ -310,7 +298,7 @@ export function OfferCard({ offer, side, hiring, counterpart, priceCents = null 
   const moves = offerMoves(offer, side, hiring);
   const waiting = offer.status === "OPEN" && offer.turn !== side;
   return (
-    <li className="border border-line bg-panel p-3" data-testid="offer">
+    <li className="pd-card" data-testid="offer">
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="font-mono font-semibold text-[var(--term-amber)]">{counterpart}</span>
         <span className="font-mono text-paper">{termsText(money(offer.cash_cents), offer.shares)}</span>
@@ -337,7 +325,7 @@ export function OfferCard({ offer, side, hiring, counterpart, priceCents = null 
       ) : null}
       {moves.includes("COUNTER") ? (
         <details className="mt-2">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">Counter ({countersLeft(offer, side)} left)</summary>
+          <summary className="pd-summary-btn">Counter ({countersLeft(offer, side)} left)</summary>
           <ActionForm action={counterOffer.bind(null, offer.id)} submit="Send counter" className="mt-2">
             <TermsFields cash={offer.cash_cents} shares={offer.shares} priceCents={priceCents} />
           </ActionForm>

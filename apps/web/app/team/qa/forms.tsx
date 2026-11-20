@@ -71,7 +71,7 @@ function AskFields({ companies, initial, pending }: { companies: { id: string; t
   return (
     <div className="grid gap-3">
       <label className="block">
-        <span className="text-xs font-medium text-paper">Company</span>
+        <span className="pd-label">Company</span>
         <select name="company" required defaultValue={initial ?? ""} className={inputClass}>
           <option value="" disabled>
             Choose a company…
@@ -85,7 +85,7 @@ function AskFields({ companies, initial, pending }: { companies: { id: string; t
         </select>
       </label>
       <label className="block">
-        <span className="text-xs font-medium text-paper">Question</span>
+        <span className="pd-label">Question</span>
         <textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={QUESTION_MAX_CHARS * 2} className={inputClass} />
       </label>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -111,7 +111,7 @@ function AnswerFields({ pending }: { pending: boolean }) {
   return (
     <div className="grid gap-2">
       <label className="block">
-        <span className="text-xs font-medium text-paper">Your answer (up to {ANSWER_MAX_WORDS} words, public)</span>
+        <span className="pd-label">Your answer (up to {ANSWER_MAX_WORDS} words, public)</span>
         <textarea name="body" rows={3} value={body} onChange={(e) => setBody(e.target.value)} maxLength={ANSWER_MAX_CHARS} className={inputClass} />
       </label>
       <div className="flex flex-wrap items-center justify-between gap-2">

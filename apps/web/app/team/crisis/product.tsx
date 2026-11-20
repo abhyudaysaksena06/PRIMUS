@@ -188,9 +188,9 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
               const n = counts.get(s.id) ?? 0;
               const full = n >= s.cap;
               return (
-                <li key={s.id} className="border border-line bg-panel p-3" data-testid={`statement-${s.number}`}>
+                <li key={s.id} className="pd-card" data-testid={`statement-${s.number}`}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[var(--term-amber)]">#{s.number}</span>
+                    <span className="pd-chip">#{s.number}</span>
                     <span className="font-semibold text-paper">{s.title}</span>
                     <Badge tone={full ? "red" : "slate"}>
                       {n}/{s.cap} {full ? "full" : "companies"}
@@ -283,12 +283,12 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 const open = myOffers.some((o) => o.firm_team_id === f.team_id && o.status === "OPEN");
                 const minShares = minBidOn && f.base_rate_bp !== null ? rateShares(f.base_rate_bp) : 0;
                 return (
-                  <li key={f.team_id} className="border border-line bg-panel p-3" data-testid={`firm-${f.code}`}>
+                  <li key={f.team_id} className="pd-card" data-testid={`firm-${f.code}`}>
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="font-mono font-semibold text-[var(--term-amber)] hover:underline">
+                      <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="pd-chip pd-chip-solid hover:underline">
                         {f.code}
                       </Link>
-                      <span className="text-paper">{f.name}</span>
+                      <span className="font-semibold text-paper">{f.name}</span>
                       {f.avg_rating !== null ? <Badge tone="slate">★ {f.avg_rating.toFixed(1)}</Badge> : null}
                     </div>
                     {p?.headline ? <p className="mt-1 text-sm font-semibold text-paper">{p.headline}</p> : null}
@@ -309,7 +309,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                     </p>
                     {!open ? (
                       <details className="mt-2">
-                        <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">Make an offer</summary>
+                        <summary className="pd-summary-btn">Make an offer</summary>
                         <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit="Send offer" className="mt-2" resetOnSuccess>
                           {/* In Round 3 the fee must be worth 5–20% of the company's cash: start inside that band. */}
                           <TermsFields
@@ -339,7 +339,7 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
         )}
         {myOffers.length ? (
           <>
-            <h3 className="mb-2 mt-4 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">Your offers</h3>
+            <h3 className="pd-label mb-2 mt-5">Your offers</h3>
             <ul className="space-y-2">
               {myOffers.map((o) => (
                 <OfferCard key={o.id} offer={o} side="COMPANY" hiring={hiring} counterpart={firmById.get(o.firm_team_id)?.code ?? "Firm"} priceCents={mine.market_price} />
@@ -424,12 +424,12 @@ function History({ data, k, companyId }: { data: CrisisRoomData; k: number | nul
   const mine = data.engagements.filter((e) => e.company_id === companyId);
   if (past.length === 0 && mine.length === 0) return null;
   return (
-    <details className="mx-panel rounded-lg" data-testid="crisis-history">
-      <summary className="cursor-pointer px-4 py-3 text-base font-bold text-phosphor">Earlier crises and your firms</summary>
-      <div className="space-y-4 border-t border-line p-4">
+    <details className="pd-fold" data-testid="crisis-history">
+      <summary>Earlier crises and your firms</summary>
+      <div className="space-y-4 p-4 sm:p-5">
         {past.map((pk) => (
           <section key={pk}>
-            <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-[var(--term-amber-dim)]">{subroundTitle(pk)}</h3>
+            <h3 className="pd-label mb-2">{subroundTitle(pk)}</h3>
             <CardsOf data={data} k={pk} only={[companyId]} />
           </section>
         ))}

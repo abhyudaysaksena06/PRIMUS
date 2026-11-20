@@ -31,7 +31,7 @@ export function EquityFields({
   return (
     <div className="grid gap-2" data-testid={testId}>
       <label className="block text-sm">
-        <span className="font-semibold text-paper">{label}</span>
+        <span className="pd-label">{label}</span>
         <input
           inputMode="decimal"
           value={pct}
@@ -43,7 +43,7 @@ export function EquityFields({
       </label>
       {/* What the server reads. An unreadable percentage posts as text, so the server refuses it with a reason. */}
       <input type="hidden" name="shares" value={parsed === null ? pct : String(parsed)} />
-      <p id={`${testId}-value`} className="font-mono text-xs text-[var(--term-cyan)]" data-testid={`${testId}-value`}>
+      <p id={`${testId}-value`} className="pd-well-note font-mono text-xs text-[var(--term-cyan)]" data-testid={`${testId}-value`}>
         {parsed === null
           ? "Write a percentage with at most two decimals, e.g. 5 or 2.5."
           : parsed === 0
@@ -54,7 +54,7 @@ export function EquityFields({
         <details open={cash > 0}>
           <summary className="cursor-pointer text-xs font-semibold text-muted">Add cash as well (optional)</summary>
           <label className="mt-1 block text-sm">
-            <span className="font-semibold text-paper">Cash ($)</span>
+            <span className="pd-label">Cash ($)</span>
             <input name="cash" inputMode="decimal" defaultValue={(cash / 100).toFixed(2)} className={`${inputClass} mt-1 font-mono`} />
           </label>
         </details>

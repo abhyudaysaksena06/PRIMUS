@@ -59,7 +59,7 @@ export default async function ProblemCardPage() {
                 <li
                   key={c.id}
                   aria-label={`Card ${i + 1}: ${c.title}`}
-                  className={`flex flex-col rounded-md p-3 ${chosen ? "bg-phosphor/10 ring-2 ring-phosphor" : "ring-1 ring-line"}`}
+                  className={`pd-card flex flex-col ${chosen ? "pd-card-hot" : ""}`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
                     <span>
@@ -67,7 +67,7 @@ export default async function ProblemCardPage() {
                     </span>
                     {pick.oneCase ? null : chosen ? <Badge tone={pick.byDefault ? "amber" : "green"}>{pick.byDefault ? "Chosen by default" : "Picked"}</Badge> : null}
                   </div>
-                  <h3 className="mt-1 font-semibold text-phosphor">{c.title}</h3>
+                  <h3 className="mt-2 text-lg font-bold leading-snug text-paper">{c.title}</h3>
                   <p className="mt-1 flex-1 whitespace-pre-wrap text-sm text-paper">{c.body}</p>
                   {pick.canPick && !chosen ? (
                     <div className="mt-3">

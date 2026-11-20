@@ -109,7 +109,7 @@ function RaiseHistory({ data, rows, title = "Your raises" }: { data: CrisisRoomD
   const company = new Map(data.companies.map((c) => [c.id, c]));
   return (
     <div>
-      <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-[var(--term-amber)]">{title}</h3>
+      <h3 className="pd-label mb-2">{title}</h3>
       <Table head={["Crisis", "Company", "Stake", "Status", "Fund", "Price", "Cash", "When"]}>
         {rows.map((r) => (
           <tr key={r.id}>

@@ -10,6 +10,7 @@ import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/u
 import { Countdown } from "@/components/ui/countdown";
 import { answerQuestion, postQuestion } from "./actions";
 import { AnswerForm, AskForm } from "./forms";
+import { RoomShell } from "../crisis/room-shell";
 
 export const metadata: Metadata = { title: "Q&A" };
 
@@ -31,12 +32,14 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
 
   if (state === "NOT_YET") {
     return (
+      <RoomShell track={team.track} eyebrow="Public board" title="Q&A board">
       <Panel title="Q&A board">
         <Notice>
           The Q&A board opens {startOf("READING") ? `at ${clock(startOf("READING"))} ` : ""}(Reading) with the pitch book. Finance teams ask questions; each Product
           team answers questions about its own company, in up to 100 words. Everything on the board is public.
         </Notice>
       </Panel>
+      </RoomShell>
     );
   }
 
@@ -51,7 +54,12 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
   const closes = startOf("CLOSE");
 
   return (
-    <div className="space-y-6">
+    <RoomShell
+      track={team.track}
+      eyebrow="Public board"
+      title="Q&A board"
+      lede="Finance teams ask, each Product team answers about its own company in up to 100 words. Everything here is public."
+    >
       {state === "CLOSED" ? (
         <Notice>The Q&A board closed at the close. Every question and answer stays readable.</Notice>
       ) : (
@@ -80,7 +88,7 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
           ) : (
             <ul className="space-y-4" aria-label="Questions waiting for your answer">
               {waiting.map((w) => (
-                <li key={w.id} className="rounded-md border border-warn/60 bg-warn/10 p-3">
+                <li key={w.id} className="pd-card pd-card-hot">
                   <QuestionHead ticker={ownListed.ticker} at={w.created_at} />
                   <p className="mt-1 whitespace-pre-wrap text-sm text-phosphor">{w.body}</p>
                   <div className="mt-2">
@@ -96,7 +104,7 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
       <Panel title="Questions">
         <Form action={PATH} className="flex flex-wrap items-end gap-2">
           <label className="block">
-            <span className="text-xs font-medium text-paper">Company</span>
+            <span className="pd-label">Company</span>
             <select name="company" defaultValue={q.company ?? ""} className={`${inputClass} w-48`}>
               <option value="">All companies</option>
               {companies.map((c) => (
@@ -127,7 +135,7 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
             {page.threads.length === 0 ? (
               <p className="mt-3 text-sm text-muted">{filtered ? `No questions to ${filtered.ticker} yet.` : "No questions yet."}</p>
             ) : (
-              <ul className="mt-3 divide-y divide-line" aria-label="Questions and answers">
+              <ul className="mt-3 space-y-3" aria-label="Questions and answers">
                 {page.threads.map((t) => (
                   <ThreadItem
                     key={t.question.id}
@@ -142,14 +150,14 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
           </>
         )}
       </Panel>
-    </div>
+    </RoomShell>
   );
 }
 
 function QuestionHead({ ticker, at }: { ticker: string; at: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-      <Link href={`/team/market/${ticker}`} className="font-mono text-sm font-semibold text-phosphor underline underline-offset-2">
+      <Link href={`/team/market/${ticker}`} className="pd-chip pd-chip-solid hover:underline">
         {ticker}
       </Link>
       <span>A fund asked</span>
@@ -162,7 +170,7 @@ function QuestionHead({ ticker, at }: { ticker: string; at: string }) {
 
 function ThreadItem({ t, ticker, canAnswer }: { t: Thread; ticker: string; canAnswer: boolean }) {
   return (
-    <li className="py-3" data-testid="qa-thread">
+    <li className="pd-card" data-testid="qa-thread">
       <QuestionHead ticker={ticker} at={t.question.created_at} />
       <p className="mt-1 whitespace-pre-wrap text-sm text-phosphor">{t.question.body}</p>
       {t.answers.length === 0 ? (
@@ -170,7 +178,7 @@ function ThreadItem({ t, ticker, canAnswer }: { t: Thread; ticker: string; canAn
           <Badge tone="amber">No answer yet</Badge>
         </p>
       ) : (
-        <ul className="mt-2 space-y-2 border-l-2 border-line pl-3">
+        <ul className="mt-3 space-y-2 border-l-2 border-[var(--term-amber)] pl-3">
           {t.answers.map((a) => (
             <li key={a.id} className="text-sm">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted">

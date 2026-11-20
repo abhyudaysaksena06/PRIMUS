@@ -384,7 +384,7 @@ export function DraftEditor(props: DraftEditorProps) {
       {type === "PITCH" ? (
         <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
           <div>
-            <label htmlFor={`${uid}-company_name`} className="text-sm font-semibold text-phosphor">
+            <label htmlFor={`${uid}-company_name`} className="pd-label">
               Company name
             </label>
             <input
@@ -399,7 +399,7 @@ export function DraftEditor(props: DraftEditorProps) {
             />
           </div>
           <div>
-            <label htmlFor={`${uid}-ticker`} className="text-sm font-semibold text-phosphor">
+            <label htmlFor={`${uid}-ticker`} className="pd-label">
               Ticker
             </label>
             <input
@@ -430,7 +430,7 @@ export function DraftEditor(props: DraftEditorProps) {
         return (
           <div key={f.key}>
             <div className="flex items-baseline justify-between gap-2">
-              <label htmlFor={id} className="text-sm font-semibold text-phosphor">
+              <label htmlFor={id} className="pd-label">
                 {f.label}
               </label>
               <span id={`${id}-words`} className="text-xs tabular-nums text-muted" data-testid={`words-${f.key}`}>
@@ -451,7 +451,7 @@ export function DraftEditor(props: DraftEditorProps) {
         );
       })}
 
-      <div className="rounded-md bg-raised px-3 py-2 text-sm">
+      <div className="rounded-xl border border-line bg-raised px-3 py-2 text-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <span data-testid="word-total" className={`font-semibold tabular-nums ${stats.over > 0 ? "text-danger-soft" : "text-phosphor"}`}>
             {stats.total.toLocaleString("en-US")} / {stats.limit.toLocaleString("en-US")} words
@@ -459,7 +459,7 @@ export function DraftEditor(props: DraftEditorProps) {
           {stats.over > 0 ? <span className="font-medium text-danger-soft">{words(stats.over)} over the limit</span> : null}
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded bg-phosphor-deep" aria-hidden>
-          <div className={`h-full ${stats.over > 0 ? "bg-danger" : "bg-phosphor-deep"}`} style={{ width: `${Math.min(100, (stats.total / stats.limit) * 100)}%` }} />
+          <div className={`h-full ${stats.over > 0 ? "bg-danger" : "bg-[var(--term-amber)]"}`} style={{ width: `${Math.min(100, (stats.total / stats.limit) * 100)}%` }} />
         </div>
       </div>
 
@@ -538,7 +538,7 @@ function FieldsText({ type, fields, only }: { type: SubmissionType; fields: Fiel
         .filter((f) => !only || only.includes(f.key))
         .map((f) => (
           <div key={f.key}>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-muted">{f.label}</dt>
+            <dt className="pd-label">{f.label}</dt>
             <dd className="whitespace-pre-wrap break-words text-phosphor">
               {(fields[f.key] ?? "").trim() === "" ? <span className="text-muted">—</span> : fields[f.key]}
             </dd>

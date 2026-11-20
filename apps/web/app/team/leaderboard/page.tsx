@@ -6,6 +6,7 @@ import { LEADERBOARD_CLOSED, leaderboardOpen, loadLeaderboard, moveText } from "
 import { count } from "@/lib/format";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { Notice, Table, Td } from "@/components/ui/ui";
+import { RoomShell } from "../crisis/room-shell";
 
 export const metadata: Metadata = { title: "Leaderboard" };
 
@@ -17,10 +18,13 @@ export default async function LeaderboardPage() {
   const rows = on ? await loadLeaderboard(await supabaseServer(), ctx.event.id) : null;
   const mine = ctx.company?.id ?? null;
   return (
-    <div className="space-y-4">
+    <RoomShell track={ctx.team.track} className="space-y-4">
       <AutoRefresh everyMs={30_000} active={on} />
-      <h1 className="text-2xl font-extrabold text-phosphor">Leaderboard</h1>
-      <p className="text-sm text-paper">
+      <div className="pd-head">
+        <p className="pd-eyebrow">PRIMUS Rating · live</p>
+        <h1 className="pd-title">Leaderboard</h1>
+      </div>
+      <p className="pd-lede">
         Every company starts at a Rating of 1,000. Each released score moves it: a score above its sector&apos;s average for that round raises it, one
         below lowers it.
       </p>
@@ -34,10 +38,16 @@ export default async function LeaderboardPage() {
         <div data-testid="leaderboard">
           <Table head={["#", "Company", "Sector", "Rating", "Move", "Scores"]} label="Leaderboard">
             {rows.map((r) => (
-              <tr key={r.company_id} className={r.company_id === mine ? "bg-phosphor/10 font-semibold" : ""} data-mine={r.company_id === mine ? "true" : undefined}>
-                <Td mono>{count(r.rank)}</Td>
+              <tr
+                key={r.company_id}
+                className={r.company_id === mine ? "bg-[var(--pd-soft)] font-semibold shadow-[inset_3px_0_0_var(--pd-accent)]" : ""}
+                data-mine={r.company_id === mine ? "true" : undefined}
+              >
+                <Td mono>
+                  <span className={r.rank <= 3 ? "pd-rank" : "pd-rank border-transparent text-muted"}>{count(r.rank)}</span>
+                </Td>
                 <Td>
-                  <span className="font-mono">{r.ticker ?? "—"}</span> <span className="text-paper">{r.name ?? ""}</span>
+                  <span className="pd-code">{r.ticker ?? "—"}</span> <span className="text-paper">{r.name ?? ""}</span>
                   {r.company_id === mine ? <span className="ml-1 text-xs text-phosphor">{ctx.team.track === "PRODUCT" ? "(you)" : "(your squad)"}</span> : null}
                 </Td>
                 <Td>{r.sector ?? "—"}</Td>
@@ -55,6 +65,6 @@ export default async function LeaderboardPage() {
           </Table>
         </div>
       )}
-    </div>
+    </RoomShell>
   );
 }
