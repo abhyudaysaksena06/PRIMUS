@@ -3,6 +3,8 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { sha256Hex } from "@msim/engine";
 import { Night } from "./night";
+import { randomUUID } from "node:crypto";
+import { rowsAs, user } from "./helpers";
 import { createTestDb } from "./pg";
 
 let db: Awaited<ReturnType<typeof createTestDb>>;
@@ -192,5 +194,115 @@ describe("F3: one failing step does not stop the heartbeat", () => {
     // Fixed: the next beat closes the hiring.
     await n.ok(n.lead, "tick", n.eventId);
     expect((await n.one("select hiring_closed_at from subrounds where event_id = $1 and k = 1", [n.eventId])).hiring_closed_at).not.toBeNull();
+  });
+});
+
+describe("F4–F13", () => {
+  test("patches landed in exactly their functions", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    expect(await landed(n, "The desk rule cannot change after the squad draw.")).toBe("public.set_desk_check_in");
+    expect(await landed(n, "b.at <= now() - interval '5 seconds'")).toBe("app.flush_broadcasts");
+    expect(await landed(n, "v_firm, v_company.product_team_id, false);")).toBe("app.assign_default_firms,app.assign_firms_by_draw");
+    expect(await landed(n, "perform app.broadcast_staff(p_event, 'offers');")).toBe("app.assign_default_firms,app.assign_firms_by_draw");
+    expect(await landed(n, "perform app.require_judge_ops();")).not.toContain("rerun_judging");
+    expect((await n.one("select strpos(prosrc, 'perform app.require_organiser();') > 0 as ok from pg_proc where oid = 'public.rerun_judging(uuid, public.submission_type, text)'::regprocedure")).ok).toBe(true);
+    expect(await landed(n, "if p_draft.version >= 1 and v_seconds >= 60 then")).toBe("app.flag_fast_draft");
+    expect(await landed(n, "if v_at is not null and v_at > now() and v_at < now() + interval '1 minute' then")).toBe("app.hold_tick");
+    expect(await landed(n, "   order by t.id\n     for no key update;")).toBe("app.assign_firms_by_draw");
+    expect(await landed(n, "A trading round is open. Restore between rounds.")).toBe("public.approve_restore,app.restore_snapshot");
+    expect(await landed(n, "Judge queue stalled")).toBe("app.auto_judge_tick");
+  });
+
+  test("F4: the desk rule is fixed once the squads are drawn", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    await n.org("set_desk_check_in", n.eventId, true);
+    await n.org("set_desk_check_in", n.eventId, false);
+    await n.org("set_seed_commitment", n.eventId, sha256Hex(sha256Hex("f4")));
+    await n.advanceTo("SQUAD_DRAW");
+    await n.org("run_lottery", n.eventId, sha256Hex("f4"), "3");
+    expect(await n.call(n.lead, "set_desk_check_in", n.eventId, true)).toMatchObject({
+      ok: false,
+      code: "DRAWN",
+      message: "The desk rule cannot change after the squad draw.",
+    });
+    expect((await n.one("select desk_check_in from events where id = $1", [n.eventId])).desk_check_in).toBe(false);
+  });
+
+  test("F6: hiring close sends one staff 'offers' message; each team still hears its own", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    await toRound2(n, 3, "f6-offers");
+    await n.q("delete from realtime.messages");
+    await n.deadlinePassed("HIRE_1");
+    await n.ok(n.lead, "tick", n.eventId);
+    const assigned = (await n.one("select count(*)::int as c from engagements where event_id = $1 and k = 1 and assigned", [n.eventId])).c;
+    expect(assigned).toBe(3);
+    const offers = await n.q("select topic from realtime.messages where event = 'offers'");
+    expect(offers.filter((m) => m.topic === `staff:${n.eventId}`)).toHaveLength(1);
+    expect(offers.filter((m) => m.topic.startsWith("team:"))).toHaveLength(2 * assigned);
+  });
+
+  test("F9: a crisis started now while the heartbeat was busy is revealed, not held", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    await toRound2(n, 3, "f9-hold");
+    await n.org("set_manual_starts", n.eventId, true);
+    await n.q("update deadlines set at = now() + interval '1 hour' where event_id = $1 and code::text ~ '^(REVEAL_[234]|HIRE|DUE|RATE)'", [n.eventId]);
+    const reveal2 = (await n.one("select at from deadlines where event_id = $1 and code = 'REVEAL_2'", [n.eventId])).at as Date;
+    // Another session holds the heartbeat's lock while the organiser presses "Start now": its own tick is skipped.
+    const holder = await db.pool.connect();
+    try {
+      await holder.query("begin");
+      await holder.query("select pg_advisory_xact_lock(hashtext('tick:' || $1::text))", [n.eventId]);
+      await n.org("start_step_now", n.eventId, reveal2.toISOString(), "Crisis 2");
+      expect((await n.one("select revealed_at from subrounds where event_id = $1 and k = 2", [n.eventId])).revealed_at).toBeNull();
+    } finally {
+      await holder.query("rollback");
+      holder.release();
+    }
+    const at = (await n.one("select at from deadlines where event_id = $1 and code = 'REVEAL_2'", [n.eventId])).at as Date;
+    expect(at.getTime()).toBeLessThanOrEqual(Date.now());
+    await n.ok(n.lead, "tick", n.eventId);
+    expect((await n.one("select revealed_at from subrounds where event_id = $1 and k = 2", [n.eventId])).revealed_at).not.toBeNull();
+    // Not moved two minutes ahead.
+    expect(((await n.one("select at from deadlines where event_id = $1 and code = 'REVEAL_2'", [n.eventId])).at as Date).getTime()).toBe(at.getTime());
+  });
+
+  test("F12: which crisis each company drew: the projector, organisers and fairness; the desks only after hiring closes", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    await toRound2(n, 3, "f12-leak");
+    const desks: Record<string, ReturnType<typeof user>> = {};
+    for (const role of ["REGISTRATION", "JUDGE", "CRISIS"]) {
+      const id = randomUUID();
+      await n.q("insert into auth.users (id, email) values ($1, $2)", [id, `${role.toLowerCase()}-f12-${id.slice(0, 6)}@example.org`]);
+      await n.q("insert into accounts (user_id, role, display_name) values ($1, $2, $3)", [id, role, `${role} desk`]);
+      desks[role] = user(id);
+    }
+    const seen = async (caller: ReturnType<typeof user>) =>
+      (await rowsAs<{ c: number }>(db.pool, caller, "select count(*)::int as c from subround_crises where event_id = $1 and k = 1", [n.eventId]))[0]!.c;
+    expect(await seen(user(n.ev.staff.get("display@example.org")!))).toBe(3);
+    expect(await seen(n.lead)).toBe(3);
+    expect(await seen(n.fairness)).toBe(3);
+    for (const d of Object.values(desks)) expect(await seen(d)).toBe(0);
+    await n.deadlinePassed("HIRE_1");
+    await n.ok(n.lead, "tick", n.eventId);
+    for (const d of Object.values(desks)) expect(await seen(d)).toBe(3);
+  });
+
+  test("F13: a run queued over 2 minutes with judging on its own is logged, at most every 2 minutes", async () => {
+    const n = await Night.create(db.pool, 3, "PRIMUS");
+    await toRound2(n, 3, "f13-stall", { reveal: false });
+    await n.org("set_feature", n.eventId, "judge_auto", true);
+    await n.q(
+      `insert into judge_runs (event_id, submission_id, company_id, type, generation, run_no, created_at)
+       select event_id, submission_id, company_id, type, generation + 1, run_no, now() - interval '3 minutes'
+         from judge_runs where event_id = $1 and run_no = 1 order by id limit 2`,
+      [n.eventId],
+    );
+    const stalled = () => n.q("select message from error_log where event_id = $1 and source = 'judge_auto'", [n.eventId]);
+    await n.q("select app.auto_judge_tick($1)", [n.eventId]);
+    await n.q("select app.auto_judge_tick($1)", [n.eventId]);
+    expect(await stalled()).toEqual([{ message: "Judge queue stalled: 2 runs waiting; is a worker running?" }]);
+    await n.q("update error_log set at = at - interval '121 seconds' where event_id = $1", [n.eventId]);
+    await n.q("select app.auto_judge_tick($1)", [n.eventId]);
+    expect(await stalled()).toHaveLength(2);
   });
 });

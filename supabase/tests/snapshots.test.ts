@@ -163,7 +163,9 @@ describe("backups and resets", () => {
     const orders = await as(db.pool, n.lead, async (cl) => (await cl.query("select public.snapshot_data($1, 'orders') as d", [open3.id])).rows[0].d);
     expect(orders.rows).toHaveLength(tables.find((t) => t.table === "orders")!.rows);
 
-    // ── Restores. Pause first; then each backup, newest to oldest and back, by two people.
+    // ── Restores. Never while a round is open (migration 081): round 3 clears first. Pause; then each backup, newest
+    // to oldest and back, by two people.
+    await n.clearRound(3);
     await n.org("pause_event", n.eventId);
     await restore(n, round1);
     // The judge's texts stored now are kept for the runs written back.
@@ -180,6 +182,13 @@ describe("backups and resets", () => {
     await n.org("pause_event", n.eventId);
     await restore(n, open3, n.fairness); // forward again, to a backup taken with a round open; the fairness officer approves
     expect((await n.one("select status from rounds where event_id = $1 and number = 3", [n.eventId])).status).toBe("OPEN");
+    // While it is open no restore is approved: it clears first.
+    const refused = await n.ok(n.lead, "request_restore", round2.id, "Back to round 2");
+    expect(await n.call(n.second, "approve_restore", refused.restore_id, true, null)).toMatchObject({ ok: false, code: "ROUND_OPEN" });
+    await n.ok(n.lead, "approve_restore", refused.restore_id, false, null);
+    await n.org("resume_event", n.eventId);
+    await n.clearRound(3);
+    await n.org("pause_event", n.eventId);
     await restore(n, round2);
     await restore(n, released);
     await restore(n, drawn);

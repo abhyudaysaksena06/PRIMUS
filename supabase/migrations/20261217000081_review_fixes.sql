@@ -194,6 +194,134 @@ $n$    begin
       perform app.tick_step_failed(p_event, 'primus', sqlerrm, sqlstate);
     end;$n$);
 
+-- F4 (desk). The desk rule (check-in required) is fixed once the squads are drawn: the draw and the hiring draw
+-- counted who was present under it.
+select app.patch_one_function('public.set_desk_check_in(uuid, boolean)'::regprocedure,
+$o$  perform app.require_desk();$o$,
+$n$  perform app.require_desk();
+  if exists (select 1 from public.events e where e.id = p_event and e.drawn_at is not null) then
+    return app.fail('DRAWN', 'The desk rule cannot change after the squad draw.');
+  end if;$n$);
+
+-- F5 (realtime budget). The gathered "refresh" goes out at most every 5 seconds: only once the oldest waiting kind
+-- is 5 seconds old.
+select app.patch_one_function('app.flush_broadcasts(uuid)'::regprocedure,
+$o$  with gone as (delete from app.broadcast_pending where event_id = p_event returning kind)$o$,
+$n$  if not exists (select 1 from app.broadcast_pending b where b.event_id = p_event and b.at <= now() - interval '5 seconds') then
+    return;
+  end if;
+  with gone as (delete from app.broadcast_pending where event_id = p_event returning kind)$n$);
+
+-- F6 (hiring close). The staff screens hear one 'offers' message after the pass, not one per assigned company (the
+-- two teams of each engagement still hear theirs).
+create or replace function app.broadcast_offer(p_event uuid, p_payload jsonb, p_firm uuid, p_product uuid, p_staff boolean)
+returns void
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_msg jsonb := coalesce(p_payload, '{}'::jsonb)
+                 || jsonb_build_object('firm', p_firm, 'product', p_product, 'kind', 'offers', 'event_id', p_event, 'at', now());
+begin
+  perform realtime.send(v_msg, 'offers', 'team:' || p_firm::text, true);
+  perform realtime.send(v_msg, 'offers', 'team:' || p_product::text, true);
+  if p_staff then
+    perform realtime.send(v_msg, 'offers', 'staff:' || p_event::text, true);
+  end if;
+end
+$$;
+revoke all on function app.broadcast_offer(uuid, jsonb, uuid, uuid, boolean) from public, anon, authenticated;
+select app.patch_one_function(f::regprocedure, $o$v_firm, v_company.product_team_id);$o$, $n$v_firm, v_company.product_team_id, false);$n$)
+  from unnest(array['app.assign_firms_by_draw(uuid, integer)', 'app.assign_default_firms(uuid, integer)']) f;
+select app.patch_one_function(f::regprocedure,
+$o$    perform app.broadcast(p_event, 'hire_locked', jsonb_build_object('k', p_k, 'assigned', true));$o$,
+$n$    perform app.broadcast(p_event, 'hire_locked', jsonb_build_object('k', p_k, 'assigned', true));
+    perform app.broadcast_staff(p_event, 'offers');$n$)
+  from unnest(array['app.assign_firms_by_draw(uuid, integer)', 'app.assign_default_firms(uuid, integer)']) f;
+
+-- F7 (roles, 074). Re-running a type's judging (it discards the runs and scores) is an organiser's decision again.
+select app.patch_one_function('public.rerun_judging(uuid, public.submission_type, text)'::regprocedure,
+$o$  perform app.require_judge_ops();$o$, $n$  perform app.require_organiser();$n$);
+
+-- F8 (paste flag, 072). A save that adds more than 120 words within 60 seconds of the previous save is noted, and so
+-- is a first save of more than 120 words.
+select app.patch_one_function('app.flag_fast_draft(public.teams, public.submission_drafts, public.submission_type, jsonb)'::regprocedure,
+$o$  if p_draft.id is null or p_draft.version < 1 or not app.feature_on(p_team.event_id, 'paste_flag') then$o$,
+$n$  if p_draft.id is null or not app.feature_on(p_team.event_id, 'paste_flag') then$n$);
+select app.patch_one_function('app.flag_fast_draft(public.teams, public.submission_drafts, public.submission_type, jsonb)'::regprocedure,
+$o$  if v_seconds >= 10 then$o$,
+$n$  if p_draft.version >= 1 and v_seconds >= 60 then$n$);
+select app.patch_one_function('app.flag_fast_draft(public.teams, public.submission_drafts, public.submission_type, jsonb)'::regprocedure,
+$o$round(greatest(v_seconds, 0), 1)$o$,
+$n$round(least(greatest(v_seconds, 0), 99999), 1)$n$);
+
+-- F9 (hold, 050). A crisis whose reveal time is already here (the organiser's "Start now" sets it to a second ago, and
+-- its own tick may have been skipped while another held the heartbeat's lock) is never held back again.
+select app.patch_one_function('app.hold_tick(uuid)'::regprocedure,
+$o$                                  where s.event_id = p_event and s.k = substr(d.code::text, 8)::int and s.revealed_at is not null)$o$,
+$n$                                  where s.event_id = p_event and s.k = substr(d.code::text, 8)::int and s.revealed_at is not null)
+                     and d.at > now()$n$);
+select app.patch_one_function('app.hold_tick(uuid)'::regprocedure,
+$o$    if v_at is not null and v_at < now() + interval '1 minute' then$o$,
+$n$    if v_at is not null and v_at > now() and v_at < now() + interval '1 minute' then$n$);
+
+-- F10 (hiring draw). The eligible firms are locked, in id order, before their clients are counted: an accept that
+-- commits meanwhile cannot give a firm a third client.
+select app.patch_one_function('app.assign_firms_by_draw(uuid, integer)'::regprocedure,
+$o$  select s.seed into v_seed from public.event_secrets s where s.event_id = p_event;$o$,
+$n$  select s.seed into v_seed from public.event_secrets s where s.event_id = p_event;
+  perform 1 from public.teams t
+   where t.event_id = p_event and t.track = 'CONSULTING'
+     and (not v_event.desk_check_in or t.checked_in_at is not null)
+     and exists (select 1 from public.squads s where s.consulting_team_id = t.id)
+   order by t.id
+     for no key update;$n$);
+
+-- F11 (restores, 075). No restore while a round is open (trading would go back under the teams' feet): approving
+-- refuses with ROUND_OPEN, and the runner checks again.
+select app.patch_one_function('public.approve_restore(bigint, boolean, text)'::regprocedure,
+$o$  if v_r.snapshot_id is null then
+    return app.fail('NO_BACKUP', 'That backup no longer exists.');$o$,
+$n$  if exists (select 1 from public.rounds r where r.event_id = v_r.event_id and r.status = 'OPEN') then
+    return app.fail('ROUND_OPEN', 'A trading round is open. Restore between rounds.');
+  end if;
+  if v_r.snapshot_id is null then
+    return app.fail('NO_BACKUP', 'That backup no longer exists.');$n$);
+select app.patch_one_function('app.restore_snapshot(bigint)'::regprocedure,
+$o$    raise exception 'The event was resumed before the restore ran. Pause it and ask again.';
+  end if;$o$,
+$n$    raise exception 'The event was resumed before the restore ran. Pause it and ask again.';
+  end if;
+  if exists (select 1 from public.rounds r where r.event_id = v_s.event_id and r.status = 'OPEN') then
+    raise exception 'A trading round is open. Restore between rounds.';
+  end if;$n$);
+
+-- F12 (leak, 041). Which crisis each company drew: the projector, organisers and the fairness officer at any time;
+-- the registration, judge and crisis desks only once that sub-round's hiring has closed (as the teams).
+drop policy if exists subround_crises_display on public.subround_crises;
+create policy subround_crises_display on public.subround_crises for select to authenticated
+  using ((select app.has_role('DISPLAY', 'ORGANISER', 'FAIRNESS'))
+         or ((select app.sees_all_events()) and app.hiring_closed(event_id, k::int)));
+
+-- F13 (judging, 073). With judging on its own, a run queued for over 2 minutes means no worker is taking runs: the
+-- error log says so, at most every 2 minutes.
+select app.patch_one_function('app.auto_judge_tick(uuid)'::regprocedure,
+$o$  if not app.feature_on(p_event, 'judge_auto') then
+    return v_actions;
+  end if;$o$,
+$n$  if not app.feature_on(p_event, 'judge_auto') then
+    return v_actions;
+  end if;
+  if exists (select 1 from public.judge_runs j
+              where j.event_id = p_event and j.status = 'QUEUED' and j.created_at < now() - interval '2 minutes')
+     and not exists (select 1 from public.error_log e
+                      where e.event_id = p_event and e.source = 'judge_auto' and e.message like 'Judge queue stalled%'
+                        and e.at > now() - interval '2 minutes') then
+    insert into public.error_log (event_id, source, message)
+    values (p_event, 'judge_auto', format('Judge queue stalled: %s runs waiting; is a worker running?',
+            (select count(*) from public.judge_runs j where j.event_id = p_event and j.status = 'QUEUED')));
+  end if;$n$);
+
 create or replace function public.schema_version()
 returns text
 language sql immutable
