@@ -46,8 +46,10 @@ prompts and decks; the case-book PDF in the repo is byte for byte the one the or
 
 Tests on the final build: typecheck, 290 engine, 822 web and 316 database tests pass (`pnpm test`).
 
-Live database (19 Nov): schema 20261204000068 (the close fixed). Migration 069 (cooling-off, raise caps) is built and
-tested, and waits for the organisers' approval before it is applied.
+Live database (20 Nov): schema 20261205000069, with the close fixed (068) and the cooling-off and raise caps (069).
+A function-by-function check against this repo found three differences, none of which changes what the game does:
+`tick` runs the auto-submit step twice in a row and `judge_input` has its PITCH branch twice (migrations 054 and 053
+were run twice on that database before the catch-ups), and `fund_raise` lacks one comment line.
 
 ### The /demo walkthrough and the real game
 
@@ -61,9 +63,10 @@ game: the demo's base equity rate from the Round 1 score and its 1-to-1 lock (pr
 
 ### Supabase (project `primus`, Mumbai) → SQL Editor → New query
 
-1. **Catch-up SQL.** Generate it with `pnpm catch-up-sql --from 20261204000068` and run the whole file once. It applies
-   only the migrations the database is missing (069 for the live database at 068), in one transaction, and its last
-   line shows the schema version: it must be `20261205000069`. Running it again changes nothing.
+1. **Catch-up SQL: done.** The live database is at `20261205000069` (applied and checked on 20 Nov): nothing to run.
+   For any other database, generate it with `pnpm catch-up-sql --from <its schema version>` and run the whole file
+   once: it applies only the migrations that database is missing, in one transaction, and its last line must show
+   `20261205000069`. Running it again changes nothing.
 2. **The event SQL** you already generated for `primus-2026` (150 teams, start 20:00 IST 20 Nov). Use the same file
    whose login cards you printed: generating a new one makes new passwords. To reprint the same cards, run
    `pnpm event-sql` again with the `CARD_SECRET` at the bottom of your logins file. If a 9-team demo event's codes

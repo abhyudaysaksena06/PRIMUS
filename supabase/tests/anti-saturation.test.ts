@@ -59,10 +59,12 @@ describe("cooling-off after a ±10% round", () => {
     expect(msg).toMatchObject({ ok: false, code: "COOLING_OFF" });
     expect(String(msg.message)).toContain("cooling off for one round");
     await n.ok(n.team(d!.f_code), "place_order", b!.company_id, "BUY", 100);
-    // The trade desk reads which companies are cooling off.
+    // The trade desk reads which companies are cooling off: the same companies the order check refuses.
     const cooling = await as(db.pool, n.team(c!.f_code), async (cl) =>
       (await cl.query("select public.cooling_off_companies($1) as ids", [n.eventId])).rows[0].ids as string[]);
     expect(cooling).toEqual([a!.company_id]);
+    const refused = await n.q("select id from companies where event_id = $1 and app.cooling_off(id) order by id", [n.eventId]);
+    expect(refused.map((r) => r.id)).toEqual(cooling);
     const r2 = await n.clearRound(2);
     expect(r2.companies[a!.company_id]!.net).toBe(0);
 

@@ -4,7 +4,7 @@ Every rule that keeps the market, the money, the judging and the night fair, in 
 database enforces it inside the function that makes the move, so a refused move changes nothing and tells the team
 why; no screen, script or staff member can go around it. **Staff** means a rule people follow, with a control on the
 control panel. **Proposed** means recommended and not built yet (a decision is needed). Migrations 068 (the close) and 069 (cooling-off,
-raise caps) are the latest.
+raise caps) are the latest; both are on the live database (20 Nov).
 
 Numbers live in `packages/engine/src/rules.ts` and the SQL functions; change one only with its test, before the
 night, never during it.
@@ -24,7 +24,7 @@ night, never during it.
 | P9 | The wait is bounded | Release by minute 85; Close the round now at minute 90 | Staff |
 | P10 | No hand intervention on a running price | Staff act on the process (clearing, releases, flags), never on a price | Staff |
 | P11 | The close counts the end of the night | Closing market price = average of the last round's opening and clearing prices (PRIMUS: round 31, after the solutions); closing price = (that + AI price) ÷ 2 | Built (068, live) |
-| P12 | Cooling-off | A company whose last round moved the full ±10% takes no orders in the next round (PRIMUS); the trade desk lists them | Built (069) |
+| P12 | Cooling-off | A company whose last round moved the full ±10% takes no orders in the next round (PRIMUS); the trade desk lists them | Built (069, live) |
 | P13 | AI-anchored close | The AI price moves only with judged scores, so a bubble counts at most half in final values | Built |
 
 ## 2. Trading and positions
@@ -54,8 +54,8 @@ night, never during it.
 | E6 | No squad self-dealing | A fund cannot fund its own squad's raise | Built |
 | E7 | Fund must have the cash | Available cash after reserves and collateral | Built |
 | E8 | Raises only in Round 2 | Posting and funding refused outside phase PRESSURE | Built |
-| E9 | Raise concentration | A fund holds at most 10,000 shares (10%) of a company through raises | Built (069) |
-| E10 | One raise per fund per crisis | "No one can lock more than one team" applied to funds | Built (069) |
+| E9 | Raise concentration | A fund holds at most 10,000 shares (10%) of a company through raises | Built (069, live) |
+| E10 | One raise per fund per crisis | "No one can lock more than one team" applied to funds | Built (069, live) |
 
 ## 4. Hiring and fees
 
