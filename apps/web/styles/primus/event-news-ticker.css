@@ -129,10 +129,5 @@
   .guide-desk-footer .guide-mobile-nav { position: static; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .event-news-window { overflow-x: auto; }
-  .event-news-belt { animation: none; }
-  .event-news-set:nth-child(2),
-  .event-news-toggle { display: none; }
-  .event-news-ticker { grid-template-columns: auto minmax(0, 1fr); }
-}
+/* The belt keeps scrolling in an endless loop even when the computer asks for reduced motion (Windows with
+   "Animation effects" off): the organisers want it moving on every laptop. The pause button still stops it. */

@@ -129,7 +129,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   const roundLabel = stageNow.round ? `Round ${stageNow.round} of 3 · ${stageNow.title}` : stageNow.title;
   const navRound = status.phase === "SATURATION" || status.phase === "CLOSE" ? 3 : status.phase === "PRESSURE" ? 2 : stageNow.round;
   const deskLabel = team.track === "FINANCE" ? "FINANCE DESK" : team.track === "CONSULTING" ? "CONSULTING DESK" : "PRODUCT DESK";
-  const rainTone = team.track === "CONSULTING" ? "blue" : team.track === "PRODUCT" ? "amber" : "green";
+  const rainTone = team.track === "CONSULTING" ? "blue" : team.track === "PRODUCT" ? "amber" : "gold";
   // The bottom ticker: the crisis notices first, then the newest bulletins.
   const stories: TickerStory[] = [
     ...(popups?.reveal
@@ -156,7 +156,7 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
           <div className="guide-atmosphere" />
           <CrisisSplash card={splash} own={team.track === "PRODUCT"} popups={popups} />
           {/* As the demo: the rain behind the Product and Consulting desks only. */}
-          {finance ? null : <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />}
+          <MatrixRain opacity={0.28} size={15} tone={rainTone} className="demo-matrix-rain-fixed" />
           <TeamNav team={{ code: team.code, name: team.name, track: team.track }} round={navRound} />
           <div className="guide-main guide-participant-main">
             <header className="guide-top">
