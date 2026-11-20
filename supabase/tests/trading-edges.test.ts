@@ -120,7 +120,7 @@ describe("edits and cancels racing the clearing", () => {
 describe("IPO oversubscription", () => {
   test("an uneven oversubscribed book: pro rata to 10 shares, remainders stay with the exchange, ledger balanced", async () => {
     const asks = [4_000, 4_000, 4_000, 4_000, 4_000, 4_000, 3_999, 3_333, 3_001, 2_999, 2_501];
-    const { n, squads: s } = await toPressure(db.pool, 12, "edges-ipo", { bids: (i) => (i === 0 ? {} : { 0: asks[i - 1]! }) });
+    const { n, squads: s } = await toPressure(db.pool, 12, "edges-ipo", { bids: (i): Record<number, number> => (i === 0 ? {} : { 0: asks[i - 1]! }) });
     const c = s[0]!.company_id;
     const bids = await n.q("select team_id, qty_requested, qty_allocated from ipo_bids where company_id = $1 order by team_id", [c]);
     const expected = allocateIpo(bids.map((b) => ({ qty: b.qty_requested })));
