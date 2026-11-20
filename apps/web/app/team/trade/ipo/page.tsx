@@ -6,7 +6,8 @@ import { ipoBook, ipoResults, ipoView, ipoWindow, type IpoResultLine } from "@/l
 import { clock, count, money } from "@/lib/format";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
-import { Badge, Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Table, Td } from "@/components/ui/ui";
+import { DeskKpi, DeskPanel } from "../desk-ui";
 import { Countdown } from "@/components/ui/countdown";
 import { tradeGate } from "../gate";
 import { IpoBids } from "../ipo-bids";
@@ -35,13 +36,13 @@ export default async function IpoPage() {
 
   if (win === "NOT_YET") {
     return (
-      <Panel title="IPO">
+      <DeskPanel title="IPO">
         <p className="text-sm text-paper" data-testid="ipo-state">
           IPO bids open with the IPO{data.phaseStarts.IPO ? ` at ${clock(data.phaseStarts.IPO)}` : ""}
           {deadline ? ` and close at ${clock(deadline)}` : ""}, once the pitch scores have set every company&apos;s IPO price ($10.00 × (1 + pitch tier)).
         </p>
         <p className="mt-2 text-sm text-paper">{RULES_TEXT}</p>
-      </Panel>
+      </DeskPanel>
     );
   }
 
@@ -49,7 +50,7 @@ export default async function IpoPage() {
     const books = new Map(data.ipoBooks.map((b) => [b.company_id, b.details]));
     return (
       <div className="space-y-4">
-        <Panel title="IPO allocation">
+        <DeskPanel title="IPO allocation">
           <p className="text-sm text-paper" data-testid="ipo-state">
             The IPO was allocated at {clock(data.ipoAllocatedAt)}. Unallocated shares stay with the exchange.
           </p>
@@ -57,10 +58,10 @@ export default async function IpoPage() {
             <p className="mt-3 text-sm text-muted">You placed no IPO bids.</p>
           ) : (
             <>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <Stat label="Shares requested" value={count(results.requested)} />
-                <Stat label="Shares received" value={<span data-testid="ipo-received">{count(results.allocated)}</span>} />
-                <Stat label="Cash paid" value={<span data-testid="ipo-paid">{money(results.paid)}</span>} />
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <DeskKpi label="Shares requested" value={count(results.requested)} />
+                <DeskKpi label="Shares received" value={<span data-testid="ipo-received">{count(results.allocated)}</span>} />
+                <DeskKpi label="Cash paid" value={<span data-testid="ipo-paid">{money(results.paid)}</span>} />
               </div>
               <Table head={["Company", "Received", "Paid", "Requested", "IPO price", "Book"]} label="IPO allocation" className="mt-3">
                 {results.lines.map((l) => (
@@ -69,7 +70,7 @@ export default async function IpoPage() {
               </Table>
             </>
           )}
-        </Panel>
+        </DeskPanel>
       </div>
     );
   }
@@ -84,12 +85,12 @@ export default async function IpoPage() {
       <RefreshAt at={win === "OPEN" ? deadline : null} />
       <AutoRefresh everyMs={10_000} active={win === "OPEN"} />
       {win === "OPEN" ? (
-        <p className="text-sm text-paper" data-testid="ipo-state">
+        <p className="rounded-md border border-[#2d2a1d] bg-[#11110d] px-3 py-2 font-mono text-xs text-[#BACBB9]" data-testid="ipo-state">
           IPO bids are open until {clock(deadline)}
           {deadline ? (
             <>
               {" "}
-              (in <Countdown to={deadline} passed="now" className="font-semibold" />)
+              (in <Countdown to={deadline} passed="now" className="font-semibold text-[color:var(--desk-accent)]" />)
             </>
           ) : null}
           . Shares are allocated when round 1 starts.
@@ -106,13 +107,13 @@ export default async function IpoPage() {
         </Notice>
       )}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <Stat label="Cash" value={money(team.cash)} />
-        <Stat label="Your bids at IPO prices" value={<span data-testid="ipo-committed">{money(book.committed)}</span>} />
-        <Stat label="Cash left at IPO prices" value={<span data-testid="ipo-remaining">{money(book.remaining)}</span>} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <DeskKpi label="Cash" value={money(team.cash)} />
+        <DeskKpi label="Your bids at IPO prices" value={<span data-testid="ipo-committed">{money(book.committed)}</span>} />
+        <DeskKpi label="Cash left at IPO prices" value={<span data-testid="ipo-remaining">{money(book.remaining)}</span>} />
       </div>
 
-      <Panel title="Companies">
+      <DeskPanel title="Companies">
         {items.length === 0 ? (
           <p className="text-sm text-muted">No company has an IPO price yet.</p>
         ) : win === "OPEN" ? (
@@ -144,7 +145,7 @@ export default async function IpoPage() {
           <p className="mt-3 text-xs text-muted">Your squad&apos;s company, {own.ticker}, is not offered to you: a fund never bids for or trades its own squad&apos;s company.</p>
         ) : null}
         <p className="mt-2 text-xs text-muted">{RULES_TEXT}</p>
-      </Panel>
+      </DeskPanel>
     </div>
   );
 }

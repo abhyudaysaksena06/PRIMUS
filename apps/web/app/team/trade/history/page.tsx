@@ -4,7 +4,8 @@ import { loadTeamContext } from "@/lib/team/context";
 import { loadTradeData } from "@/lib/team/trade-data";
 import { STATUS_LABELS, orderHistory, type OrderLine } from "@/lib/team/trade";
 import { clock, count, money, signedMoney } from "@/lib/format";
-import { Badge, Panel, Table, Td } from "@/components/ui/ui";
+import { Badge, Table, Td } from "@/components/ui/ui";
+import { DeskPanel } from "../desk-ui";
 import { tradeGate } from "../gate";
 
 export const metadata: Metadata = { title: "Order history" };
@@ -21,7 +22,7 @@ export default async function HistoryPage() {
 
   if (rounds.length === 0) {
     return (
-      <Panel title="Order history">
+      <DeskPanel title="Order history">
         <p className="text-sm text-muted">
           No orders yet. Orders are placed under{" "}
           <Link href="/team/trade" className="underline">
@@ -29,20 +30,22 @@ export default async function HistoryPage() {
           </Link>{" "}
           while a round is open.
         </p>
-      </Panel>
+      </DeskPanel>
     );
   }
 
   return (
     <div className="space-y-4">
       {rounds.map((r) => (
-        <Panel
+        <DeskPanel
           key={r.number}
           title={`Round ${r.number}`}
+          sub={`${r.lines.length} ${r.lines.length === 1 ? "order" : "orders"}`}
+          bodyClassName="p-0"
           actions={
             r.status === "CLEARED" ? (
-              <span className="text-sm text-paper">
-                Cash from fills <span className="font-mono font-semibold tabular-nums">{signedMoney(r.cash)}</span>
+              <span className="font-mono text-[#BACBB9]">
+                Cash from fills <span className={`font-semibold tabular-nums ${r.cash < 0 ? "text-[#FF5364]" : "text-[#00D68F]"}`}>{signedMoney(r.cash)}</span>
               </span>
             ) : r.status === "OPEN" ? (
               <Badge tone="blue">Open: pending orders are under Orders</Badge>
@@ -56,7 +59,7 @@ export default async function HistoryPage() {
               <HistoryRow key={l.id} l={l} clearing={r.status !== "CLEARED" && r.status !== "OPEN"} />
             ))}
           </Table>
-        </Panel>
+        </DeskPanel>
       ))}
     </div>
   );
@@ -66,8 +69,8 @@ function HistoryRow({ l, clearing }: { l: OrderLine; clearing: boolean }) {
   const tone = l.status === "FILLED" ? "green" : l.status === "CANCELLED" ? "slate" : "amber";
   return (
     <tr data-testid="history-order">
-      <Td mono className="font-semibold">
-        {l.type} {l.ticker}
+      <Td mono className={`font-semibold ${l.type === "BUY" || l.type === "COVER" ? "text-[#00D68F]" : "text-[#FF5364]"}`}>
+        {l.type} <span className="text-[#F2F5F3]">{l.ticker}</span>
       </Td>
       <Td mono className="text-right">
         {count(l.qty)}

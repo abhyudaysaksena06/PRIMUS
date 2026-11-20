@@ -6,7 +6,8 @@ import { fundContext, loadTradeData } from "@/lib/team/trade-data";
 import { companyPosition, fundSummary } from "@/lib/team/trade";
 import { FUND_LOT_HINTS, FUND_LOT_LABELS, collateralView, meterPct, portfolioTotals, positionLines } from "@/lib/team/portfolio";
 import { bp, clock, count, money, signedMoney } from "@/lib/format";
-import { Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Notice, Table, Td } from "@/components/ui/ui";
+import { DeskFact, DeskKpi, DeskPanel } from "../desk-ui";
 import { LineChart } from "@/components/ui/line-chart";
 import { loadPortfolioSeries } from "@/lib/team/portfolio-history-data";
 import { tradeGate } from "../gate";
@@ -42,35 +43,50 @@ export default async function PositionsPage() {
         </Notice>
       ) : null}
 
-      <Panel title="Portfolio">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <Stat label="Portfolio value" value={<span data-testid="portfolio-value">{money(totals.value)}</span>} hint={`Cash + long − short, at ${priceWord} prices`} />
-          <Stat
-            label={`Return on ${money(totals.start)}`}
-            value={<span data-testid="portfolio-return">{bp(totals.returnBp)}</span>}
-            hint={<span data-testid="portfolio-gain">{signedMoney(totals.gain)}</span>}
+      <section aria-labelledby="portfolio-title" className="space-y-4">
+        <h2 id="portfolio-title" className="sr-only">
+          Portfolio
+        </h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <DeskKpi
+            label="Portfolio value"
+            tag={closed ? "CLOSED" : <span className="text-[#00D68F]">LIVE</span>}
+            value={<span data-testid="portfolio-value">{money(totals.value)}</span>}
+            foot={`Cash + long − short, at ${priceWord} prices`}
           />
-          <Stat label="Cash" value={money(totals.cash)} />
-          <Stat label="Long shares" value={money(totals.longValue)} hint="Exchange and squad lots" />
-          <Stat label="Short shares" value={money(totals.shortValue)} hint={closed ? "Covered at the close" : "What covering would cost"} />
-          <Stat label={closed ? "Profit and loss at closing prices" : "Unrealised profit and loss"} value={<span data-testid="portfolio-pnl">{signedMoney(totals.unrealised)}</span>} />
+          <DeskKpi
+            label={`Return on ${money(totals.start)}`}
+            tag="NET"
+            tone={totals.gain > 0 ? "up" : totals.gain < 0 ? "down" : "plain"}
+            value={<span data-testid="portfolio-return">{bp(totals.returnBp)}</span>}
+            foot={<span data-testid="portfolio-gain">{signedMoney(totals.gain)}</span>}
+          />
+          <DeskKpi
+            label={closed ? "Profit and loss at closing prices" : "Unrealised profit and loss"}
+            tone={totals.unrealised > 0 ? "up" : totals.unrealised < 0 ? "down" : "plain"}
+            value={<span data-testid="portfolio-pnl">{signedMoney(totals.unrealised)}</span>}
+          />
+          <DeskKpi label="Cash" value={money(totals.cash)} />
+          <DeskKpi label="Long shares" value={money(totals.longValue)} foot="Exchange and squad lots" />
+          <DeskKpi label="Short shares" value={money(totals.shortValue)} foot={closed ? "Covered at the close" : "What covering would cost"} />
         </div>
         {totals.unpriced > 0 ? (
-          <p className="mt-2 text-xs text-muted">
+          <p className="text-xs text-[#87948D]">
             {count(totals.unpriced)} {totals.unpriced === 1 ? "line has" : "lines have"} no price until the IPO prices are released and {totals.unpriced === 1 ? "is" : "are"} not counted.
           </p>
         ) : null}
         {series.length >= 2 ? (
-          <div className="mt-4">
-            <h3 className="mb-1 text-sm font-semibold text-paper">Your fund&apos;s value after each step</h3>
-            <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
-          </div>
+          <DeskPanel title="Your fund's value after each step" sub="Equity curve · cash + long − short">
+            <div className="rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
+              <LineChart points={series} label="Your fund's value by step" mainName="Portfolio value (cash + long − short)" testId="portfolio-chart" />
+            </div>
+          </DeskPanel>
         ) : null}
-      </Panel>
+      </section>
 
-      <Panel title="Positions">
+      <DeskPanel title="Positions" sub={`${lines.length} ${lines.length === 1 ? "line" : "lines"} · valued at ${priceWord} prices`}>
         {lines.length === 0 ? (
-          <p className="text-sm text-muted">No shares yet.</p>
+          <p className="py-6 text-center font-mono text-xs text-[#87948D]">No shares yet.</p>
         ) : (
           <Table head={["Company", "Shares", "Value", "Profit and loss", `Price (${priceWord})`, "Avg cost"]} label="Positions">
             {lines.map((l) => (
@@ -113,9 +129,9 @@ export default async function PositionsPage() {
             <dd className="inline">long lots: value − what they cost; shorts: what the sale brought in − what covering costs now.</dd>
           </div>
         </dl>
-      </Panel>
+      </DeskPanel>
 
-      <Panel title="Collateral and limits">
+      <DeskPanel title="Collateral and limits" sub="Margin, short exposure and per-company limits">
         <div className="space-y-4 text-sm">
           {closed ? (
             <Notice>
@@ -133,7 +149,7 @@ export default async function PositionsPage() {
               <span data-testid="collateral-status">Your cash covers your collateral: new buys and shorts are allowed.</span>
             </Notice>
           )}
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Fact label="Collateral locked" value={money(coll.locked)} testId="collateral-locked" />
             <Fact label="Required at current prices" value={money(coll.required)} testId="collateral-required" />
             <Fact label="Reserved by open orders" value={money(summary.reserved)} />
@@ -150,14 +166,14 @@ export default async function PositionsPage() {
               </span>
             </div>
             <div
-              className="mt-1 h-2 overflow-hidden rounded-full bg-raised"
+              className="mt-1 h-1.5 overflow-hidden rounded-sm bg-[#070909]"
               role="meter"
               aria-label="Short exposure of the $250,000 limit"
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}
             >
-              <div className="h-full bg-phosphor-deep" style={{ width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%` }} />
+              <div className="h-full bg-[var(--desk-accent)]" style={{ width: `${meterPct(summary.shortExposureWithPending, RULES.SHORT_EXPOSURE_LIMIT)}%` }} />
             </div>
             <p className="mt-1 text-xs text-muted">
               Open shorts {money(summary.shortExposure)}
@@ -186,18 +202,11 @@ export default async function PositionsPage() {
             </Table>
           ) : null}
         </div>
-      </Panel>
+      </DeskPanel>
     </div>
   );
 }
 
 function Fact({ label, value, testId }: { label: string; value: string; testId?: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="font-mono font-semibold tabular-nums" data-testid={testId}>
-        {value}
-      </dd>
-    </div>
-  );
+  return <DeskFact label={label} value={value} testId={testId} />;
 }
