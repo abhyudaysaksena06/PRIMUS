@@ -8,9 +8,10 @@ import {
   RUBRICS,
   SUBMISSION_TYPES,
   medianScore,
-  needsExtraRuns,
+  JUDGE_RUNS,
+  extraRunsDue,
+  judgeRunsComplete,
   phaseReached,
-  runsComplete,
   type DeadlineCode,
   type PhaseCode,
   type SubmissionType,
@@ -202,8 +203,8 @@ function companyStatus(score: JudgeScoreRow | null, submission: JudgeSubmissionR
   const done = runs.filter((r) => r.status === "DONE").length;
   if (runs.some((r) => r.status === "QUEUED" || r.status === "RUNNING")) return { label: `Judging: ${done} of ${runs.length} runs done`, tone: "blue" };
   if (runs.some((r) => r.status === "FAILED")) return { label: "Run failed", tone: "red" };
-  if (needsExtraRuns(totals)) return { label: "Spread over 10: needs 2 more runs", tone: "amber" };
-  if (runsComplete(totals)) return { label: "Judged, not sealed", tone: "slate" };
+  if (extraRunsDue(totals)) return { label: "Spread over 10: needs 2 more runs", tone: "amber" };
+  if (judgeRunsComplete(totals)) return { label: "Judged, not sealed", tone: "slate" };
   return { label: "Runs incomplete", tone: "amber" };
 }
 
@@ -260,7 +261,7 @@ export function companyViews(type: SubmissionType, rows: JudgeRows): CompanyJudg
       const median =
         score && score.median !== null
           ? { value: score.median, sealed: true }
-          : !score && runsComplete(totals)
+          : !score && judgeRunsComplete(totals)
             ? { value: medianScore(totals), sealed: false }
             : null;
       // Release refuses while a sealed score's submission is no longer the current one.
@@ -344,7 +345,7 @@ export function refreshInterval(summaries: readonly TypeSummary[], runs: readonl
 
 // ───────────────────────────── Progress ─────────────────────────────
 
-/** The brief: all submissions × 3 runs within 10 minutes. */
+/** The brief: all submissions judged within 10 minutes (JUDGE_RUNS runs each). */
 export const TARGET_MS = 10 * 60_000;
 /** Throughput is measured over the last 2 minutes of work. */
 export const PACE_WINDOW_MS = 2 * 60_000;
@@ -353,9 +354,9 @@ const MIN_PACE_WINDOW_MS = 15_000;
 
 export type TargetState = "MET" | "MISSED" | "ON_PACE" | "BEHIND" | "NO_PACE";
 
-/** The brief's target, on the first pass: runs 1–3 (generation 1) of every current submission. */
+/** The brief's target, on the first pass: runs 1..JUDGE_RUNS (generation 1) of every current submission. */
 export interface TargetCheck {
-  /** 3 per current submission. */
+  /** JUDGE_RUNS per current submission. */
   runs: number;
   done: number;
   startedAt: string;
@@ -376,7 +377,7 @@ export interface JudgeProgress {
   sealed: number;
   /** Current submissions with no runs yet (Start judging queues them). */
   notStarted: number;
-  /** Runs needed: 3 per current submission, plus the extra runs 4–5 that exist (latest generation). */
+  /** Runs needed: JUDGE_RUNS per current submission, plus any extra runs beyond them that exist (latest generation). */
   needed: number;
   done: number;
   /** The latest generation's runs of the current submissions, by status. */
@@ -416,7 +417,7 @@ function targetCheck(withSubmission: number, first: readonly JudgeRunRow[], perM
   if (!startedAt) return null;
   const start = Date.parse(startedAt);
   const deadline = new Date(start + TARGET_MS).toISOString();
-  const runs = 3 * withSubmission;
+  const runs = JUDGE_RUNS * withSubmission;
   const doneRuns = first.filter((r) => r.status === "DONE");
   const base = { runs, done: doneRuns.length, startedAt, deadline, tookMs: null, projectedAt: null };
   if (doneRuns.length >= runs) {
@@ -441,7 +442,7 @@ export function judgeProgress(type: SubmissionType, views: readonly CompanyJudge
   const ofType = runs.filter((r) => r.type === type);
   const mine = ofType.filter((r) => current.has(r.submission_id));
 
-  const remaining = byStatus.QUEUED + byStatus.RUNNING + 3 * notStarted;
+  const remaining = byStatus.QUEUED + byStatus.RUNNING + JUDGE_RUNS * notStarted;
   const startedAt = minIso(mine.map((r) => r.created_at));
   const lastFinished = maxIso(mine.flatMap((r) => (r.finished_at ? [r.finished_at] : [])));
   const finishedAt = startedAt && remaining === 0 ? lastFinished : null;
@@ -456,7 +457,7 @@ export function judgeProgress(type: SubmissionType, views: readonly CompanyJudge
     submissions: withSubmission.length,
     sealed: withSubmission.filter((v) => v.score && !v.score.missing && !v.stale).length,
     notStarted,
-    needed: 3 * withSubmission.length + counted.filter((r) => r.run_no > 3).length,
+    needed: JUDGE_RUNS * withSubmission.length + counted.filter((r) => r.run_no > JUDGE_RUNS).length,
     done: byStatus.DONE,
     runs: byStatus,
     remaining,
@@ -465,7 +466,7 @@ export function judgeProgress(type: SubmissionType, views: readonly CompanyJudge
     elapsedMs,
     perMinute,
     etaMs,
-    target: targetCheck(withSubmission.length, mine.filter((r) => r.generation === 1 && r.run_no <= 3), perMinute, now),
+    target: targetCheck(withSubmission.length, mine.filter((r) => r.generation === 1 && r.run_no <= JUDGE_RUNS), perMinute, now),
   };
 }
 
@@ -675,7 +676,7 @@ export interface AppealView {
   /** The new score once its runs are complete. */
   to: AppealScore | null;
   generation: number;
-  /** Its generation's runs: done, failed, in flight, and needed (3, or 5 once the extra runs exist). */
+  /** Its generation's runs: done, failed, in flight, and needed (JUDGE_RUNS, or more if extra runs exist). */
   runs: { done: number; failed: number; inFlight: number; total: number };
   decidedAt: string | null;
   note: string | null;
@@ -717,7 +718,7 @@ export function appealViews(rows: Pick<JudgeRows, "appeals" | "runs" | "companie
           done: runs.filter((r) => r.status === "DONE").length,
           failed: runs.filter((r) => r.status === "FAILED").length,
           inFlight: runs.filter(inFlight).length,
-          total: Math.max(3, runs.length),
+          total: Math.max(JUDGE_RUNS, runs.length),
         },
         decidedAt: a.decided_at,
         note: a.note,
@@ -837,8 +838,8 @@ export function modelMessage(slot: JudgeSlot, model: string | null): string {
 
 export function rerunMessage(label: string, type: SubmissionType, afterRelease: boolean, generation: number): string {
   return afterRelease
-    ? `Appeal opened: 3 new runs of ${label}'s ${TYPE_NAMES[type]} are queued (generation ${generation}). The released score stays until you apply or dismiss the new one.`
-    : `Re-running ${label}'s ${TYPE_NAMES[type]}: 3 new runs are queued (generation ${generation}). The score is sealed again when they are done.`;
+    ? `Appeal opened: ${JUDGE_RUNS === 1 ? "1 new run" : `${JUDGE_RUNS} new runs`} of ${label}'s ${TYPE_NAMES[type]} ${JUDGE_RUNS === 1 ? "is" : "are"} queued (generation ${generation}). The released score stays until you apply or dismiss the new one.`
+    : `Re-running ${label}'s ${TYPE_NAMES[type]}: ${JUDGE_RUNS === 1 ? "1 new run is" : `${JUDGE_RUNS} new runs are`} queued (generation ${generation}). The score is sealed again when it is done.`;
 }
 
 export function applyMessage(label: string, type: SubmissionType, e: AppealEffects | null): string {

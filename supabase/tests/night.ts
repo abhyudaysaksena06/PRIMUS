@@ -83,7 +83,11 @@ export class Night {
   async judge(companyId: string, type: SubmissionType, totals: number[], rationale = "One. Two. Three.") {
     const sub = await this.one("select id, event_id from submissions where company_id = $1 and type = $2 and superseded_at is null", [companyId, type]);
     const gen = (await this.one("select coalesce(max(generation), 0) + 1 as g from judge_runs where submission_id = $1", [sub.id])).g;
-    for (const [i, total] of totals.entries()) {
+    // One judge run per document (migration 094): a list of totals stands for the score it used to give (its median),
+    // stored as the one run; its rationale names the run of the list it came from.
+    const median = [...totals].sort((x, y) => x - y)[(totals.length - 1) >> 1]!;
+    const from = totals.indexOf(median);
+    for (const [i, total] of [median].entries()) {
       let left = total;
       const breakdown = Object.fromEntries(RUBRICS[type].map((line) => {
         const v = Math.min(line.max, left);
@@ -93,7 +97,7 @@ export class Night {
       await this.q(
         `insert into judge_runs (event_id, submission_id, company_id, type, generation, run_no, model, status, breakdown, total, rationale, finished_at)
          values ($1, $2, $3, $4, $5, $6, 'test-model', 'DONE', $7, $8, $9, now())`,
-        [sub.event_id, sub.id, companyId, type, gen, i + 1, breakdown, total, `${rationale} (run ${i + 1})`],
+        [sub.event_id, sub.id, companyId, type, gen, i + 1, breakdown, total, `${rationale} (run ${from + 1})`],
       );
     }
     return this.call(service, "seal_score", companyId, type);

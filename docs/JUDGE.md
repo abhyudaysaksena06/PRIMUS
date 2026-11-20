@@ -15,10 +15,11 @@ worker (`apps/web/lib/judge/`, `apps/web/app/api/judge/work`, `scripts/judge-wor
      again and again (each call works for about 50 s with up to `JUDGE_CONCURRENCY` calls in parallel);
      several open consoles share the work;
    - `pnpm judge-worker --event <slug>` on an organiser's laptop (same loop, no time limit).
-3. **Extra runs.** When runs 1–3 of a generation are done and spread more than 10 points, `finish_judge_run` queues
-   runs 4 and 5.
-4. **Seal.** When a generation is complete (3 runs within 10 points, or 5 runs), `finish_judge_run` seals the score
-   (`app.score_from_runs`, the same rule as `public.seal_score`): median, plan cap, injection penalty, tier.
+3. **One run (migration 094).** Each submission gets one run (`app.judge_runs()` = 1; organisers, 20 Nov: cost). No
+   runs 4 and 5 for the AI. A human panel generation (model `human-judges`) still gets judges 2–3 after its run 1,
+   and 4–5 when judges 1–3 spread more than 10 points.
+4. **Seal.** When a generation is complete (its one run; a panel: 3 runs within 10 points, or 5), `finish_judge_run` seals the score
+   (`app.score_from_runs`, the same rule as `public.seal_score`): the run's total (a panel: median), plan cap, injection penalty, tier.
 5. **Release.** Unchanged (Phase 2): an organiser releases a type; the tiers apply atomically and every screen hears it.
 
 ## The request (one judging call)

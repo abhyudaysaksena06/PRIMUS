@@ -304,7 +304,8 @@ function fill(type: SubmissionType, total: number): Record<string, number> {
 }
 
 /** Stores judge runs for the company's current submission, as the judge worker does. Returns their generation. */
-async function addRuns(n: Night, companyId: string, type: SubmissionType, runs: Run[], generation?: number): Promise<number> {
+/** Stores runs as the judge worker would. model 'human-judges' marks the human panel (migration 094: 3 or 5 runs, median). */
+async function addRuns(n: Night, companyId: string, type: SubmissionType, runs: Run[], generation?: number, model = "test-model"): Promise<number> {
   const sub = await n.one("select id, event_id from submissions where company_id = $1 and type = $2 and superseded_at is null", [companyId, type]);
   const gen = generation ?? (await n.one("select coalesce(max(generation), 0) + 1 as g from judge_runs where submission_id = $1", [sub.id])).g;
   for (const [i, r] of runs.entries()) {
@@ -312,9 +313,9 @@ async function addRuns(n: Night, companyId: string, type: SubmissionType, runs: 
     const breakdown = r.breakdown === undefined ? (r.total === null ? null : fill(type, r.total)) : r.breakdown;
     await n.q(
       `insert into judge_runs (event_id, submission_id, company_id, type, generation, run_no, model, status, breakdown, total, rationale, finished_at)
-       values ($1, $2, $3, $4, $5, $6, 'test-model', $7, $8::jsonb, $9, $10, now())`,
+       values ($1, $2, $3, $4, $5, $6, $11, $7, $8::jsonb, $9, $10, now())`,
       [sub.event_id, sub.id, companyId, type, gen, no, r.status ?? "DONE", breakdown === null ? null : JSON.stringify(breakdown),
-       r.total, r.rationale === undefined ? `Run ${no}: a clear problem, a weak moat.` : r.rationale],
+       r.total, r.rationale === undefined ? `Run ${no}: a clear problem, a weak moat.` : r.rationale, model],
     );
   }
   return gen;
@@ -348,21 +349,21 @@ describe("SEC-3: scores are sealed only by the judge worker, from complete and v
     expect(await n.q("select ipo_price from companies where event_id = $1 and squad_id is not null and ipo_price is not null", [n.eventId])).toEqual([]);
   });
 
-  test("SEC-3: the service role seals only 3 DONE runs within 10 points, or 5; 5 runs work and the median's first run is published", async () => {
+  test("SEC-3: the human panel seals only 3 DONE runs within 10 points, or 5; 5 runs work and the median's first run is published", async () => {
     const { n, s } = await inReading();
     const c = s[0]!.company_id;
     expect(await seal(n, c)).toMatchObject({ ok: false, code: "RUNS_INCOMPLETE", runs: 0 });
 
-    const gen = await addRuns(n, c, "PITCH", [{ total: 50 }, { total: 70 }]);
+    const gen = await addRuns(n, c, "PITCH", [{ total: 50 }, { total: 70 }], undefined, "human-judges");
     expect(await seal(n, c)).toMatchObject({ ok: false, code: "RUNS_INCOMPLETE", runs: 2 });
     // Three runs that spread 20 points need two more.
-    await addRuns(n, c, "PITCH", [{ run_no: 3, total: 62 }], gen);
+    await addRuns(n, c, "PITCH", [{ run_no: 3, total: 62 }], gen, "human-judges");
     expect(await seal(n, c)).toMatchObject({ ok: false, code: "RUNS_INCOMPLETE", runs: 3 });
     const run4 = { problem: 14, solution: 14, metrics: 9, business_model: 9, feasibility: 9, clarity: 9 };
-    await addRuns(n, c, "PITCH", [{ run_no: 4, total: 64, breakdown: run4, rationale: "Fourth run: the median." }], gen);
+    await addRuns(n, c, "PITCH", [{ run_no: 4, total: 64, breakdown: run4, rationale: "Fourth run: the median." }], gen, "human-judges");
     expect(await seal(n, c)).toMatchObject({ ok: false, code: "RUNS_INCOMPLETE", runs: 4 });
     // A failed fifth run does not count.
-    await addRuns(n, c, "PITCH", [{ run_no: 5, total: null, status: "FAILED", rationale: null }], gen);
+    await addRuns(n, c, "PITCH", [{ run_no: 5, total: null, status: "FAILED", rationale: null }], gen, "human-judges");
     expect(await seal(n, c)).toMatchObject({ ok: false, code: "RUNS_INCOMPLETE", runs: 4 });
     expect(await scoreOf(n, c)).toEqual([]);
 
@@ -393,18 +394,33 @@ describe("SEC-3: scores are sealed only by the judge worker, from complete and v
       ["a blank rationale", { total: 60, breakdown: ok60, rationale: "   " }],
     ];
     for (const [what, run] of bad) {
-      // Runs 1 and 3 are fine; run 2 is the broken one. Each case is its own (latest) generation.
-      await addRuns(n, c, "PITCH", [{ total: 60 }, run, { total: 60 }]);
-      await expect(seal(n, c), what).rejects.toThrow(/judge run 2 of .* does not fit the rubric/);
+      // The one run is the broken one. Each case is its own (latest) generation.
+      await addRuns(n, c, "PITCH", [run]);
+      await expect(seal(n, c), what).rejects.toThrow(/judge run 1 of .* does not fit the rubric/);
       expect(await scoreOf(n, c), what).toEqual([]);
     }
     // A new generation of valid runs seals (earlier generations are ignored).
-    const gen = await addRuns(n, c, "PITCH", [{ total: 60 }, { total: 61 }, { total: 59 }]);
-    expect(await seal(n, c)).toMatchObject({ ok: true, final: 60, median: 60, runs: 3 });
-    expect((await scoreOf(n, c))[0]).toMatchObject({ generation: gen, run_totals: [60, 61, 59], breakdown: ok60 });
+    const gen = await addRuns(n, c, "PITCH", [{ total: 60 }]);
+    expect(await seal(n, c)).toMatchObject({ ok: true, final: 60, median: 60, runs: 1 });
+    expect((await scoreOf(n, c))[0]).toMatchObject({ generation: gen, run_totals: [60], breakdown: ok60 });
   });
 
-  test("SEC-3: the published breakdown and rationale are the first run whose total is the median, of the latest generation", async () => {
+  test("SEC-3: the service role seals an AI generation from its one DONE run (migration 094); runs 2–3 of it do not count", async () => {
+    const { n, s } = await inReading();
+    const c = s[1]!.company_id;
+    // s[1] was sealed by the test above; a new generation starts with a failed run 1.
+    const gen = await addRuns(n, c, "PITCH", [{ total: null, status: "FAILED", rationale: null }]);
+    expect(await seal(n, c)).toMatchObject({ ok: false, code: "RUNS_INCOMPLETE", runs: 0 });
+    // Runs 2–3 left over from before (an AI generation) do not count: the score is run 1's total.
+    await addRuns(n, c, "PITCH", [{ run_no: 2, total: 90 }, { run_no: 3, total: 10 }], gen);
+    await n.q(
+      "update judge_runs set status = 'DONE', total = 57, breakdown = $2::jsonb, rationale = 'The one run.' where company_id = $1 and generation = $3 and run_no = 1",
+      [c, JSON.stringify(fill("PITCH", 57)), gen]);
+    expect(await seal(n, c)).toMatchObject({ ok: true, final: 57, median: 57, runs: 1 });
+    expect(await scoreOf(n, c)).toEqual([expect.objectContaining({ status: "SEALED", run_totals: [57], median: 57, final_score: 57, rationale: "The one run." })]);
+  });
+
+  test("SEC-3: a human panel's published breakdown and rationale are the first run whose total is the median, of the latest generation", async () => {
     const { n, s } = await inReading();
     const c = s[2]!.company_id;
     const first = { problem: 20, solution: 20, metrics: 15, business_model: 9, feasibility: 0, clarity: 0 };
@@ -413,7 +429,7 @@ describe("SEC-3: scores are sealed only by the judge worker, from complete and v
       { total: 64, breakdown: first, rationale: "First run: strong problem." },
       { total: 60, rationale: "Second run." },
       { total: 64, breakdown: third, rationale: "Third run: even." },
-    ]);
+    ], undefined, "human-judges");
     expect(await seal(n, c)).toMatchObject({ ok: true, median: 64, final: 64 });
     expect((await scoreOf(n, c))[0]).toMatchObject({ run_totals: [64, 60, 64], breakdown: first, rationale: "First run: strong problem." });
 
@@ -422,7 +438,7 @@ describe("SEC-3: scores are sealed only by the judge worker, from complete and v
       { total: 70, rationale: "Re-run 1." },
       { total: 72, rationale: "Re-run 2." },
       { total: 71, breakdown: { problem: 20, solution: 20, metrics: 15, business_model: 15, feasibility: 1, clarity: 0 }, rationale: "Re-run 3." },
-    ]);
+    ], undefined, "human-judges");
     expect(await seal(n, c)).toMatchObject({ ok: true, median: 71, final: 71 });
     expect((await scoreOf(n, c))[0]).toMatchObject({
       generation: gen2, run_totals: [70, 72, 71], breakdown: { problem: 20, solution: 20, metrics: 15, business_model: 15, feasibility: 1, clarity: 0 }, rationale: "Re-run 3.",

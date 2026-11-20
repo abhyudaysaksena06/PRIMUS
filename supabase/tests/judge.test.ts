@@ -61,14 +61,14 @@ const score = (n: Night, companyId: string, type = "PITCH") =>
   n.one("select status, final_score, median, run_totals, generation, penalty from scores where company_id = $1 and type = $2", [companyId, type]);
 
 describe("starting the judge", () => {
-  test("refused before the deadline; then runs 1–3 for every current submission, and only once", async () => {
+  test("refused before the deadline; then one run for every current submission (migration 094), and only once", async () => {
     const { n, s } = await pitched(false);
     expect(await n.call(n.lead, "start_judging", n.eventId, "PITCH")).toMatchObject({ ok: false, code: "NOT_READY" });
     await n.deadlinePassed("PITCH");
-    expect(await n.org("start_judging", n.eventId, "PITCH")).toMatchObject({ queued: 9, companies: 3 });
+    expect(await n.org("start_judging", n.eventId, "PITCH")).toMatchObject({ queued: 3, companies: 3 });
     expect(await n.org("start_judging", n.eventId, "PITCH")).toMatchObject({ queued: 0, companies: 0 });
     expect((await runsOf(n, s[0]!.company_id)).map((r) => [r.generation, r.run_no, r.status])).toEqual([
-      [1, 1, "QUEUED"], [1, 2, "QUEUED"], [1, 3, "QUEUED"],
+      [1, 1, "QUEUED"],
     ]);
   });
 
@@ -120,8 +120,8 @@ describe("the queue", () => {
 
     const [a, b] = await Promise.all([claim(n, 5), claim(n, 5)]);
     const ids = [...a!, ...b!].map((r) => r.run_id);
-    expect(ids).toHaveLength(8);
-    expect(new Set(ids).size).toBe(8);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
     expect([...a!, ...b!].every((r) => r.attempts === 1 && r.slot === "PRIMARY" && r.type === "PITCH")).toBe(true);
     expect(await claim(n)).toEqual([]);
     expect(await n.call(service, "claim_judge_runs", n.eventId, 1000)).toEqual([]);
@@ -130,52 +130,52 @@ describe("the queue", () => {
   test("the backup switch applies to runs claimed from then on", async () => {
     const { n } = await pitched();
     await n.org("start_judging", n.eventId, "PITCH");
-    expect((await claim(n, 2)).map((r) => r.slot)).toEqual(["PRIMARY", "PRIMARY"]);
+    expect((await claim(n, 1)).map((r) => r.slot)).toEqual(["PRIMARY"]);
     expect(await n.org("set_judge_model", n.eventId, "BACKUP")).toMatchObject({ slot: "BACKUP" });
     expect((await claim(n, 2)).map((r) => r.slot)).toEqual(["BACKUP", "BACKUP"]);
     await expect(n.call(n.lead, "set_judge_model", n.eventId, "OTHER")).rejects.toThrow(/PRIMARY or BACKUP/);
   });
 
-  test("three runs within 10 points seal the score at their median, with no one pressing a button", async () => {
+  test("one run seals the score at its total (migration 094), with no one pressing a button", async () => {
     const { n, s } = await pitched();
     await n.org("start_judging", n.eventId, "PITCH");
     const runs = (await claim(n)).filter((r) => r.company_id === s[0]!.company_id);
-    await checked(n, runs);
-    expect(await finish(n, runs[0]!.run_id, output("PITCH", 70))).toEqual({ ok: true, status: "DONE" });
-    expect(await finish(n, runs[1]!.run_id, output("PITCH", 78))).toEqual({ ok: true, status: "DONE" });
+    expect(runs).toHaveLength(1);
     expect(await n.q("select 1 from scores where company_id = $1", [s[0]!.company_id])).toEqual([]);
-    expect(await finish(n, runs[2]!.run_id, output("PITCH", 74))).toMatchObject({ ok: true, status: "DONE", sealed: { final: 74, median: 74, runs: 3 } });
-    expect(await score(n, s[0]!.company_id)).toMatchObject({ status: "SEALED", final_score: 74, median: 74, run_totals: [70, 78, 74], generation: 1 });
+    await checked(n, runs);
+    expect(await finish(n, runs[0]!.run_id, output("PITCH", 74))).toMatchObject({ ok: true, status: "DONE", sealed: { final: 74, median: 74, runs: 1 } });
+    expect(await score(n, s[0]!.company_id)).toMatchObject({ status: "SEALED", final_score: 74, median: 74, run_totals: [74], generation: 1 });
     const stored = await n.q("select model, prompt_sha, request_text, raw_response, latency_ms, finished_at from judge_runs where company_id = $1", [s[0]!.company_id]);
     expect(stored.every((r) => r.model === "test-model" && r.prompt_sha && r.request_text && r.raw_response && r.latency_ms === 1200 && r.finished_at)).toBe(true);
   });
 
-  test("a spread over 10 points queues runs 4 and 5; the median of all five seals it", async () => {
+  test("no runs 4 and 5: totals far apart each seal at their own total", async () => {
     const { n, s } = await pitched();
     await n.org("start_judging", n.eventId, "PITCH");
-    const runs = (await claim(n)).filter((r) => r.company_id === s[1]!.company_id);
+    const runs = await claim(n);
     await checked(n, runs);
-    for (const [i, t] of [50, 70, 61].entries()) await finish(n, runs[i]!.run_id, output("PITCH", t));
-    expect((await runsOf(n, s[1]!.company_id)).map((r) => [r.run_no, r.status])).toEqual([
-      [1, "DONE"], [2, "DONE"], [3, "DONE"], [4, "QUEUED"], [5, "QUEUED"],
-    ]);
-    const extra = await claim(n);
-    expect(extra.map((r) => r.run_no)).toEqual([4, 5]);
-    expect(await finish(n, extra[0]!.run_id, output("PITCH", 90))).toEqual({ ok: true, status: "DONE" });
-    expect(await finish(n, extra[1]!.run_id, output("PITCH", 55))).toMatchObject({ sealed: { final: 61, runs: 5 } });
-    expect(await score(n, s[1]!.company_id)).toMatchObject({ status: "SEALED", final_score: 61, run_totals: [50, 70, 61, 90, 55] });
+    const totals = [12, 90, 61];
+    for (const [i, x] of s.entries()) {
+      const r = runs.find((y) => y.company_id === x.company_id)!;
+      const out = await finish(n, r.run_id, output("PITCH", totals[i]!));
+      expect(out).toMatchObject({ sealed: { final: totals[i], runs: 1 } });
+      expect(out.extra_runs).toBeUndefined();
+    }
+    expect(await claim(n)).toEqual([]);
+    expect((await runsOf(n, s[1]!.company_id)).map((r) => [r.run_no, r.status])).toEqual([[1, "DONE"]]);
+    expect(await score(n, s[1]!.company_id)).toMatchObject({ status: "SEALED", final_score: 90, run_totals: [90] });
   });
 
   test("an output that does not fit the rubric fails the run, as does a report before the injection check", async () => {
     const { n, s } = await pitched();
     await n.org("start_judging", n.eventId, "PITCH");
-    const runs = (await claim(n)).filter((r) => r.company_id === s[0]!.company_id);
+    const runs = await claim(n); // one run per company
     expect(await finish(n, runs[0]!.run_id, output("PITCH", 70))).toMatchObject({ ok: true, status: "FAILED" });
     await checked(n, runs);
     expect(await finish(n, runs[1]!.run_id, { ...output("PITCH", 70), total: 71 })).toMatchObject({ status: "FAILED" });
     expect(await finish(n, runs[2]!.run_id, { ...output("PITCH", 70), breakdown: { problem: 26, solution: 25, business_model: 19, advantage: 0 } }))
       .toMatchObject({ status: "FAILED" });
-    expect((await runsOf(n, s[0]!.company_id)).map((r) => r.error)).toEqual([
+    expect((await n.q("select error from judge_runs where id = any($1::uuid[]) order by array_position($1::uuid[], id)", [runs.map((r) => r.run_id)])).map((r) => r.error)).toEqual([
       "The worker did not record the injection check of this submission.",
       "The output does not fit the rubric.",
       "The output does not fit the rubric.",
@@ -209,13 +209,14 @@ describe("the queue", () => {
       }
     }
     // A bad request fails at once.
-    const other = (await claim(n)).find((r) => r.company_id === company && r.run_no === 2);
+    const otherCompany = s[1]!.company_id;
+    const other = (await claim(n)).find((r) => r.company_id === otherCompany);
     expect(other).toBeUndefined(); // already running from the first claim
-    const second = (await n.one("select id from judge_runs where company_id = $1 and run_no = 2", [company])).id;
+    const second = (await n.one("select id from judge_runs where company_id = $1 and run_no = 1", [otherCompany])).id;
     expect(await finish(n, second, { ok: false, error: "400 invalid request", retryable: false })).toMatchObject({ status: "FAILED" });
 
     expect(await n.org("retry_failed_runs", n.eventId, "PITCH")).toMatchObject({ retried: 2 });
-    expect((await runsOf(n, company)).slice(0, 2).map((r) => [r.status, r.attempts])).toEqual([["QUEUED", 0], ["QUEUED", 0]]);
+    expect((await n.q("select status, attempts from judge_runs where id in ($1, $2)", [run.run_id, second])).map((r) => [r.status, r.attempts])).toEqual([["QUEUED", 0], ["QUEUED", 0]]);
     const reclaimed = (await claim(n)).find((r) => r.run_id === run.run_id)!;
     expect(reclaimed.attempts).toBe(1);
     expect(reclaimed.claim_token).toBe(6);
@@ -229,9 +230,10 @@ describe("the queue", () => {
   test("a run whose worker went silent is claimed again after 3 minutes; a late report of a finished run changes nothing", async () => {
     const { n, s } = await pitched();
     await n.org("start_judging", n.eventId, "PITCH");
-    const runs = (await claim(n)).filter((r) => r.company_id === s[0]!.company_id);
+    const runs = await claim(n); // one run per company
     await checked(n, runs);
     expect(await claim(n)).toEqual([]);
+    const byId = async (id: string) => n.one("select status, total from judge_runs where id = $1", [id]);
     await n.q("update judge_runs set locked_at = now() - interval '181 seconds' where id = $1", [runs[0]!.run_id]);
     const again = await claim(n);
     expect(again).toEqual([expect.objectContaining({ run_id: runs[0]!.run_id, attempts: 2 })]);
@@ -243,11 +245,11 @@ describe("the queue", () => {
     expect((await claim(n)).map((r) => r.attempts)).toEqual([2]);
     expect(await finish(n, runs[2]!.run_id, { ok: false, error: "late timeout", retryable: true, attempt: 1 })).toMatchObject({ ok: false, code: "STALE" });
     expect(await finish(n, runs[2]!.run_id, output("PITCH", 64, { attempt: 2 }))).toMatchObject({ ok: true, status: "DONE" });
-    expect((await runsOf(n, s[0]!.company_id))[0]).toMatchObject({ status: "DONE", total: 66 });
+    expect(await byId(runs[0]!.run_id)).toMatchObject({ status: "DONE", total: 66 });
     // Silent on its fifth attempt: failed, not claimed again.
     await n.q("update judge_runs set attempts = 5, locked_at = now() - interval '181 seconds' where id = $1", [runs[1]!.run_id]);
     expect(await claim(n)).toEqual([]);
-    expect((await runsOf(n, s[0]!.company_id))[1]).toMatchObject({ status: "FAILED" });
+    expect(await byId(runs[1]!.run_id)).toMatchObject({ status: "FAILED" });
   });
 });
 
@@ -364,7 +366,7 @@ describe("re-running before release", () => {
     expect(await n.call(n.lead, "rerun_judging", c, "PITCH", "Once more please.")).toMatchObject({ ok: false, code: "IN_PROGRESS" });
 
     const again = (await claim(n)).filter((r) => r.company_id === c);
-    expect(again.map((r) => [r.generation, r.run_no])).toEqual([[2, 1], [2, 2], [2, 3]]);
+    expect(again.map((r) => [r.generation, r.run_no])).toEqual([[2, 1]]);
     for (const r of again) await finish(n, r.run_id, output("PITCH", 65));
     expect(await score(n, c)).toMatchObject({ status: "SEALED", final_score: 65, generation: 2 });
     expect(await n.one("select status, after_release, reason, old_score ->> 'final' as old, new_score ->> 'final' as new from appeals where company_id = $1", [c]))
@@ -406,23 +408,21 @@ describe("calibration", () => {
     sample_no: no, title: `Sample ${no}`, expected: { min: 40, max: 55 }, text,
   });
 
-  test("a batch of sample pitches is judged like pitches (extra runs on a spread) and never sealed", async () => {
+  test("a batch of sample pitches is judged like pitches (one run each, no extra runs) and never sealed", async () => {
     const { n } = await pitched(false);
-    expect(await n.org("start_calibration", n.eventId, JSON.stringify([sample(1), sample(2)]))).toMatchObject({ batch: 1, queued: 6 });
+    expect(await n.org("start_calibration", n.eventId, JSON.stringify([sample(1), sample(2)]))).toMatchObject({ batch: 1, queued: 2 });
     const runs: { run_id: string; sample_no: number; run_no: number; slot: string }[] = await n.call(service, "claim_calibration_runs", n.eventId, 10);
-    expect(runs).toHaveLength(6);
+    expect(runs).toHaveLength(2);
     const input = await n.call(service, "calibration_input", runs[0]!.run_id);
     expect(input).toMatchObject({ type: "PITCH", sample_no: 1, ticker: "SCA", company_name: "Sample Co 1", names: ["Sample Co 1"] });
     expect(input.text).toContain("Something.");
     const one = runs.filter((r) => r.sample_no === 1);
-    for (const [i, t] of [30, 50, 45].entries()) {
-      expect(await n.call(service, "finish_calibration_run", one[i]!.run_id, output("PITCH", t, { attempt: 1 }))).toMatchObject({ ok: true, status: "DONE" });
-    }
-    const extra = await n.call(service, "claim_calibration_runs", n.eventId, 10);
-    expect(extra.map((r: { run_no: number }) => r.run_no)).toEqual([4, 5]);
+    expect(one).toHaveLength(1);
+    expect(await n.call(service, "finish_calibration_run", one[0]!.run_id, output("PITCH", 30, { attempt: 1 }))).toEqual({ ok: true, status: "DONE" });
+    expect(await n.call(service, "claim_calibration_runs", n.eventId, 10)).toEqual([]);
     expect(await n.q("select 1 from scores where event_id = $1", [n.eventId])).toEqual([]);
     // A second start is a new batch.
-    expect(await n.org("start_calibration", n.eventId, JSON.stringify([sample(1)]))).toMatchObject({ batch: 2, queued: 3 });
+    expect(await n.org("start_calibration", n.eventId, JSON.stringify([sample(1)]))).toMatchObject({ batch: 2, queued: 1 });
     const queued = await n.one("select id from calibration_runs where event_id = $1 and batch = 2 limit 1", [n.eventId]);
     expect(await n.call(service, "finish_calibration_run", queued.id, output("PITCH", 50, { attempt: 0 })))
       .toMatchObject({ ok: false, code: "NOT_RUNNING" });
