@@ -61,49 +61,55 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
         title="Q&A board."
         sub="Finance teams ask, each Product team answers about its own company in up to 100 words. Everything here is public."
       />
-      {state === "CLOSED" ? (
-        <p className="guide-alert">The Q&A board closed at the close. Every question and answer stays readable.</p>
-      ) : (
-        <p className="guide-alert guide-warning" data-testid="qa-open">
-          Open until the close
-          {closes ? (
-            <>
-              {" "}
-              ({clock(closes)}, in <Countdown to={closes} passed="a moment" />)
-            </>
-          ) : null}
-          . Everything on the board is public; who asked is never shown (only that a fund asked), and answers are shown as their company&apos;s.
-        </p>
-      )}
+      {/* The demo's Q&A board (app/demo/qa): two panels side by side (ask; the founders' inbox), then the public board,
+          then the board's rule as the closing note. */}
+      <div className="guide-grid two">
+        {state === "OPEN" && role === "ASK" ? (
+          <GuidePanel title="Post a question to founders" tag="UP TO 100 WORDS · PUBLIC">
+            <p className="guide-muted mb-3">Pick a listed company and ask in public. Who asked is never shown, only that a fund asked.</p>
+            <AskForm action={postQuestion} companies={companies} initial={filtered?.id ?? null} />
+          </GuidePanel>
+        ) : (
+          <GuidePanel title="Post a question to founders" tag={role === "ASK" ? "CLOSED" : "FINANCE TEAMS ASK"}>
+            <p className="guide-muted">
+              {role === "ASK"
+                ? "The board is closed: no new questions. Every question and answer stays readable below."
+                : "Finance teams ask the questions here; each Product team answers about its own company. Read every thread on the public board below."}
+            </p>
+          </GuidePanel>
+        )}
 
-      {state === "OPEN" && role === "ASK" ? (
-        <GuidePanel title="Ask a question" tag="UP TO 100 WORDS · PUBLIC">
-          <AskForm action={postQuestion} companies={companies} initial={filtered?.id ?? null} />
-        </GuidePanel>
-      ) : null}
+        {state === "OPEN" && role === "ANSWER" && ownListed ? (
+          <GuidePanel title={`Founders' inbox — waiting for your answer (${count(waiting.length)})`} tag={ownListed.ticker}>
+            {waiting.length === 0 ? (
+              <p className="guide-muted">No question to {ownListed.ticker} is waiting for an answer.</p>
+            ) : (
+              <ul className="guide-scroll-box compact space-y-3" aria-label="Questions waiting for your answer">
+                {waiting.map((w) => (
+                  <li key={w.id} className="guide-alert guide-warning">
+                    <QuestionHead ticker={ownListed.ticker} at={w.created_at} />
+                    <p className="mt-1 whitespace-pre-wrap">{w.body}</p>
+                    <div className="mt-2">
+                      <AnswerForm action={answerQuestion.bind(null, w.id)} label={`Answer the question asked at ${clock(w.created_at, true)}`} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </GuidePanel>
+        ) : (
+          <GuidePanel title="Founders' inbox" tag={role === "ANSWER" ? "ALL ANSWERED" : "PRODUCT TEAMS ANSWER"}>
+            <p className="guide-muted">
+              {role === "ANSWER"
+                ? "Questions to your company arrive here while the board is open, oldest first, each with its answer box."
+                : "Each Product team answers questions about its own company, in up to 100 words. Answers are shown as their company's."}
+            </p>
+          </GuidePanel>
+        )}
+      </div>
 
-      {state === "OPEN" && role === "ANSWER" && ownListed ? (
-        <GuidePanel title={`Waiting for your answer (${count(waiting.length)})`} tag={ownListed.ticker}>
-          {waiting.length === 0 ? (
-            <p className="guide-muted">No question to {ownListed.ticker} is waiting for an answer.</p>
-          ) : (
-            <ul className="space-y-4" aria-label="Questions waiting for your answer">
-              {waiting.map((w) => (
-                <li key={w.id} className="guide-qa-card is-hot">
-                  <QuestionHead ticker={ownListed.ticker} at={w.created_at} />
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-phosphor">{w.body}</p>
-                  <div className="mt-2">
-                    <AnswerForm action={answerQuestion.bind(null, w.id)} label={`Answer the question asked at ${clock(w.created_at, true)}`} />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </GuidePanel>
-      ) : null}
-
-      <GuidePanel title="Questions" tag="NEWEST FIRST">
-        <Form action={PATH} className="flex flex-wrap items-end gap-2">
+      <GuidePanel title="The public board" tag={page ? `LIVE · ${page.paging.label.toUpperCase()}` : "LIVE"}>
+        <Form action={PATH} className="guide-filter-bar flex flex-wrap items-end gap-2">
           <label className="block">
             <span className="guide-label">COMPANY</span>
             <select name="company" defaultValue={q.company ?? ""} className="guide-select w-48">
@@ -151,13 +157,29 @@ export default async function QaPage({ searchParams }: PageProps<"/team/qa">) {
           </>
         )}
       </GuidePanel>
+
+      {state === "CLOSED" ? (
+        <p className="guide-alert">The Q&A board closed at the close. Every question and answer stays readable.</p>
+      ) : (
+        <p className="guide-alert guide-warning" data-testid="qa-open">
+          Open until the close
+          {closes ? (
+            <>
+              {" "}
+              ({clock(closes)}, in <Countdown to={closes} passed="a moment" />)
+            </>
+          ) : null}
+          . Everything on the board is public; who asked is never shown (only that a fund asked), and answers are shown as their company&apos;s.
+        </p>
+      )}
+
     </div>
   );
 }
 
 function QuestionHead({ ticker, at }: { ticker: string; at: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+    <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] opacity-80">
       <Link href={`/team/market/${ticker}`} className="guide-chip hover:underline">
         {ticker}
       </Link>
@@ -173,30 +195,30 @@ function ThreadItem({ t, ticker, canAnswer }: { t: Thread; ticker: string; canAn
   return (
     <li className="guide-qa-card" data-testid="qa-thread">
       <QuestionHead ticker={ticker} at={t.question.created_at} />
-      <p className="mt-1 whitespace-pre-wrap text-sm text-phosphor">{t.question.body}</p>
+      <p className="mt-1.5 whitespace-pre-wrap text-[13px]">{t.question.body}</p>
       {t.answers.length === 0 ? (
-        <p className="mt-2 text-xs text-muted">
+        <p className="mt-2">
           <span className="guide-chip guide-chip-warn">No answer yet</span>
         </p>
       ) : (
         <ul className="mt-3 space-y-2 border-l-2 border-[var(--track-accent)] pl-3">
           {t.answers.map((a) => (
             <li key={a.id} className="text-sm">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
-                <span className="font-semibold text-paper">{ticker} answered</span>
+              <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-[0.08em] text-[var(--track-accent)]">
+                <span className="font-semibold">{ticker} answered</span>
                 <time dateTime={a.created_at} className="font-mono tabular-nums">
                   {clock(a.created_at, true)}
                 </time>
                 <span>{count(a.word_count)} words</span>
               </div>
-              <p className="mt-0.5 whitespace-pre-wrap text-phosphor">{a.body}</p>
+              <p className="guide-muted mt-0.5 whitespace-pre-wrap">{a.body}</p>
             </li>
           ))}
         </ul>
       )}
       {canAnswer ? (
         <details className="mt-2">
-          <summary className="cursor-pointer text-sm font-medium text-paper">Add another answer</summary>
+          <summary className="guide-btn secondary cursor-pointer">Add another answer</summary>
           <div className="mt-2">
             <AnswerForm action={answerQuestion.bind(null, t.question.id)} label={`Add an answer to the question asked at ${clock(t.question.created_at, true)}`} />
           </div>
@@ -207,11 +229,11 @@ function ThreadItem({ t, ticker, canAnswer }: { t: Thread; ticker: string; canAn
 }
 
 function Pager({ q, page, pages, label, bottom = false }: { q: QaQuery; page: number; pages: number; label: string; bottom?: boolean }) {
-  const link = "rounded-md px-2 py-1 text-sm font-medium text-paper ring-1 ring-inset ring-line hover:bg-raised";
-  const off = "rounded-md px-2 py-1 text-sm text-muted ring-1 ring-inset ring-line";
+  const link = "guide-btn secondary";
+  const off = "guide-btn secondary opacity-40";
   return (
     <nav className="mt-4 flex flex-wrap items-center justify-between gap-2" aria-label={bottom ? "Question pages (bottom)" : "Question pages"}>
-      <span className="text-sm text-paper">
+      <span className="guide-muted">
         {label}
         {pages > 1 ? ` · page ${count(page)} of ${count(pages)}` : ""}
       </span>

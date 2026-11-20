@@ -248,13 +248,15 @@ export default async function TeamHome() {
           <>
             <GuideMetric
               label="AVAILABLE CASH"
-              value={<span data-testid="home-cash">{money(team.cash)}</span>}
+              value={money(team.cash)}
+              valueTestId="home-cash"
               delta={`COLLATERAL LOCKED ${money(team.collateral)}`}
             />
             {scoreCard}
             <GuideMetric
               label={holdings.closing ? "SHARES (CLOSING PRICES)" : "SHARES & PORTFOLIO"}
-              value={<span data-testid="home-holdings-value">{money(holdings.total)}</span>}
+              value={money(holdings.total)}
+              valueTestId="home-holdings-value"
               delta={
                 <>
                   {holdingsWords} · {squadValue}
@@ -266,7 +268,8 @@ export default async function TeamHome() {
           <>
             <GuideMetric
               label={team.track === "PRODUCT" ? "CASH & SHARES" : "CASH & FEE SHARES"}
-              value={<span data-testid="home-cash">{money(team.cash)}</span>}
+              value={money(team.cash)}
+              valueTestId="home-cash"
               delta={
                 <>
                   {holdings.closing ? "SHARES AT CLOSING PRICES " : "SHARES WORTH "}
@@ -275,7 +278,7 @@ export default async function TeamHome() {
               }
             />
             {scoreCard}
-            <GuideMetric label="YOUR SQUAD" value={squadValue} delta={squadDelta} />
+            <GuideMetric label="YOUR SQUAD" value={squad ? squadLabel : "NOT DRAWN"} valueTestId="home-squad" delta={squadDelta} />
           </>
         )}
       </div>

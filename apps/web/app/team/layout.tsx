@@ -18,7 +18,7 @@ import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { ActionBar } from "./action-bar";
 import { Alerts, SoundToggle } from "./alerts";
 import { loadPlanFacts } from "@/lib/team/home-data";
-import { homePlan, nextDeadline } from "@/lib/team/home";
+import { homePlan } from "@/lib/team/home";
 import { crisisHeadline } from "@/lib/team/crisis-steps";
 import { alertTasks, nextAction } from "@/lib/team/alerts";
 import { PhaseEnd } from "./phase-end";
@@ -73,7 +73,6 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
   });
   // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
   const facts = loaded ? await withAssigned({ ...loaded, submitLast5: featureOn(status, "submit_last_5") }, ctx.company?.id ?? null) : null;
-  const upNext = facts ? nextDeadline(facts) : null;
   const plan = facts ? homePlan(facts) : null;
   const next = plan ? nextAction(plan) : null;
   // A PRIMUS event's Rounds 2 and 3: the crisis under way, for the phase chip.
@@ -194,7 +193,6 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                   CASH
                   <b data-testid="team-cash">
                     {money(team.cash)}
-                    {finance && team.collateral > 0 ? <small className="guide-top-sub"> locked {money(team.collateral)}</small> : null}
                   </b>
                 </span>
                 {finance ? (
@@ -227,27 +225,31 @@ export default async function TeamLayout({ children }: LayoutProps<"/team">) {
                       {halted ? (
                         <small className="guide-top-sub guide-top-warn" data-testid="trading-halted">
                           {" "}
-                          Trading halted
+                          · HALTED
                           {status.next_round ? (
-                            <>
+                            <span className="sr-only">
                               {" "}
-                              · round {status.next_round.number} opens {clock(status.next_round.opens_at)} (<Countdown to={status.next_round.opens_at} passed="now" />)
-                            </>
+                              Trading halted · round {status.next_round.number} opens {clock(status.next_round.opens_at)}
+                            </span>
                           ) : null}
                         </small>
                       ) : null}
                     </b>
                   </span>
                 )}
-                {upNext ? (
-                  // The team's own next deadline, on every page (the demo's last chip).
-                  <span className="guide-ticker" data-testid="next-deadline">
-                    NEXT{" "}
-                    <b>
-                      {upNext.title} {clock(upNext.at)} · <Countdown to={upNext.at} passed="now" />
-                    </b>
-                  </span>
-                ) : null}
+                {/* The demo's third chip: Finance its locked collateral, Product the firm it hired, Consulting its clients. */}
+                <span className="guide-ticker">
+                  {finance ? "LOCKED" : team.track === "PRODUCT" ? "CONSULTANT" : "CLIENT"}{" "}
+                  <b>
+                    {finance
+                      ? money(team.collateral)
+                      : team.track === "PRODUCT"
+                        ? (facts?.primus?.engagement?.firm ?? "OPEN")
+                        : facts?.primus?.clients?.length
+                          ? facts.primus.clients.map((c) => c.ticker ?? c.name ?? "—").join(", ")
+                          : "OPEN"}
+                  </b>
+                </span>
                 <SoundToggle />
               </div>
             </header>
