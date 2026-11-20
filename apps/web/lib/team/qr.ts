@@ -21,6 +21,18 @@ export function teamQrLink(track: Track, origin: string): string {
   return `${origin}${guidePath(track)}`;
 }
 
+const MEDIA_NAME: Record<Track, string> = { PRODUCT: "Product", CONSULTING: "Consulting", FINANCE: "Finance" };
+
+/** The track's demo video (public, view-only: a static file under /media). */
+export function demoVideoLink(track: Track, origin: string): string {
+  return `${origin}/media/PRIMUS-${MEDIA_NAME[track]}-demo.mp4`;
+}
+
+/** The track's PDF guide: its track card, then the full Team Guide (public, view-only). */
+export function guidePdfLink(track: Track, origin: string): string {
+  return `${origin}/media/PRIMUS-2026-${MEDIA_NAME[track]}-Guide.pdf`;
+}
+
 /** A QR code as an SVG string (paths only, no text). */
 export function qrSvg(text: string): Promise<string> {
   return QRCode.toString(text, { type: "svg", errorCorrectionLevel: "M", margin: 1, color: { dark: "#000000", light: "#ffffff" } });
