@@ -49,6 +49,27 @@ export const NO_SAMPLING_MODELS: readonly string[] = [
   "claude-opus-4-8",
 ];
 
+/**
+ * Model ids that answer HTTP 400 to output_config.effort: models before effort existed (it arrived with Claude Opus 4.5;
+ * every 4.6+ and 5.x model takes it). Claude Haiku 4.5 is the one an organiser is likely to pick as a backup.
+ */
+export const NO_EFFORT_MODELS: readonly string[] = [
+  "claude-haiku-4-5",
+  "claude-sonnet-4-5",
+  "claude-opus-4-1",
+  "claude-opus-4-0",
+  "claude-opus-4-2025",
+  "claude-sonnet-4-0",
+  "claude-sonnet-4-2025",
+  "claude-3",
+];
+
+/** Whether a model accepts output_config.effort (the judge leaves it out for one that doesn't). */
+export function acceptsEffort(model: string): boolean {
+  const id = model.trim().toLowerCase();
+  return !NO_EFFORT_MODELS.some((prefix) => id.startsWith(prefix));
+}
+
 /** Whether a model rejects temperature, top_p and top_k. */
 export function rejectsSampling(model: string): boolean {
   const id = model.trim().toLowerCase();

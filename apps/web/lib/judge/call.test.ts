@@ -1,3 +1,4 @@
+import { acceptsEffort } from "./config";
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, test } from "vitest";
 import {
@@ -294,6 +295,14 @@ describe("the request sent", () => {
     expect(body.messages).toEqual([{ role: "user", content: OPTS.userText }]);
     expect("thinking" in body).toBe(false);
     expect("top_p" in body || "top_k" in body).toBe(false);
+  });
+
+  test("a backup from before effort existed (Claude Haiku 4.5) gets no effort, only the JSON schema", async () => {
+    const { client, calls } = fakeClient([message(VALID)]);
+    await judgeOnce(client, { ...OPTS, type: "PLAN", model: "claude-haiku-4-5", effort: "medium" });
+    expect(calls[0]!.body.output_config).toEqual({ format: { type: "json_schema", schema: outputSchema("PLAN") } });
+    for (const m of ["claude-haiku-5-5", "claude-opus-4-5", "claude-sonnet-4-6", "claude-opus-5-5"]) expect(acceptsEffort(m)).toBe(true);
+    for (const m of ["claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-1", "claude-sonnet-4-20250514"]) expect(acceptsEffort(m)).toBe(false);
   });
 
   test("the same body is sent on every attempt (so the cached prefix is reused)", async () => {

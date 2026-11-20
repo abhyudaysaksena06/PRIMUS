@@ -11,6 +11,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { validateJudgeOutput, type SubmissionType } from "@msim/engine";
 import { outputSchema } from "./schema";
+import { acceptsEffort } from "./config";
 import { EMPTY_USAGE, type JudgeCallResult, type JudgeEffort, type JudgeFn, type JudgeUsage } from "./types";
 
 export const MAX_TOKENS = 8000;
@@ -48,7 +49,11 @@ export function judgeParams(o: Pick<JudgeOnceOptions, "model" | "system" | "user
     max_tokens: MAX_TOKENS,
     system: [{ type: "text", text: o.system, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: o.userText }],
-    output_config: { effort: o.effort, format: { type: "json_schema", schema: outputSchema(o.type) } },
+    // A model from before effort existed (e.g. Claude Haiku 4.5 as the backup) answers 400 to it: leave it out there.
+    output_config: {
+      ...(acceptsEffort(o.model) ? { effort: o.effort } : {}),
+      format: { type: "json_schema", schema: outputSchema(o.type) },
+    },
   };
   if (o.temperature !== undefined) params.temperature = o.temperature;
   return params;
