@@ -12,7 +12,9 @@ import {
   OFFER_STATUS_TONE,
   countersLeft,
   crisisSealed,
+  draftHeads,
   draftState,
+  sameSector,
   offerMoves,
   shareText,
   statementGroups,
@@ -178,10 +180,29 @@ export function StatementCrowd({ group }: { group: StatementGroup }) {
   );
 }
 
-/** Whose pick it is in the draft, with its 20 seconds counting down; nothing once the draft is over. */
+/**
+ * Whose pick it is in the draft, with its 20 seconds counting down; nothing once the draft is over. A draft run by
+ * sector has one company on the clock per sector (`mySector` first).
+ */
 export function OnTheClock({ data }: { data: CrisisRoomData }) {
   const d = draftState(data.picks, null);
-  if (!d.current) return data.picks.length ? <p className="text-sm font-semibold text-phosphor" data-testid="on-the-clock">The draft is over: every company has its statement.</p> : null;
+  if (d.done || (!d.current && !d.bySector)) return data.picks.length ? <p className="text-sm font-semibold text-phosphor" data-testid="on-the-clock">The draft is over: every company has its statement.</p> : null;
+  if (d.bySector) {
+    const name = (q: string) => data.statements.find((s) => sameSector(s.sector, q))?.sector ?? (q || "No sector");
+    const heads = draftHeads(data.picks).sort((a, b) => Number(sameSector(b.queue, data.mySector)) - Number(sameSector(a.queue, data.mySector)));
+    return (
+      <ul className="space-y-1 text-sm font-semibold text-paper" data-testid="on-the-clock" aria-label="On the clock in each sector">
+        {heads.map((h) => (
+          <li key={h.queue}>
+            <span className="mr-2 rounded bg-[var(--term-amber)] px-1.5 py-0.5 text-xs font-black uppercase tracking-wide text-black">{name(h.queue)}</span>
+            <span className="font-mono text-[var(--term-amber)]">{companyLabel(data.companies.find((x) => x.id === h.pick.company_id))}</span> · pick {h.place} of {h.size} ·{" "}
+            <Countdown to={h.pick.closes_at} passed="time is up" className="font-mono text-[var(--term-amber)]" /> · {h.left} still to pick
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (!d.current) return null;
   const c = data.companies.find((x) => x.id === d.current!.company_id);
   const left = data.picks.filter((p) => p.statement_id === null).length;
   return (
@@ -202,8 +223,13 @@ export function StatementBoard({ data, title = "Round 3 · who competes with who
   return (
     <Panel title={title}>
       <OnTheClock data={data} />
+      {draftState(data.picks, null).bySector && !draftState(data.picks, null).done ? (
+        // Picks are not broadcast to every screen while the sectors draft: this board catches up when the draft ends.
+        <p className="mt-1 text-xs text-muted">The sectors pick at the same time. This board updates when the draft ends; reload the page to see the latest picks.</p>
+      ) : null}
       <p className="mb-3 mt-1 text-sm text-paper">
-        Companies on the same statement compete: the best solution gets its full price rise, the others less. The number beside each company is its average score so far.
+        Each company is judged on its own solution; sharing a statement does not change anyone&apos;s price move. A rise is scaled by the score so far across
+        the event: ×1.25 for the weakest company down to ×0.25 for the strongest; a fall applies in full. The number beside each company is its score so far.
       </p>
       <ul className="grid gap-3 md:grid-cols-2" aria-label="Statements and their companies">
         {groups.map((g) => (

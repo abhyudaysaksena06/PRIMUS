@@ -121,7 +121,7 @@ export async function loadCrisisRoom(ctx: TeamContext): Promise<CrisisRoomData> 
     sb.from("offers").select("id, k, company_id, firm_team_id, cash_cents, shares, note, status, turn, opened_by, company_counters, firm_counters, updated_at").eq("event_id", eventId).order("updated_at", { ascending: false }),
     sb.from("engagements").select("id, k, company_id, firm_team_id, cash_cents, shares, escrow, rating, rating_default, bonus_cents, assigned").eq("event_id", eventId).order("k"),
     sb.from("problem_statements").select("id, number, title, body, cap, sector").eq("event_id", eventId).order("number"),
-    sb.from("draft_picks").select("company_id, pick_no, score_avg, opens_at, closes_at, statement_id, picked_at, by_default").eq("event_id", eventId).order("pick_no"),
+    sb.from("draft_picks").select("company_id, pick_no, score_avg, opens_at, closes_at, statement_id, picked_at, by_default, sector").eq("event_id", eventId).order("pick_no"),
     sb.from("ledger_entries").select("cash_delta_cents").eq("team_id", ctx.team.id).eq("kind", "INJECTION"),
     sb.from("raises").select("id, company_id, k, shares, note, status, funded_by, price_cents, cash_cents, created_at, decided_at").eq("event_id", eventId).order("created_at", { ascending: false }),
     sb.from("teams").select("id, code").eq("event_id", eventId).eq("track", "FINANCE"),

@@ -78,6 +78,7 @@ describe("grants", () => {
       "desk_check_in",
       "desk_check_out",
       "dismiss_appeal",
+      "draft_clock",
       "draft_sectors",
       "draw_summary",
       "edit_deal",
