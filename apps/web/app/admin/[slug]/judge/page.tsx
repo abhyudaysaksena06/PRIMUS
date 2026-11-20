@@ -138,13 +138,13 @@ export default async function JudgePage({
         ))}
       </div>
 
-      <nav className="flex gap-1 border-b border-line" aria-label="Submission type">
+      <nav className="adm-tabs" aria-label="Submission type">
         {JUDGE_TYPES.map((t) => (
           <Link
             key={t}
             href={`/admin/${slug}/judge?type=${t.toLowerCase()}`}
             aria-current={t === type ? "page" : undefined}
-            className={`border-b-2 px-3 py-2 text-sm font-medium ${t === type ? "border-phosphor text-phosphor" : "border-transparent text-muted hover:text-phosphor"}`}
+            className="whitespace-nowrap"
           >
             {TYPE_TITLES[t]}
           </Link>
