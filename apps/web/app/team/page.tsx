@@ -4,7 +4,13 @@ import type { ReactNode } from "react";
 import { phaseReached } from "@msim/engine";
 import { loadTeamContext } from "@/lib/team/context";
 import { loadHomeData } from "@/lib/team/home-data";
-import { holdingsView, homePlan, type HomeTask, type TaskState } from "@/lib/team/home";
+import { holdingsView, homePlan, teamTimeline, type HomeTask, type TaskState } from "@/lib/team/home";
+import { featureOn } from "@/lib/event-status";
+import { withAssigned } from "@/lib/team/assigned-data";
+import { loadPastRounds } from "@/lib/team/past-rounds-data";
+import { MyTimeline } from "./my-timeline";
+import { PastRounds } from "./past-rounds";
+import { QrCard } from "./qr-card";
 import { clock, count, money } from "@/lib/format";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
@@ -45,7 +51,13 @@ export default async function TeamHome() {
   const ctx = await loadTeamContext();
   const { team, squad, company, status } = ctx;
   const data = await loadHomeData(ctx);
-  const plan = homePlan(data.facts);
+  // Tonight's switches that change the plan's words: Submit in the last 5 minutes; a firm assigned by the draw.
+  const facts = await withAssigned({ ...data.facts, submitLast5: featureOn(status, "submit_last_5") }, company?.id ?? null);
+  const plan = homePlan(facts);
+  // Every deadline of the night for this team, and the rounds already over (with what the team sent in them).
+  const timeline = teamTimeline(facts);
+  const closed = new Set(timeline.filter((i) => i.state === "past").map((i) => i.key));
+  const past = await loadPastRounds(ctx, (code) => closed.has(code));
   const holdings = holdingsView(data.holdings, data.companies);
   // The team's own score now, and its badges (both only about this team: the rankings stay hidden until the awards).
   const score = scoreNow(team.track, team.cash, holdings.total, company?.ipo_price ?? null);
@@ -165,6 +177,13 @@ export default async function TeamHome() {
           <CrisisReportCard report={report} />
         </BentoGrid>
       ) : null}
+
+      {past && past.length > 0 ? <PastRounds rounds={past} /> : null}
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <MyTimeline items={timeline} />
+        <QrCard track={team.track} />
+      </div>
 
       {pulse ? <PulseCard pulse={pulse} mine={company?.ticker ?? null} /> : null}
       <Celebrations
