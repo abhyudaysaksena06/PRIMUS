@@ -214,6 +214,26 @@ in a cooling-off company (the round opens after the clearing that sets it); a co
 sell or cover is refused (`decide_correction`); no deadlock between the clearing and team actions; the IPO cannot be
 over-allocated; integer ranges are ample.
 
+F7 was fixed in migration 081 (the release also refuses while a round is `OPEN` past its close).
+
+### 4.1 The 80-fund stress test (`supabase/tests/trading-stress.test.ts`, migration 091)
+
+80 squads (80 funds, 80 companies), an oversubscribed IPO, then six rounds in which every fund trades from two
+sessions at once (160 clients, up to 110 connections): random BUY/SELL/SHORT/COVER, edits, cancels, double clicks,
+and in every round insider, oversell, over-cover, long- and short-limit and cooling-off attempts. Between rounds a
+score release (±25%) and the crisis-2 reveal (−5%). Round 5 is a contested boundary: orders keep arriving while the
+round closes and three ticks race to clear it. Measured on the test runner: about 7,400 `place_order` calls,
+p50 ≈ 210 ms, p95 ≈ 400 ms under the full load (each call its own transaction); ~3,100 orders filled; clearing
+ticks 70–300 ms. Checked: no database error reaches a team; the pending book never breaks an entry rule although
+a fund's sessions race; every clearing equals the engine (±10% cap, every fill); no trade in a cooling-off company;
+no fund below $0; ledger, cash and the 100,000 shares conserved; exactly one clearing per round under racing ticks;
+every accepted boundary order filled at its round's price, the late ones refused `TRADING_HALTED`; a second
+`clear_round` is a no-op.
+
+| # | Severity | Finding | Fix |
+| --- | --- | --- | --- |
+| F8 | Low | `place_order` applied the throttle (20 actions per team per 10 s) before recognising a resent `client_ref`, so a busy fund retrying an order whose answer was lost got `RATE_LIMITED` for an order that had been placed (and might place it again later). | Migration 091: the reference is looked up first (read-only, own team), and again under the team lock as before. Test: "a resent order under the throttle". |
+
 ---
 
 ## 5. Residual risks and what staff watch on the night
