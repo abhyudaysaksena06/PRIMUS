@@ -71,6 +71,7 @@ describe("grants", () => {
       "company_sectors",
       "confirm_fee",
       "cooling_off_companies",
+      "crisis_category",
       "decide_correction",
       "decide_flag",
       "delay_step",
