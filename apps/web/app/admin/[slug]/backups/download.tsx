@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
-import { buttonClass } from "@/components/ui/ui";
+import { buttonClass } from "@/app/admin/guide-ui";
 import { backupFileName } from "./backups";
 
 interface Manifest {
@@ -59,7 +59,7 @@ export function DownloadBackup({ id, slug }: { id: number; slug: string }) {
       <button type="button" className={buttonClass.secondary} onClick={download} disabled={busy}>
         {busy ? "Downloading…" : "Download JSON"}
       </button>
-      {state ? <span className="text-xs text-muted">{state}</span> : null}
+      {state ? <span className="guide-muted">{state}</span> : null}
     </span>
   );
 }

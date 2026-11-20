@@ -3,7 +3,7 @@
 // never stores it). The panel shows how far it is and the button prepares it; pressing it again is safe.
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { Badge, Panel } from "@/components/ui/ui";
+import { Badge, Panel } from "@/app/admin/guide-ui";
 import { ActionButton } from "@/components/ui/action";
 import { preparePracticeMarketAction } from "./practice-actions";
 

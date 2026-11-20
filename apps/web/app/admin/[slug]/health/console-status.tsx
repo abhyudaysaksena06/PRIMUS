@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
 import { ago, describeOffset } from "@/lib/admin/health";
 import { useEventChannel } from "@/lib/live/channel";
 import { useClock, useServerNow } from "@/lib/live/clock";
-import { Badge, Notice } from "@/components/ui/ui";
+import { Badge, Notice } from "@/app/admin/guide-ui";
 
 const noSubscription = () => () => {};
 

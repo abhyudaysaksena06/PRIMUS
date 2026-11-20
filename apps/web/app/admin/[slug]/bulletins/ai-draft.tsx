@@ -5,7 +5,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/lib/rpc";
-import { buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass, inputClass } from "@/app/admin/guide-ui";
 import { ResultMessage } from "@/components/ui/result-message";
 import { safely } from "@/components/ui/action-helpers";
 import { draftNews } from "./actions";
@@ -33,7 +33,7 @@ export function AiDraft({ eventId }: { eventId: string }) {
 
   return (
     <div ref={box} className="space-y-2 rounded-md border border-line p-3" data-testid="ai-draft">
-      <span className="text-xs font-medium text-paper">Draft with AI (optional): what is the news about?</span>
+      <span className="guide-label">Draft with AI (optional): what is the news about?</span>
       <div className="flex flex-wrap gap-2">
         <input
           value={angle}

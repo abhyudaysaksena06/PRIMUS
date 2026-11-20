@@ -6,7 +6,7 @@ import { loadLotteryEvent, loadLotteryRows } from "@/lib/admin/lottery-data";
 import { buildLotteryRecord, checkDraw, recordFileName, squadViews, type LotteryRows, type SquadView } from "@/lib/admin/lottery";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, dateTime } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, Td, inputClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, Td, inputClass } from "@/app/admin/guide-ui";
 import { ActionForm, ConfirmForm } from "@/components/ui/action";
 import { runLottery, setSeedCommitment } from "./actions";
 
@@ -43,7 +43,7 @@ function CommitmentPanel({ eventId, commitment, setup, organiser }: { eventId: s
         commitment). The seed itself stays secret until the crisis.
       </p>
       <div className="mt-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted">Published commitment</div>
+        <div className="guide-label">Published commitment</div>
         {commitment ? (
           <p className="mt-1 break-all font-mono text-sm" data-testid="commitment">
             {commitment}
@@ -56,13 +56,13 @@ function CommitmentPanel({ eventId, commitment, setup, organiser }: { eventId: s
         organiser ? (
           <ActionForm action={setSeedCommitment.bind(null, eventId)} submit={commitment ? "Replace commitment" : "Save commitment"} className="mt-4 max-w-2xl">
             <label className="block">
-              <span className="text-xs font-medium text-paper">Commitment (64 hex characters)</span>
+              <span className="guide-label">Commitment (64 hex characters)</span>
               <input name="commitment" required minLength={64} maxLength={64} pattern="[0-9a-fA-F]{64}" autoComplete="off" spellCheck={false} className={`${inputClass} font-mono`} />
             </label>
-            <p className="mt-1 text-xs text-muted">It can be replaced while the event is in Setup; it is fixed once the event has started.</p>
+            <p className="guide-muted mt-1">It can be replaced while the event is in Setup; it is fixed once the event has started.</p>
           </ActionForm>
         ) : (
-          <p className="mt-3 text-sm text-muted">An organiser enters the commitment while the event is in Setup.</p>
+          <p className="guide-muted mt-3">An organiser enters the commitment while the event is in Setup.</p>
         )
       ) : (
         <p className="mt-3 text-sm text-paper">
@@ -96,11 +96,11 @@ function DrawPanel({ eventId, phase, commitment, organiser }: { eventId: string;
             className="mt-3 grid max-w-2xl gap-3"
           >
             <label className="block">
-              <span className="text-xs font-medium text-paper">Secret seed (64 hex characters)</span>
+              <span className="guide-label">Secret seed (64 hex characters)</span>
               <input name="seed" type="password" required autoComplete="off" spellCheck={false} className={`${inputClass} font-mono`} />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-paper">Dice roll</span>
+              <span className="guide-label">Dice roll</span>
               <input name="dice" required inputMode="numeric" pattern="[0-9]{1,6}" maxLength={6} autoComplete="off" className={`${inputClass} w-40 font-mono`} />
             </label>
           </ConfirmForm>
@@ -129,11 +129,11 @@ function DrawnPanels({ slug, rows, drawnAt, revealed }: { slug: string; rows: Lo
           />
           <Stat label="Squads" value={squads.length} />
         </div>
-        <div className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">Commitment</div>
+        <div className="guide-label">Commitment</div>
         <p className="break-all font-mono text-sm">{rows.commitment}</p>
         {revealed ? (
           <>
-            <div className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">Seed (revealed)</div>
+            <div className="guide-label">Seed (revealed)</div>
             <p className="break-all font-mono text-sm">{revealed}</p>
           </>
         ) : null}
@@ -169,7 +169,7 @@ function DrawnPanels({ slug, rows, drawnAt, revealed }: { slug: string; rows: Lo
             </Notice>
           )}
         </div>
-        <p className="mt-3 text-xs text-muted">
+        <p className="guide-muted mt-3">
           The record contains the secret seed (staff only until the crisis). Anyone can check it with{" "}
           <code className="font-mono">pnpm verify-lottery --file {recordFileName(slug)} --commitment &lt;published commitment&gt;</code>.
         </p>

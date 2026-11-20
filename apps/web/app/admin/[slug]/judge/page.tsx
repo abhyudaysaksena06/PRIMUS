@@ -39,7 +39,7 @@ import {
 import { judgeConfig, type JudgeConfig } from "@/lib/judge/config";
 import { fakeJudgeRefusal } from "@/lib/judge";
 import { clock } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, inputClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, inputClass } from "@/app/admin/guide-ui";
 import { ActionButton, ConfirmForm } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
@@ -138,13 +138,13 @@ export default async function JudgePage({
         ))}
       </div>
 
-      <nav className="adm-tabs" aria-label="Submission type">
+      <nav className="guide-tabs" aria-label="Submission type">
         {JUDGE_TYPES.map((t) => (
           <Link
             key={t}
             href={`/admin/${slug}/judge?type=${t.toLowerCase()}`}
             aria-current={t === type ? "page" : undefined}
-            className="whitespace-nowrap"
+            className={t === type ? "active" : undefined}
           >
             {TYPE_TITLES[t]}
           </Link>
@@ -199,7 +199,7 @@ export default async function JudgePage({
                 </ActionButton>
               </>
             ) : (
-              <span className="text-sm text-muted">Organisers start the judge, seal and release scores.</span>
+              <span className="guide-muted">Organisers start the judge, seal and release scores.</span>
             )}
           </>
         }
@@ -208,7 +208,7 @@ export default async function JudgePage({
         <div className="mt-4">
           <Rules type={type} deadlines={data.deadlines} />
         </div>
-        {startOff && !released && organiser ? <p className="mt-2 text-sm text-muted">{startOff}</p> : null}
+        {startOff && !released && organiser ? <p className="guide-muted mt-2">{startOff}</p> : null}
         {summary.stale > 0 ? (
           <div className="mt-3">
             <Notice tone="red">
@@ -287,7 +287,7 @@ function JudgeControls({
           {runner ? (
             <JudgeRunner eventId={eventId} fake={config.fake} canRun={organiser || judgeOps} />
           ) : organiser ? null : (
-            <p className="text-sm text-muted">Organisers run the judge.</p>
+            <p className="guide-muted">Organisers run the judge.</p>
           )}
         </div>
         <div className="space-y-2">
@@ -308,7 +308,7 @@ function JudgeControls({
               {sw.label}
             </ActionButton>
           ) : null}
-          <p className="text-xs text-muted">
+          <p className="guide-muted">
             A switch applies to runs claimed from then on; runs already running finish on their model. Every run stores the model that judged it.
           </p>
         </div>
@@ -348,7 +348,7 @@ function Meter({ label, value, max, text }: { label: string; value: number; max:
           <div className={`h-full rounded-full ${full ? "bg-phosphor" : "bg-phosphor-mid"}`} style={{ width: `${pct}%` }} />
         </div>
       ) : (
-        <p className="mt-1 text-xs text-muted">No submissions.</p>
+        <p className="guide-muted mt-1">No submissions.</p>
       )}
     </div>
   );
@@ -502,7 +502,7 @@ function AppealsPanel({ appeals, organiser }: { appeals: AppealView[]; organiser
         title="Appeals and re-runs"
         actions={
           appeals.length ? (
-            <span className="text-sm text-muted">
+            <span className="guide-muted">
               {plural(appeals.length, "re-run")} · {open} open
             </span>
           ) : null
@@ -604,13 +604,13 @@ function AppealCard({ a, organiser }: { a: AppealView; organiser: boolean }) {
               className="max-w-xl"
             >
               <label className="block">
-                <span className="text-xs font-medium text-paper">Reason to keep the released score (at least 5 characters; logged)</span>
+                <span className="guide-label">Reason to keep the released score (at least 5 characters; logged)</span>
                 <textarea name="reason" required minLength={5} maxLength={1000} rows={2} className={inputClass} />
               </label>
             </ConfirmForm>
           </div>
         ) : (
-          <p className="mt-2 text-sm text-muted">Organisers apply or dismiss an appeal.</p>
+          <p className="guide-muted mt-2">Organisers apply or dismiss an appeal.</p>
         )
       ) : null}
     </li>

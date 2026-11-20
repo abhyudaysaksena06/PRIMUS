@@ -10,7 +10,7 @@ import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { SquadChannel } from "@/lib/live/squad-channel";
 import { ChatLive } from "@/components/chat-live";
 import { ScrollToCurrent } from "@/components/scroll-to-current";
-import { Badge, Notice, Panel, buttonClass, inputClass } from "@/components/ui/ui";
+import { Badge, Notice, Panel, buttonClass, inputClass } from "@/app/admin/guide-ui";
 
 export const metadata: Metadata = { title: "Chats" };
 
@@ -161,7 +161,7 @@ export default async function ChatsPage({ params, searchParams }: PageProps<"/ad
         {q.q ? (
           <Panel title={`Messages containing “${q.q}”`}>
             {messages.length === 0 ? (
-              <p className="text-sm text-muted">No message matches.</p>
+              <p className="guide-muted">No message matches.</p>
             ) : (
               <>
                 <ol className="space-y-2" aria-label="Search results">
@@ -169,7 +169,7 @@ export default async function ChatsPage({ params, searchParams }: PageProps<"/ad
                     <Message key={m.id} m={m} showSquad />
                   ))}
                 </ol>
-                {more ? <p className="mt-2 text-xs text-muted">Only the latest {SEARCH_LIMIT} matches are shown.</p> : null}
+                {more ? <p className="guide-muted mt-2">Only the latest {SEARCH_LIMIT} matches are shown.</p> : null}
               </>
             )}
           </Panel>

@@ -15,81 +15,70 @@ import { AdminPageHead, AdminSidebar } from "./nav";
 
 export const metadata: Metadata = { title: { template: "%s · Control panel", default: "Control panel" } };
 
-// Every admin page of one event, in the /demo organiser console's look (admin.css): the sidebar of sections, a top
-// bar with the phase, trading state and server clock, the section's page head; the event's realtime channel (pages refresh on every broadcast) and the heartbeat (an organiser's console also runs
-// the game clock as a backup).
+// Every admin page of one event, in the markup of the /demo organiser console (app/demo/layout.tsx, /demo/admin):
+// .guide-app with the rain, a .guide-top bar (PRIMUS ’26, ORGANISER CONSOLE, the event's phase and trading state on
+// the left; the clock and the projector, events and sign-out links on the right), the .guide-preview-note line, then
+// .guide-content with the section tabs and the section's page head, and the .guide-footer. The event's realtime
+// channel refreshes the pages on every broadcast, and the heartbeat (an organiser's console also runs the game
+// clock as a backup).
 export default async function EventAdminLayout({ children, params }: LayoutProps<"/admin/[slug]">) {
   const { slug } = await params;
   const [viewer, event] = await Promise.all([currentViewer(), loadAdminEvent(slug)]);
   const status = await loadEventStatus(event.id);
   const organiser = viewer!.role === "ORGANISER";
+  const roleLabel = organiser ? "Organiser" : viewer!.role === "FAIRNESS" ? "Fairness officer" : "Staff";
   return (
     <ClockProvider serverTime={status.server_time} pausedAt={status.paused ? status.paused_at : null}>
       <EventChannel eventId={event.id} staff>
         <FeedbackProvider>
-        <Heartbeat eventId={event.id} area="admin" tick={organiser} />
-        <div className="adm-app">
-          <div className="adm-atmosphere" aria-hidden />
-          <MatrixRain opacity={0.2} size={15} tone="green" className="adm-rain" />
-          <AdminSidebar
-            slug={slug}
-            fairness={viewer!.role === "FAIRNESS"}
-            who={viewer!.displayName}
-            roleLabel={organiser ? "Organiser" : "Fairness officer"}
-            signOut={<SignOutButton />}
-          />
-          <div className="adm-main">
-            <header className="adm-top">
-              <div className="adm-top-left">
-                <Link href="/admin">Events</Link>
-                <span className="text-[#5f6672]" aria-hidden>
-                  /
-                </span>
-                <span className="adm-code" aria-hidden>
-                  PRIMUS ’26
-                </span>
-                <h1 className="adm-event-name">{event.name}</h1>
-                {event.is_rehearsal ? (
-                  <span className="adm-pill violet">Rehearsal ×{event.clock_speed}</span>
-                ) : (
-                  <span className="adm-pill green">Live</span>
-                )}
-                <span className="adm-pill gold">{PHASE_LABELS[status.phase]}</span>
-                <span className={`adm-pill ${status.trading === "OPEN" ? "green" : status.trading === "PAUSED" ? "amber" : ""}`}>{status.trading}</span>
+          <Heartbeat eventId={event.id} area="admin" tick={organiser} />
+          <div className="guide-app guide-admin">
+            <div className="guide-atmosphere" aria-hidden />
+            <MatrixRain opacity={0.28} size={15} className="demo-matrix-rain-fixed" />
+            <div className="guide-main" style={{ width: "100%", margin: 0 }}>
+              <header className="guide-top">
+                <div className="guide-top-left">
+                  <span className="guide-team-code">PRIMUS ’26</span>
+                  <b className="guide-phase">ORGANISER CONSOLE</b>
+                  <h1 className="guide-event-name">{event.name}</h1>
+                  <b className="guide-phase">{event.is_rehearsal ? `REHEARSAL ×${event.clock_speed}` : "LIVE"}</b>
+                  <b className="guide-phase">{PHASE_LABELS[status.phase].toUpperCase()}</b>
+                  <span className="guide-trading" data-state={status.trading}>
+                    <i aria-hidden /> TRADING {status.trading}
+                  </span>
+                </div>
+                <div className="guide-top-right">
+                  <RealtimeDot />
+                  <span className="guide-countdown">
+                    <ServerClock /> IST
+                  </span>
+                  <a href={`/display/${slug}`} target="_blank" rel="noreferrer">
+                    PROJECTOR ↗
+                  </a>
+                  <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer">
+                    LIVE WALL ↗
+                  </a>
+                  <Link href="/admin">ALL EVENTS ↗</Link>
+                  <SignOutButton className="no-underline" />
+                </div>
+              </header>
+              <div className="guide-preview-note">
+                ORGANISER ENVIRONMENT · {event.is_rehearsal ? "REHEARSAL" : "LIVE EVENT"} · {event.slug.toUpperCase()} ·{" "}
+                {viewer!.displayName.toUpperCase()} · {roleLabel.toUpperCase()}
               </div>
-              <div className="adm-top-right">
-                <RealtimeDot />
-                <span className="adm-clock">
-                  <ServerClock className="text-base font-semibold" />
-                  <small>IST</small>
-                </span>
-              </div>
-            </header>
-            <div className="adm-note">
-              <span>
-                Organiser console · {event.is_rehearsal ? "rehearsal" : "live event"} · {event.slug}
-              </span>
-              <span className="flex flex-wrap gap-4">
-                <a href={`/display/${slug}`} target="_blank" rel="noreferrer">
-                  Projector ↗
-                </a>
-                <a href={`/display/${slug}/live`} target="_blank" rel="noreferrer">
-                  Live wall ↗
-                </a>
-              </span>
+              <main className="guide-content">
+                <AdminPageHead slug={slug} />
+                <AdminSidebar slug={slug} fairness={viewer!.role === "FAIRNESS"} />
+                <FeedbackBar className="mb-4" />
+                {children}
+              </main>
+              <footer className="guide-footer">
+                <span>PRIMUS ’26 · ORGANISER OPERATIONS</span>
+                <span>SERVER CLOCK · IST</span>
+              </footer>
             </div>
-            <FeedbackBar className="mx-auto w-[min(100%,1500px)] px-7 pt-4" />
-            <main className="adm-content">
-              <AdminPageHead slug={slug} />
-              {children}
-            </main>
-            <footer className="adm-footer">
-              <span>PRIMUS ’26 · ORGANISER OPERATIONS</span>
-              <span>SERVER CLOCK · IST</span>
-            </footer>
           </div>
-        </div>
-      </FeedbackProvider>
+        </FeedbackProvider>
       </EventChannel>
     </ClockProvider>
   );

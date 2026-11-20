@@ -4,7 +4,7 @@ import { loadSquads, loadSubmissions, mark } from "@/lib/admin/tracks-data";
 import { supabaseServer } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/fetch-all";
 import { clock, money } from "@/lib/format";
-import { Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 
 export const metadata: Metadata = { title: "Consulting" };
 
@@ -78,7 +78,7 @@ export default async function ConsultingTrack({ params }: PageProps<"/admin/[slu
             );
           })}
         </Table>
-        <p className="mt-2 text-xs text-muted">Per crisis: how many companies hired the firm, and how many advice memos it handed in.</p>
+        <p className="guide-muted mt-2">Per crisis: how many companies hired the firm, and how many advice memos it handed in.</p>
       </Panel>
 
       {event.format === "PRIMUS" ? (
@@ -100,7 +100,7 @@ export default async function ConsultingTrack({ params }: PageProps<"/admin/[slu
               );
             })}
           </Table>
-          <p className="mt-2 text-xs text-muted">
+          <p className="guide-muted mt-2">
             The heartbeat reveals each crisis at its time, closes hiring, settles escrow at the due time and fills missing ratings with 3. A company with no firm when hiring closes is assigned one at the base fee (Assigned).
           </p>
         </Panel>

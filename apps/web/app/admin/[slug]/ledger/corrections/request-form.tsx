@@ -12,7 +12,7 @@ import type { ActionResult } from "@/lib/rpc";
 import { MAX_ENTRIES } from "@/lib/admin/ledger-corrections";
 import { ResultMessage } from "@/components/ui/action";
 import { safely } from "@/components/ui/action-helpers";
-import { buttonClass, inputClass } from "@/components/ui/ui";
+import { buttonClass, inputClass } from "@/app/admin/guide-ui";
 
 export interface RequestOptions {
   tracks: { track: Track; teams: { id: string; code: string }[] }[];
@@ -54,7 +54,7 @@ export function RequestCorrectionForm({
       }}
     >
       <label className="block">
-        <span className="text-xs font-medium text-paper">Reason (at least 10 characters)</span>
+        <span className="guide-label">Reason (at least 10 characters)</span>
         <textarea name="reason" required rows={2} maxLength={1000} className={inputClass} />
       </label>
       <Entries options={options} />
@@ -79,7 +79,7 @@ function Entries({ options }: { options: RequestOptions }) {
           <legend className="px-1 text-xs font-semibold text-paper">Entry {i + 1}</legend>
           <div className="grid gap-2 sm:grid-cols-5">
             <label className="block">
-              <span className="text-xs font-medium text-paper">Team</span>
+              <span className="guide-label">Team</span>
               <select name="entry_team" defaultValue="" className={inputClass}>
                 <option value="">—</option>
                 {options.tracks.map((t) => (
@@ -94,7 +94,7 @@ function Entries({ options }: { options: RequestOptions }) {
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-paper">Company (optional)</span>
+              <span className="guide-label">Company (optional)</span>
               <select name="entry_company" defaultValue="" className={inputClass}>
                 <option value="">None</option>
                 {options.companies.map((c) => (
@@ -105,7 +105,7 @@ function Entries({ options }: { options: RequestOptions }) {
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-paper">Lot</span>
+              <span className="guide-label">Lot</span>
               <select name="entry_lot" defaultValue="" className={inputClass}>
                 <option value="">None</option>
                 {options.lots.map((l) => (
@@ -116,11 +116,11 @@ function Entries({ options }: { options: RequestOptions }) {
               </select>
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-paper">Cash change ($)</span>
+              <span className="guide-label">Cash change ($)</span>
               <input name="entry_cash" inputMode="decimal" autoComplete="off" placeholder="e.g. 12.34 or -0.50" className={`${inputClass} font-mono`} />
             </label>
             <label className="block">
-              <span className="text-xs font-medium text-paper">Share change</span>
+              <span className="guide-label">Share change</span>
               <input name="entry_shares" inputMode="numeric" autoComplete="off" placeholder="e.g. 100 or -100" className={`${inputClass} font-mono`} />
             </label>
           </div>
@@ -134,7 +134,7 @@ function Entries({ options }: { options: RequestOptions }) {
       <button type="button" onClick={add} disabled={rows.keys.length >= MAX_ENTRIES} className={buttonClass.secondary}>
         Add entry
       </button>
-      <p className="text-xs text-muted">
+      <p className="guide-muted">
         Each entry moves cash or shares between the team and the exchange, which takes the other side. A share change needs a company and a lot
         (RETAINED: the company&apos;s Product team; FEE: a consultant; SQUAD, EXCHANGE, SHORT: a fund). For a SHORT lot, a positive change means
         more shares short.

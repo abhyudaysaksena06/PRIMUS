@@ -17,7 +17,7 @@ import {
 } from "@/lib/admin/ledger";
 import { loadBooks, loadLedgerBase, loadLedgerPage, type BooksStatus } from "@/lib/admin/ledger-data";
 import { clock, count } from "@/lib/format";
-import { Notice, Panel, Table, Td, buttonClass, inputClass } from "@/components/ui/ui";
+import { Notice, Panel, Table, Td, buttonClass, inputClass } from "@/app/admin/guide-ui";
 import { LedgerTabs } from "./tabs";
 
 export const metadata: Metadata = { title: "Ledger" };
@@ -59,7 +59,7 @@ export default async function LedgerPage({
       <Panel title="Ledger">
         <Form action={path} className="flex flex-wrap items-end gap-2">
           <label className="block">
-            <span className="text-xs font-medium text-paper">Team</span>
+            <span className="guide-label">Team</span>
             <select name="team" defaultValue={q.team ?? ""} className={`${inputClass} w-36`}>
               <option value="">All</option>
               <option value={EXCHANGE}>Exchange</option>
@@ -71,7 +71,7 @@ export default async function LedgerPage({
             </select>
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-paper">Kind</span>
+            <span className="guide-label">Kind</span>
             <select name="kind" defaultValue={q.kind ?? ""} className={`${inputClass} w-44`}>
               <option value="">All</option>
               {LEDGER_KINDS.map((k) => (
@@ -82,7 +82,7 @@ export default async function LedgerPage({
             </select>
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-paper">Ticker</span>
+            <span className="guide-label">Ticker</span>
             <select name="ticker" defaultValue={q.ticker ?? ""} className={`${inputClass} w-32`}>
               <option value="">All</option>
               {tickers.map((t) => (

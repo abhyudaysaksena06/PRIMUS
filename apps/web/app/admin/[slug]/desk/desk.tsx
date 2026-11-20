@@ -8,7 +8,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
 import type { ActionResult } from "@/lib/rpc";
-import { Badge, buttonClass, inputClass } from "@/components/ui/ui";
+import { Badge, buttonClass, inputClass } from "@/app/admin/guide-ui";
 import { ResultMessage } from "@/components/ui/result-message";
 import { safely } from "@/components/ui/action-helpers";
 import { admitTeam, checkOut, saveTeam, type DeskMember } from "./actions";

@@ -5,7 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { correctionOptions, correctionViews, type CorrectionEntryLine, type CorrectionView } from "@/lib/admin/ledger-corrections";
 import { loadCorrections, loadLedgerBase } from "@/lib/admin/ledger-data";
 import { clock, dateTime } from "@/lib/format";
-import { Badge, Notice, Panel, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Table, Td } from "@/app/admin/guide-ui";
 import { LedgerTabs } from "../tabs";
 import { decideCorrection, requestCorrection } from "../actions";
 import { DecideCorrection } from "./decide";
@@ -36,7 +36,7 @@ export default async function CorrectionsPage({ params }: { params: Promise<{ sl
 
       <Panel title="Pending corrections">
         {pending.length === 0 ? (
-          <p className="text-sm text-muted">No correction is waiting for a decision.</p>
+          <p className="guide-muted">No correction is waiting for a decision.</p>
         ) : (
           <ol className="space-y-4">
             {pending.map((c, i) => (

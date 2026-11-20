@@ -38,23 +38,10 @@ export function StaffRoleProvider({ role, children }: { role: Role; children: Re
 }
 
 /**
- * The console's sidebar, in the /demo organiser console's look (admin.css): the brand, the role's sections numbered
- * 01, 02 … (the number and the arrow are decoration hidden from screen readers, so each link is named by its label
- * alone), then who is signed in, the projector link, all events and Sign out.
+ * The console's section tabs, as the /demo organiser console draws them (a .guide-tabs strip of capital tabs, the
+ * open one lit): only the role's own sections. Each tab is a link named by its label; its hint is the title.
  */
-export function AdminSidebar({
-  slug,
-  fairness,
-  who,
-  roleLabel,
-  signOut,
-}: {
-  slug: string;
-  fairness: boolean;
-  who: string;
-  roleLabel: string;
-  signOut: ReactNode;
-}) {
+export function AdminSidebar({ slug, fairness }: { slug: string; fairness: boolean }) {
   const role: Role = useContext(RoleContext) ?? (fairness ? "FAIRNESS" : "ORGANISER");
   const pathname = usePathname();
   const router = useRouter();
@@ -68,8 +55,7 @@ export function AdminSidebar({
     if (elsewhere) router.replace(landingFor(role, slug));
   }, [elsewhere, role, slug, router]);
   const nav = useRef<HTMLElement>(null);
-  // Keep the current section in view: on a phone the list scrolls sideways, on a short laptop screen downwards. Only
-  // the list scrolls (scrollIntoView would also scroll the page, losing the reader's place on a reload or a #link).
+  // Keep the current tab in view when the strip scrolls sideways (a phone). Only the strip scrolls.
   useEffect(() => {
     const row = nav.current;
     const tab = row?.querySelector<HTMLElement>('[aria-current="page"]');
@@ -77,68 +63,25 @@ export function AdminSidebar({
     const r = row.getBoundingClientRect();
     const t = tab.getBoundingClientRect();
     if (t.left < r.left || t.right > r.right) row.scrollLeft += t.left - r.left - (r.width - t.width) / 2;
-    if (t.top < r.top || t.bottom > r.bottom) row.scrollTop += t.top - r.top - (r.height - t.height) / 2;
   }, [pathname]);
-  const initials =
-    who
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]!.toUpperCase())
-      .join("") || "OR";
   return (
-    <aside className="adm-sidebar">
-      <Link href={base} className="adm-brand" aria-label="PRIMUS control panel">
-        {/* eslint-disable-next-line @next/next/no-img-element -- a small static SVG, as on /demo */}
-        <img src="/primus-logo-light.svg" alt="" />
-        <span>
-          <b>
-            PRIMUS <i>’26</i>
-          </b>
-          <small>ORGANISER CONSOLE</small>
-        </span>
-      </Link>
-      <div className="adm-nav-label" aria-hidden>
-        {role === "ORGANISER" || role === "FAIRNESS" ? "EVENT CONTROL" : "STAFF DESK"} <b>{"///"}</b>
-      </div>
-      <nav ref={nav} className="adm-nav" aria-label="Sections">
-        {tabs.map((s, i) => {
-          const href = `${base}${s.path}`;
-          const active = s.path === "" ? pathname === base : pathname.startsWith(href);
-          return (
-            <Link
-              key={s.path}
-              href={href}
-              aria-current={active ? "page" : undefined}
-              title={s.hint}
-              className={s.path === "/fairness" && fairness ? "adm-strong" : undefined}
-            >
-              <small aria-hidden>{String(i + 1).padStart(2, "0")}</small>
-              <span>{s.label}</span>
-              <i aria-hidden>↗</i>
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="adm-side-bottom">
-        <div className="adm-who">
-          <div className="adm-avatar" aria-hidden>
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <b>{who}</b>
-            <small>{roleLabel.toUpperCase()}</small>
-          </div>
-        </div>
-        <div className="adm-side-links">
-          <a href={`/display/${slug}`} target="_blank" rel="noreferrer">
-            ↗ Projector display
-          </a>
-          <Link href="/admin">← All events</Link>
-          {signOut}
-        </div>
-      </div>
-    </aside>
+    <nav ref={nav} className="guide-tabs guide-admin-tabs" aria-label="Sections">
+      {tabs.map((s) => {
+        const href = `${base}${s.path}`;
+        const active = s.path === "" ? pathname === base : pathname.startsWith(href);
+        return (
+          <Link
+            key={s.path}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            title={s.hint}
+            className={[active ? "active" : "", s.path === "/fairness" && fairness ? "strong" : ""].join(" ").trim() || undefined}
+          >
+            {s.label}
+          </Link>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -155,12 +98,12 @@ export function AdminPageHead({ slug }: { slug: string }) {
   if (!section) return null;
   const sub = section.path !== "" && here !== section.path ? here.slice(section.path.length + 1).split("/")[0] : null;
   return (
-    <div className="adm-head">
+    <div className="guide-page-head">
       <small>
-        Organiser / {section.label}
-        {sub ? ` / ${sub.replace(/-/g, " ")}` : ""}
+        ORGANISER / {section.label.toUpperCase()}
+        {sub ? ` / ${sub.replace(/-/g, " ").toUpperCase()}` : ""}
       </small>
-      <p className="adm-title">{section.label}.</p>
+      <p className="guide-page-title">{section.label}.</p>
       <p>{section.hint}.</p>
     </div>
   );

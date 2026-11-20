@@ -15,7 +15,7 @@ import {
 } from "@/lib/admin/content-bulletins";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, dateTime } from "@/lib/format";
-import { Badge, Notice, Panel, inputClass, type Tone } from "@/components/ui/ui";
+import { Badge, Notice, Panel, inputClass, type Tone } from "@/app/admin/guide-ui";
 import { ActionButton, ConfirmForm } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
 import { publishBulletin, publishFlashBulletin } from "./actions";
@@ -56,7 +56,7 @@ export default async function BulletinsPage({ params }: { params: Promise<{ slug
             >
               <AiDraft eventId={event.id} />
               <label className="block max-w-xs">
-                <span className="text-xs font-medium text-paper">Kind</span>
+                <span className="guide-label">Kind</span>
                 <select name="kind" defaultValue="GENERAL" className={inputClass}>
                   {COMPOSER_KINDS.map((k) => (
                     <option key={k} value={k}>
@@ -66,14 +66,14 @@ export default async function BulletinsPage({ params }: { params: Promise<{ slug
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-paper">Title (up to {TITLE_MAX} characters)</span>
+                <span className="guide-label">Title (up to {TITLE_MAX} characters)</span>
                 <input name="title" required maxLength={TITLE_MAX} autoComplete="off" className={inputClass} />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-paper">Body (up to {BODY_MAX.toLocaleString("en-US")} characters)</span>
+                <span className="guide-label">Body (up to {BODY_MAX.toLocaleString("en-US")} characters)</span>
                 <textarea name="body" rows={5} maxLength={BODY_MAX} className={inputClass} />
               </label>
-              <p className="text-xs text-muted">
+              <p className="guide-muted">
                 A bulletin appears at once on every team screen and the big screen, and cannot be withdrawn. The flash bulletin is prepared under{" "}
                 <Link href={`/admin/${slug}/content`} className="underline">
                   Content
@@ -88,7 +88,7 @@ export default async function BulletinsPage({ params }: { params: Promise<{ slug
 
         <Panel title={`All bulletins (${rows.length})`}>
           {rows.length === 0 ? (
-            <p className="text-sm text-muted">No bulletins yet.</p>
+            <p className="guide-muted">No bulletins yet.</p>
           ) : (
             <ul className="divide-y divide-line" aria-label="Bulletins">
               {rows.map((b) => (
@@ -162,8 +162,8 @@ export default async function BulletinsPage({ params }: { params: Promise<{ slug
               >
                 Publish the flash bulletin
               </ActionButton>
-              {flash.blocked ? <p className="mt-2 text-xs text-muted">{flash.blocked}</p> : null}
-              <p className="mt-2 text-xs text-muted">Publishing opens the flash answers; it is done once, at 04:00.</p>
+              {flash.blocked ? <p className="guide-muted mt-2">{flash.blocked}</p> : null}
+              <p className="guide-muted mt-2">Publishing opens the flash answers; it is done once, at 04:00.</p>
             </div>
           ) : null}
         </Panel>

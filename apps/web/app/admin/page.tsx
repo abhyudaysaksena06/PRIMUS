@@ -6,7 +6,8 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { MatrixRain } from "@/components/ui/matrix/matrix-rain";
 import { dateTime } from "@/lib/format";
 
-// The events this account can run: the live night and any rehearsal, in the /demo organiser console's look.
+// The events this account can run (the live night and any rehearsal), in the markup of the /demo organiser
+// console: .guide-app, a .guide-top bar, the preview note, a page head and one .guide-metric card per event.
 export default async function AdminHome() {
   const viewer = (await currentViewer())!;
   const sb = await supabaseServer();
@@ -16,64 +17,70 @@ export default async function AdminHome() {
     .order("is_rehearsal")
     .order("starts_at");
   return (
-    <div className="adm-app">
-      <div className="adm-atmosphere" aria-hidden />
-      <MatrixRain opacity={0.2} size={15} tone="green" className="adm-rain" />
-      <header className="adm-top relative z-10">
-        <div className="adm-top-left">
-          <span className="adm-code">PRIMUS ’26</span>
-          <span className="adm-pill gold">Organiser console</span>
-          <span className="text-[13px] text-[#9ba2ad]">
-            {viewer.displayName} · {viewer.role === "FAIRNESS" ? "Fairness officer" : "Organiser"}
-          </span>
-        </div>
-        <div className="adm-top-right adm-side-links">
-          <SignOutButton />
-        </div>
-      </header>
-      <main className="adm-index">
-        <div className="adm-head">
-          <small>Organiser / event control</small>
-          <h1 className="adm-title">Control panel</h1>
-          <p>Pick the event to run: the live night or a rehearsal. Every button inside acts on that event only.</p>
-        </div>
-        <section aria-label="Events">
-          <p className="adm-mono-label mb-3">Events</p>
-          {!events?.length ? (
-            <div className="adm-metric">
-              <p className="text-sm text-[#cbd0d9]">No event has been seeded yet (see the README, “Seed an event”).</p>
+    <div className="guide-app guide-admin">
+      <div className="guide-atmosphere" aria-hidden />
+      <MatrixRain opacity={0.28} size={15} className="demo-matrix-rain-fixed" />
+      <div className="guide-main" style={{ width: "100%", margin: 0 }}>
+        <header className="guide-top">
+          <div className="guide-top-left">
+            <span className="guide-team-code">PRIMUS ’26</span>
+            <b className="guide-phase">ORGANISER CONSOLE</b>
+            <span>
+              {viewer.displayName} · {viewer.role === "FAIRNESS" ? "Fairness officer" : "Organiser"}
+            </span>
+          </div>
+          <div className="guide-top-right">
+            <SignOutButton className="no-underline" />
+          </div>
+        </header>
+        <div className="guide-preview-note">ORGANISER ENVIRONMENT · PICK AN EVENT</div>
+        <main className="guide-content">
+          <div className="guide-page-head">
+            <small>ORGANISER / EVENT CONTROL</small>
+            <h1>Control panel</h1>
+            <p>Pick the event to run: the live night or a rehearsal. Every button inside acts on that event only.</p>
+          </div>
+          <section aria-label="Events" className="guide-panel">
+            <div className="guide-panel-head">
+              <h2>Events</h2>
+              <span>ORGANISER ONLY</span>
             </div>
-          ) : (
-            <div className="grid gap-[14px] md:grid-cols-2">
-              {events.map((e) => (
-                <Link
-                  key={e.slug}
-                  href={`/admin/${e.slug}/run`}
-                  className="adm-metric flex flex-col justify-between gap-3 transition-colors hover:border-[rgba(255,216,77,.45)]"
-                >
-                  <span>
-                    <span className="adm-label block" aria-hidden>
-                      &gt; ./{e.slug}
-                    </span>
-                    <span className="adm-value block">{e.name}</span>
-                    <span className="flex flex-wrap items-center gap-2">
-                      {e.is_rehearsal ? <span className="adm-pill violet">Rehearsal ×{e.clock_speed}</span> : <span className="adm-pill green">Live</span>}
-                      <span className="text-[13px] text-[#9ba2ad]">Starts {dateTime(e.starts_at)} IST</span>
-                    </span>
-                  </span>
-                  <span className="adm-delta flex flex-wrap items-center gap-2">
-                    {PHASE_LABELS[e.current_phase as PhaseCode]}
-                    {e.paused ? <span className="adm-pill amber">Paused</span> : null}
-                    <span className="ml-auto" aria-hidden>
-                      OPEN ↗
-                    </span>
-                  </span>
-                </Link>
-              ))}
+            <div className="guide-panel-body">
+              {!events?.length ? (
+                <p className="guide-muted">No event has been seeded yet (see the README, “Seed an event”).</p>
+              ) : (
+                <div className="guide-grid two">
+                  {events.map((e) => (
+                    <Link key={e.slug} href={`/admin/${e.slug}/run`} className="guide-metric guide-metric-link">
+                      <small aria-hidden>&gt; ./{e.slug}</small>
+                      <b>{e.name}</b>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <i className="guide-chip" data-tone={e.is_rehearsal ? "violet" : "green"}>
+                          {e.is_rehearsal ? `Rehearsal ×${e.clock_speed}` : "Live"}
+                        </i>
+                        {PHASE_LABELS[e.current_phase as PhaseCode]}
+                        {e.paused ? (
+                          <i className="guide-chip" data-tone="amber">
+                            Paused
+                          </i>
+                        ) : null}
+                        <em className="guide-muted not-italic">Starts {dateTime(e.starts_at)} IST</em>
+                        <em className="ml-auto not-italic" aria-hidden>
+                          OPEN ↗
+                        </em>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </section>
-      </main>
+          </section>
+        </main>
+        <footer className="guide-footer">
+          <span>PRIMUS ’26 · ORGANISER OPERATIONS</span>
+          <span>SERVER CLOCK · IST</span>
+        </footer>
+      </div>
     </div>
   );
 }

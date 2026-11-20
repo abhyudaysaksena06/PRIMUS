@@ -5,7 +5,7 @@ import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { buildRunSheet, phaseName, type SheetDeadline, type SheetPhase, type SheetSubround, type Step } from "@/lib/admin/run-sheet";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock } from "@/lib/format";
-import { Badge, Notice, Panel, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Table, Td } from "@/app/admin/guide-ui";
 import { ActionButton } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
 import { RefreshAt } from "@/lib/live/refresh-at";
@@ -122,13 +122,11 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
 
       {/* ── Now: where the night is and the main buttons ── */}
       <Panel title="Now">
-        <div className="adm-metrics">
-          <div className="adm-metric">
-            <div className="adm-label">Current phase</div>
-            <div className="adm-value" data-testid="run-phase">
-              {phaseName(status.phase)}
-            </div>
-            <div className="adm-delta">
+        <div className="guide-grid three">
+          <div className="guide-metric">
+            <small>Current phase</small>
+            <b data-testid="run-phase">{phaseName(status.phase)}</b>
+            <div className="guide-status">
               {status.paused ? (
                 <Badge tone="amber">Paused since {clock(status.paused_at)}</Badge>
               ) : manual ? (
@@ -140,14 +138,12 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
               ) : null}
             </div>
           </div>
-          <div className="adm-metric">
-            <div className="adm-label">Next step</div>
+          <div className="guide-metric">
+            <small>Next step</small>
             {next ? (
               <>
-                <div className="adm-value" data-testid="run-next">
-                  {next.label}
-                </div>
-                <div className="adm-delta">
+                <b data-testid="run-next">{next.label}</b>
+                <div className="guide-status">
                   {holding ? (
                     <Badge tone="amber">Waiting for you</Badge>
                   ) : (
@@ -158,15 +154,13 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
                 </div>
               </>
             ) : (
-              <div className="adm-delta">Nothing more in this phase. Start the next phase when you are ready.</div>
+              <div className="guide-status">Nothing more in this phase. Start the next phase when you are ready.</div>
             )}
           </div>
-          <div className="adm-metric">
-            <div className="adm-label">Trading</div>
-            <div className="adm-value">
-              {open ? `Window ${open.number} open` : status.paused ? "Paused" : "Closed"}
-            </div>
-            <div className="adm-delta">
+          <div className="guide-metric">
+            <small>Trading</small>
+            <b>{open ? `Window ${open.number} open` : status.paused ? "Paused" : "Closed"}</b>
+            <div className="guide-status">
               {open ? (
                 <>
                   Closes in <Countdown to={open.closes_at} />
@@ -181,7 +175,7 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
         </div>
 
         {organiser ? (
-          <div className="mt-4 flex flex-wrap items-start gap-3 border-t border-line pt-4">
+          <div className="mt-4 flex flex-wrap items-start gap-3 border-t border-[#292e38] pt-4">
             {nextPhase ? (
               <ActionButton
                 action={startNextPhase.bind(null, event.id, status.phase, phaseName(nextPhase))}
@@ -283,15 +277,15 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
             {st.groups.map((g) => (
               <div
                 key={g.key}
-                className={g.title ? "adm-group p-3" : st.groups.length > 2 ? "md:col-span-2" : ""}
+                className={g.title ? "guide-group p-3" : st.groups.length > 2 ? "md:col-span-2" : ""}
                 data-testid={g.title ? `group-${g.key}` : undefined}
               >
-                {g.title ? <h3 className="adm-group-title mb-2">{g.title}</h3> : null}
+                {g.title ? <h3 className="mb-2">{g.title}</h3> : null}
                 <ol className="space-y-2">
                   {g.steps.map((s) => (
                     <li
                       key={s.key}
-                      className="adm-step flex flex-wrap items-center justify-between gap-2 px-2 py-1.5"
+                      className={`guide-row flex-wrap justify-between ${s.state === "NOW" ? "current" : s.state === "DONE" ? "done" : ""}`}
                       data-state={s.state}
                       data-testid={`step-${s.key}`}
                     >
@@ -300,7 +294,7 @@ export default async function RunPage({ params }: PageProps<"/admin/[slug]/run">
                         <span className={`text-sm ${s.state === "DONE" ? "text-[#8f96a2]" : "text-[#e6e8ed]"}`}>{s.label}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-sm">
-                        <span className="adm-time">
+                        <span className="guide-time w-auto">
                           {s.doneAt ? clock(s.doneAt) : clock(s.at)}
                           {s.state === "NEXT" && holding ? (
                             <span className="ml-2 text-warn">waiting for you</span>

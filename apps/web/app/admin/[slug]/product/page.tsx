@@ -4,7 +4,7 @@ import { loadSquads, loadSubmissions, mark } from "@/lib/admin/tracks-data";
 import { supabaseServer } from "@/lib/supabase/server";
 import { money } from "@/lib/format";
 import { equityText } from "@/lib/team/equity";
-import { Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Notice, Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 import { Countdown } from "@/components/ui/countdown";
 
 export const metadata: Metadata = { title: "Product" };
@@ -69,7 +69,7 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
 
       <Panel title="Companies">
         {companies.length === 0 ? (
-          <p className="text-sm text-muted">The companies appear after the squad draw.</p>
+          <p className="guide-muted">The companies appear after the squad draw.</p>
         ) : (
           <Table head={["Squad", "Team", "Company", "Sector", "PRD", "Crisis 1", "Crisis 2", "Crisis 3", "Crisis 4", "Statement", "Solution", "Price"]} label="Companies">
             {companies.map((s) => (
@@ -91,7 +91,7 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
             ))}
           </Table>
         )}
-        <p className="mt-2 text-xs text-muted">✓ submitted · ✓ auto: the last saved draft, submitted for the team at the deadline · — nothing yet.</p>
+        <p className="guide-muted mt-2">✓ submitted · ✓ auto: the last saved draft, submitted for the team at the deadline · — nothing yet.</p>
       </Panel>
 
       {event.format === "PRIMUS" ? (
@@ -142,7 +142,7 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
               })}
             </Table>
           ) : null}
-          <p className="mt-2 text-xs text-muted">* given by default (no pick in time).</p>
+          <p className="guide-muted mt-2">* given by default (no pick in time).</p>
         </Panel>
       ) : null}
 
@@ -161,7 +161,7 @@ export default async function ProductTrack({ params }: PageProps<"/admin/[slug]/
               </tr>
             ))}
           </Table>
-          <p className="mt-2 text-xs text-muted">
+          <p className="guide-muted mt-2">
             Funded: {raiseRows.filter((r) => r.status === "FUNDED").length} raises,{" "}
             {money(raiseRows.filter((r) => r.status === "FUNDED").reduce((t, r) => t + Number(r.cash_cents ?? 0), 0))} paid by funds.
           </p>

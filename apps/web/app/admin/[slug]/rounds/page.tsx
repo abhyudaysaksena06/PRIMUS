@@ -6,7 +6,7 @@ import { loadRoundsData } from "@/lib/admin/rounds-data";
 import { aggregateOrders, ipoBook, orderLines, previewClearing, roundHistory, roundWait, signedCount, signedMoney } from "@/lib/admin/rounds";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, count, money } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 import { ActionButton } from "@/components/ui/action";
 import { Countdown } from "@/components/ui/countdown";
 import { closeRound } from "./actions";
@@ -199,7 +199,7 @@ export default async function RoundsPage({ params }: PageProps<"/admin/[slug]/ro
 
       <Panel title="Cleared rounds">
         {history.length === 0 ? (
-          <p className="text-sm text-muted">No round has cleared yet.</p>
+          <p className="guide-muted">No round has cleared yet.</p>
         ) : (
           <div className="space-y-2">
             {history.map((r, i) => (

@@ -3,7 +3,7 @@ import { DEADLINE_LABELS, PHASE_LABELS, type DeadlineCode, type PhaseCode } from
 import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock } from "@/lib/format";
-import { Badge, Panel, Table, Td } from "@/components/ui/ui";
+import { Badge, Panel, Table, Td } from "@/app/admin/guide-ui";
 import { Countdown } from "@/components/ui/countdown";
 
 export const metadata: Metadata = { title: "Schedule" };

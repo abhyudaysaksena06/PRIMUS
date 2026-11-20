@@ -1,543 +1,280 @@
-/* The organiser console's shell, in the look of the /demo organiser console (app/demo/demo.css, .guide-*): a dark
-   slate canvas, a fixed sidebar of numbered sections, a thin top bar of monospace chips, a page head with an amber
-   eyebrow and a large green title, and squared panels and metric tiles. Every class is prefixed adm- so it can never
-   touch another area once loaded. */
+/* The organiser console is drawn with the /demo organiser console's own classes (app/demo/demo.css: .guide-app,
+   .guide-top, .guide-preview-note, .guide-content, .guide-page-head, .guide-tabs, .guide-panel, .guide-metric,
+   .guide-table, .guide-chip, .guide-alert, .guide-btn, .guide-input). This file only adds what the demo has no rule
+   for, because the real console has it and the preview does not: section tabs that are links, a page title that is
+   not a heading, toned chips and notices, a red key, the shared action buttons (mx-key) drawn as .guide-btn, and the
+   few list rows of the run sheet. Every rule is scoped to .guide-admin. */
 
-.adm-app {
-  --adm-bg: #090b10;
-  --adm-side: #080a0e;
-  --adm-line: #252a33;
-  --adm-line-2: #292e38;
-  --adm-text: #e6e8ed;
-  --adm-dim: #9ba2ad;
-  --adm-faint: #6f7682;
-  --adm-green: #39ff88;
-  --adm-gold: #ffd84d;
-  --adm-gold-soft: rgba(255, 216, 77, 0.08);
-  --adm-gold-line: rgba(255, 216, 77, 0.3);
-  --adm-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  position: relative;
-  min-height: 100vh;
-  background: var(--adm-bg);
-  color: var(--adm-text);
-}
-html:has(.adm-app),
-body:has(.adm-app) {
-  background: #090b10;
-  scrollbar-color: #555b66 #101319;
-}
-.adm-atmosphere {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 72% -12%, rgba(150, 155, 168, 0.055), transparent 48%),
-    repeating-linear-gradient(0deg, rgba(70, 240, 151, 0.012) 0 1px, transparent 1px 4px);
-}
-.adm-rain {
-  position: fixed !important;
-  inset: 0;
-  z-index: 0;
-  width: 100% !important;
-  height: 100% !important;
-  pointer-events: none;
-  mix-blend-mode: screen;
-}
-
-/* ── Sidebar ── */
-.adm-sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 20;
-  display: flex;
-  width: 232px;
+.guide-admin {
+  --track-accent: #ffd84d;
+  --track-soft: rgba(255, 216, 77, 0.08);
+  --track-line: rgba(255, 216, 77, 0.3);
   flex-direction: column;
-  padding: 20px 14px 14px;
-  background: var(--adm-side);
-  border-right: 1px solid var(--adm-line);
 }
-.adm-brand {
+.guide-admin .guide-main {
   display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 2px 7px 20px;
-  border-bottom: 1px solid var(--adm-line);
-  color: #eaffef;
-  text-decoration: none;
+  flex-direction: column;
+  min-height: 100vh;
 }
-.adm-brand img {
-  width: 44px;
-  height: 34px;
-  object-fit: contain;
-}
-.adm-brand b {
-  display: block;
-  font: 800 13px var(--adm-mono);
-  letter-spacing: 0.1em;
-}
-.adm-brand b i {
-  color: var(--adm-green);
-  font-style: normal;
-}
-.adm-brand small {
-  display: block;
-  margin-top: 5px;
-  color: var(--adm-faint);
-  font: 700 8px var(--adm-mono);
-  letter-spacing: 0.22em;
-}
-.adm-nav-label {
-  margin: 20px 8px 10px;
-  color: var(--adm-faint);
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.17em;
-}
-.adm-nav-label b {
-  margin-left: 8px;
-  color: var(--adm-gold);
-}
-.adm-nav {
-  display: grid;
-  gap: 2px;
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-.adm-nav a {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 9px;
-  border: 1px solid transparent;
-  color: #a5aab5;
-  font-size: 13px;
-  line-height: 1.25;
-  text-decoration: none;
-  transition: background-color 0.18s, border-color 0.18s, color 0.18s;
-}
-.adm-nav a small {
-  min-width: 15px;
-  color: #5f6672;
-  font: 700 10px var(--adm-mono);
-}
-.adm-nav a i {
-  margin-left: auto;
-  color: var(--adm-gold);
-  font-style: normal;
-  opacity: 0;
-}
-.adm-nav a:hover,
-.adm-nav a[aria-current="page"] {
-  background: var(--adm-gold-soft);
-  border-color: var(--adm-gold-line);
-  color: #f0f1f4;
-}
-.adm-nav a[aria-current="page"] small,
-.adm-nav a[aria-current="page"] i,
-.adm-nav a:hover i {
-  color: var(--adm-gold);
-  opacity: 1;
-}
-.adm-nav a.adm-strong {
-  font-weight: 700;
-}
-.adm-side-bottom {
-  display: grid;
-  gap: 10px;
-  margin-top: auto;
-  padding-top: 13px;
-  border-top: 1px solid var(--adm-line);
-}
-.adm-online {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--adm-dim);
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.12em;
-}
-.adm-who {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-.adm-avatar {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  place-items: center;
-  border: 1px solid var(--adm-gold-line);
-  background: var(--adm-gold-soft);
-  color: var(--adm-gold);
-  font: 800 12px var(--adm-mono);
-}
-.adm-who b {
-  display: block;
-  overflow: hidden;
-  color: #f0f1f4;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.adm-who small {
-  display: block;
-  color: var(--adm-gold);
-  font: 700 8px var(--adm-mono);
-  letter-spacing: 0.1em;
-}
-.adm-side-links {
-  display: grid;
-  gap: 7px;
-}
-.adm-side-links a,
-.adm-side-links button {
-  justify-self: start;
-  color: #8a919c;
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.1em;
-  text-decoration: none;
-}
-.adm-side-links a:hover,
-.adm-side-links button:hover {
-  color: var(--adm-gold);
-}
-
-/* ── Main column ── */
-.adm-main {
-  position: relative;
-  z-index: 1;
-  min-width: 0;
-  margin-left: 232px;
-}
-.adm-top {
-  position: sticky;
-  top: 0;
-  z-index: 15;
-  display: flex;
-  min-height: 54px;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px 14px;
-  padding: 9px 26px;
-  border-bottom: 1px solid var(--adm-line);
-  background: rgba(9, 11, 16, 0.96);
-  backdrop-filter: blur(8px);
-}
-.adm-top-left,
-.adm-top-right {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 12px;
-}
-.adm-top-left a {
-  color: var(--adm-dim);
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.1em;
-  text-decoration: none;
-}
-.adm-top-left a:hover {
-  color: var(--adm-gold);
-}
-.adm-event-name {
-  color: #f0f1f4;
-  font-size: 14px;
-  font-weight: 650;
-}
-.adm-code {
-  color: var(--adm-gold);
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.1em;
-}
-.adm-pill {
-  padding: 5px 8px;
-  border: 1px solid #3a404b;
-  color: #c9ced7;
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.adm-pill.gold {
-  border-color: var(--adm-gold-line);
-  background: var(--adm-gold-soft);
-  color: var(--adm-gold);
-}
-.adm-pill.green {
-  border-color: rgba(57, 255, 136, 0.35);
-  background: rgba(57, 255, 136, 0.08);
-  color: var(--adm-green);
-}
-.adm-pill.amber {
-  border-color: rgba(255, 176, 0, 0.45);
-  background: rgba(255, 176, 0, 0.1);
-  color: #ffb000;
-}
-.adm-pill.violet {
-  border-color: rgba(169, 139, 255, 0.45);
-  background: rgba(169, 139, 255, 0.1);
-  color: #c9b8ff;
-}
-.adm-clock {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  color: #f0f1f4;
-  font-family: var(--adm-mono);
-}
-.adm-clock small {
-  color: var(--adm-faint);
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.12em;
-}
-.adm-note {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 6px 16px;
-  padding: 7px 26px;
-  border-bottom: 1px solid rgba(77, 151, 94, 0.16);
-  background: #09150d;
-  color: #6d8a73;
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-.adm-note a {
-  color: #8fbf9a;
-  text-decoration: none;
-}
-.adm-note a:hover {
-  color: var(--adm-green);
-}
-.adm-content {
+.guide-admin .guide-content {
+  flex: 1;
   width: min(100%, 1500px);
   margin: 0 auto;
-  padding: 26px 28px 44px;
-}
-.adm-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 15px 28px;
-  border-top: 1px solid var(--adm-line-2);
-  color: #5f6672;
-  font: 700 8px var(--adm-mono);
-  letter-spacing: 0.12em;
 }
 
-/* ── Page head ── */
-.adm-head {
-  margin-bottom: 22px;
+/* The top bar: the event's name sits between the demo's chips; the links read like the demo's. */
+.guide-admin .guide-event-name {
+  margin: 0;
+  color: #e6e8ed;
+  font-size: 12px;
+  font-weight: 700;
 }
-.adm-head small {
-  color: var(--adm-gold);
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.19em;
-  text-transform: uppercase;
-}
-.adm-head .adm-title {
-  margin: 10px 0 6px;
-  color: var(--adm-green);
-  font: 750 clamp(28px, 3.2vw, 42px) / 1.1 var(--adm-mono);
-  letter-spacing: -0.04em;
-}
-.adm-head p:last-child {
-  max-width: 780px;
-  color: var(--adm-dim);
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-/* ── Metric tiles (Run page "Now", overview) ── */
-.adm-metrics {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.adm-metric {
-  min-width: 0;
-  padding: 15px 16px;
-  border: 1px solid var(--adm-line-2);
-  background: linear-gradient(145deg, #11141b, #0c0f15);
-}
-.adm-metric .adm-label {
-  color: #8f96a2;
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-.adm-metric .adm-value {
-  margin: 9px 0 6px;
-  color: #f0f1f4;
-  font: 700 22px / 1.2 var(--adm-mono);
-  letter-spacing: -0.01em;
-}
-.adm-metric .adm-delta {
-  color: var(--adm-gold);
-  font: 700 11px / 1.5 var(--adm-mono);
-}
-
-/* ── Rows of links (to-do, big screens, tracks) ── */
-.adm-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--adm-line-2);
-  background: rgba(17, 20, 27, 0.85);
-  color: #d2d5dc;
-  font-size: 13px;
+.guide-admin .guide-top-right a {
+  color: #9ba2ad;
   text-decoration: none;
-  transition: border-color 0.16s, background-color 0.16s;
 }
-.adm-row:hover {
-  border-color: var(--adm-gold-line);
-  background: var(--adm-gold-soft);
+.guide-admin .guide-top-right a:hover {
+  color: var(--track-accent);
 }
-.adm-row b {
-  color: #f0f1f4;
-}
-.adm-row .adm-arrow {
-  color: var(--adm-gold);
-  font-family: var(--adm-mono);
-}
-.adm-row.amber {
-  border-color: rgba(255, 176, 0, 0.5);
-  background: rgba(255, 176, 0, 0.08);
-  color: #ffc94d;
-}
-.adm-row.red {
-  border-color: rgba(255, 59, 59, 0.55);
-  background: rgba(255, 59, 59, 0.08);
-  color: #ff8f8f;
-}
-
-/* Run sheet steps and timeline lines: a mono time on the right, amber for the step that is next. */
-.adm-step {
-  border: 1px solid transparent;
-}
-.adm-step[data-state="NEXT"] {
-  border-color: rgba(255, 216, 77, 0.45);
-  background: rgba(255, 216, 77, 0.06);
-}
-.adm-step[data-state="NOW"] {
-  border-color: rgba(57, 255, 136, 0.3);
-  background: rgba(57, 255, 136, 0.06);
-}
-.adm-group {
-  border: 1px solid var(--adm-line-2);
-  background: rgba(12, 15, 21, 0.7);
-}
-.adm-group-title {
-  color: #f0f1f4;
-  font: 700 12px var(--adm-mono);
-  letter-spacing: 0.06em;
+.guide-admin .guide-top-right button {
   text-transform: uppercase;
 }
-.adm-time {
-  color: var(--adm-gold);
-  font-family: var(--adm-mono);
-  font-variant-numeric: tabular-nums;
+.guide-admin .guide-trading[data-state="PAUSED"] i,
+.guide-admin .guide-trading[data-state="CLOSED"] i {
+  background: #ffb85d !important;
+  box-shadow: none !important;
 }
-.adm-mono-label {
-  color: #8f96a2;
-  font: 700 10px var(--adm-mono);
-  letter-spacing: 0.13em;
+
+/* The section tabs are links: drawn as the demo's .guide-tabs buttons. */
+.guide-admin .guide-tabs a {
+  padding: 8px 11px;
+  border: 1px solid #314b37;
+  color: #92a996;
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
 }
-
-/* The index page (pick an event). */
-.adm-index {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 1100px);
-  margin: 0 auto;
-  padding: 40px 28px;
+.guide-admin .guide-tabs a:hover {
+  color: #e6e8ed;
+  border-color: var(--track-line);
 }
-
-@media (max-width: 1100px) {
-  .adm-sidebar {
-    width: 200px;
-  }
-  .adm-main {
-    margin-left: 200px;
-  }
-  .adm-top,
-  .adm-note {
-    padding-inline: 16px;
-  }
-  .adm-content {
-    padding: 22px 18px 38px;
-  }
+.guide-admin .guide-tabs a.active,
+.guide-admin .guide-tabs a[aria-current="page"] {
+  border-color: var(--track-accent);
+  background: var(--track-soft);
+  color: var(--track-accent);
 }
-/* Phones and narrow windows: the sidebar becomes a block above the page, its sections one scrolling row. */
+.guide-admin .guide-tabs a.strong {
+  border-color: #a98bff;
+}
 @media (max-width: 760px) {
-  .adm-sidebar {
-    position: static;
-    width: auto;
-    padding: 12px 12px 8px;
-    border-right: 0;
-    border-bottom: 1px solid var(--adm-line);
-  }
-  .adm-brand {
-    padding-bottom: 10px;
-  }
-  .adm-nav-label,
-  .adm-side-bottom {
-    display: none;
-  }
-  .adm-nav {
-    display: flex;
-    margin-top: 8px;
+  .guide-admin .guide-admin-tabs {
+    flex-wrap: nowrap;
     overflow-x: auto;
-  }
-  .adm-nav a {
-    white-space: nowrap;
-  }
-  .adm-main {
-    margin-left: 0;
-  }
-  .adm-top {
-    position: static;
-  }
-  .adm-metrics {
-    grid-template-columns: 1fr;
-  }
-  .adm-content {
-    padding: 18px 13px 30px;
+    scrollbar-width: none;
   }
 }
 
-/* Tabs inside a section (judging types, ledger views): the demo's .guide-tabs, the open one in gold. */
-.adm-tabs {
+/* The section's name is the demo's page title, kept out of the heading list (each page has its own headings). */
+.guide-admin .guide-page-title {
+  margin: 12px 0 7px;
+  font-size: clamp(28px, 4vw, 43px);
+  font-weight: 750;
+  letter-spacing: -0.05em;
+  line-height: 1.1;
+  color: #f0f1f4;
+}
+
+/* Panels: actions sit at the right of the head. */
+.guide-admin .guide-panel-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-}
-.adm-tabs > a {
-  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid rgba(185, 192, 207, 0.2);
-  background: rgba(7, 9, 13, 0.9);
-  color: #a5aab5;
-  font: 700 11px var(--adm-mono);
-  letter-spacing: 0.06em;
-  text-decoration: none;
+  margin-left: auto;
 }
-.adm-tabs > a:hover {
-  border-color: var(--adm-gold-line);
+.guide-admin .guide-panel + .guide-panel,
+.guide-admin .guide-panel-body > .guide-panel {
+  margin-top: 14px;
+}
+.guide-admin .guide-panel-head h2 {
   color: #f0f1f4;
 }
-.adm-tabs > a[aria-current="page"] {
-  border-color: var(--adm-gold);
-  background: var(--adm-gold-soft);
-  color: var(--adm-gold);
+
+/* Metrics that are links (the events list). */
+.guide-admin .guide-metric-link {
+  display: block;
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+.guide-admin .guide-metric-link:hover {
+  border-color: var(--track-line) !important;
+}
+.guide-admin .guide-metric b {
+  overflow-wrap: anywhere;
+}
+
+/* Chips by tone (the demo's chip is the accent one). */
+.guide-admin .guide-chip {
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-style: normal;
+  white-space: nowrap;
+}
+.guide-admin .guide-chip[data-tone="slate"] {
+  border-color: #2c313b !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #aab0bc !important;
+}
+.guide-admin .guide-chip[data-tone="green"],
+.guide-admin .guide-chip[data-tone="blue"] {
+  border-color: rgba(57, 255, 136, 0.35) !important;
+  background: rgba(57, 255, 136, 0.08) !important;
+  color: #39ff88 !important;
+}
+.guide-admin .guide-chip[data-tone="red"] {
+  border-color: rgba(255, 95, 95, 0.45) !important;
+  background: rgba(255, 95, 95, 0.08) !important;
+  color: #ff8a8a !important;
+}
+.guide-admin .guide-chip[data-tone="violet"] {
+  border-color: rgba(169, 139, 255, 0.45) !important;
+  background: rgba(169, 139, 255, 0.1) !important;
+  color: #c9b8ff !important;
+}
+
+/* Notices: the demo's alert, its warning, and a red one. */
+.guide-admin .guide-alert {
+  font-size: 12px;
+}
+.guide-admin .guide-alert.guide-danger {
+  border-left-color: #ff5f5f !important;
+  background: rgba(120, 24, 24, 0.2) !important;
+  color: #ffc9c9 !important;
+}
+.guide-admin .guide-alert[data-tone="green"] {
+  border-left-color: #39ff88 !important;
+  background: rgba(57, 255, 136, 0.07) !important;
+}
+
+/* Keys. The shared action buttons (components/ui/action.tsx: mx-key) are drawn as the demo's .guide-btn. */
+.guide-admin .guide-btn,
+.guide-admin .mx-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border: 0;
+  border-radius: 0;
+  background: var(--track-accent);
+  color: #111318;
+  font: 800 9px ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+.guide-admin .guide-btn.secondary,
+.guide-admin .mx-key.mx-key-quiet {
+  background: transparent !important;
+  border: 1px solid #3a404b;
+  color: #d5d9e0 !important;
+}
+.guide-admin .guide-btn.secondary:hover,
+.guide-admin .mx-key.mx-key-quiet:hover {
+  border-color: var(--track-accent);
+  color: var(--track-accent) !important;
+}
+.guide-admin .guide-btn-danger,
+.guide-admin .mx-key.mx-key-danger {
+  background: rgba(255, 95, 95, 0.08) !important;
+  border: 1px solid #ff5f5f;
+  color: #ff8a8a !important;
+}
+.guide-admin .guide-btn:disabled,
+.guide-admin .mx-key:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Fields: the demo's input; selects and text areas take the same class. */
+.guide-admin .guide-input {
+  display: block;
+  border-radius: 0;
+  background: #0b0e14;
+  border-color: #2c313b;
+}
+.guide-admin .guide-input:focus {
+  border-color: var(--track-accent);
+}
+.guide-admin textarea.guide-input {
+  min-height: 105px;
+  resize: vertical;
+  line-height: 1.6;
+}
+.guide-admin label {
+  color: #aab0bc;
+}
+
+/* Tables: hover rows as in the demo ledger. */
+.guide-admin .guide-table tbody tr:hover td {
+  background: rgba(255, 216, 77, 0.03);
+}
+
+/* A row of a list (the overview's to-do, the switches, the run sheet's steps): the demo's timeline rows. */
+.guide-admin .guide-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #292e38;
+  color: #cbd0d9;
+  font-size: 12px;
+  text-decoration: none;
+}
+.guide-admin .guide-row:last-child {
+  border-bottom: 0;
+}
+.guide-admin a.guide-row:hover {
+  color: #f0f1f4;
+}
+.guide-admin .guide-row-arrow {
+  margin-left: auto;
+  color: var(--track-accent);
+  font: 700 9px ui-monospace, monospace;
+}
+.guide-admin .guide-time {
+  width: 4.5rem;
+  flex: none;
+  color: #ffbd66;
+  font: 700 9px ui-monospace, monospace;
+}
+.guide-admin .guide-row.current {
+  background: var(--track-soft);
+  box-shadow: inset 3px 0 0 var(--track-accent);
+  padding-left: 10px;
+}
+.guide-admin .guide-row.done {
+  color: #6f7682;
+}
+.guide-admin .guide-group {
+  border: 1px solid #292e38;
+  background: rgba(255, 255, 255, 0.015);
+}
+.guide-admin .guide-group h3 {
+  color: var(--track-accent);
+  font: 700 8px ui-monospace, monospace;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+/* Anything still drawn by a shared part keeps the console's palette. */
+.guide-admin .mx-eyebrow {
+  color: var(--track-accent);
 }

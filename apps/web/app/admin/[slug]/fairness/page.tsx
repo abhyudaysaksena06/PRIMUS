@@ -23,7 +23,7 @@ import {
 } from "@/lib/admin/fairness";
 import { loadDrillDown, loadFlags, type DrillDown } from "@/lib/admin/fairness-data";
 import { clock, dateTime, money } from "@/lib/format";
-import { Badge, Notice, Panel, Stat, Table, Td, buttonClass, inputClass, type Tone } from "@/components/ui/ui";
+import { Badge, Notice, Panel, Stat, Table, Td, buttonClass, inputClass, type Tone } from "@/app/admin/guide-ui";
 import { ConfirmForm } from "@/components/ui/action";
 import { decideFlag } from "./actions";
 
@@ -109,7 +109,7 @@ export default async function FairnessPage({
         <Panel title="Team drill-down">
           <Form action={`/admin/${slug}/fairness`} className="flex flex-wrap items-end gap-2">
             <label className="block">
-              <span className="text-xs font-medium text-paper">Team code</span>
+              <span className="guide-label">Team code</span>
               <select name="team" defaultValue={team?.code ?? ""} className={`${inputClass} w-36`}>
                 <option value="">Choose…</option>
                 {(["PRODUCT", "CONSULTING", "FINANCE"] as const).map((track) => (
@@ -217,7 +217,7 @@ function DecisionForm({ flagId, codes, label }: { flagId: string; codes: string[
       className="mt-3 border-t border-line pt-3"
     >
       <fieldset>
-        <legend className="text-xs font-medium text-paper">Decision</legend>
+        <legend className="guide-label">Decision</legend>
         <div className="mt-1 flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2">
             <input type="radio" name="decision" value="CLEARED" required />
@@ -230,7 +230,7 @@ function DecisionForm({ flagId, codes, label }: { flagId: string; codes: string[
         </div>
       </fieldset>
       <label className="mt-2 block max-w-xl">
-        <span className="text-xs font-medium text-paper">Reason (at least 5 characters; logged)</span>
+        <span className="guide-label">Reason (at least 5 characters; logged)</span>
         <textarea name="reason" required rows={2} maxLength={1000} className={inputClass} />
       </label>
     </ConfirmForm>

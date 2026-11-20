@@ -2,7 +2,7 @@
 // be left out, so the desk can move or turn away surplus teams first.
 
 import { supabaseServer } from "@/lib/supabase/server";
-import { Notice, Panel } from "@/components/ui/ui";
+import { Notice, Panel } from "@/app/admin/guide-ui";
 
 interface Preview {
   message?: string;

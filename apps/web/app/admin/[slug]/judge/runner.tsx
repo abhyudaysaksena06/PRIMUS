@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, buttonClass } from "@/components/ui/ui";
+import { Badge, buttonClass } from "@/app/admin/guide-ui";
 
 /** What one call of /api/judge/work did (the route's JSON). */
 export interface WorkTurn {

@@ -5,7 +5,7 @@ import { loadAdminEvent, loadEventStatus } from "@/lib/admin/event";
 import { loadSquads } from "@/lib/admin/tracks-data";
 import { supabaseServer } from "@/lib/supabase/server";
 import { clock, count, money } from "@/lib/format";
-import { Badge, Panel, Stat, Table, Td } from "@/components/ui/ui";
+import { Badge, Panel, Stat, Table, Td } from "@/app/admin/guide-ui";
 import { currentViewer } from "@/lib/auth/viewer";
 import { fetchAll } from "@/lib/fetch-all";
 
@@ -73,7 +73,7 @@ export default async function FinanceTrack({ params }: PageProps<"/admin/[slug]/
 
       <Panel title="Practice market · top funds" actions={market && !market.settled_at ? <Badge tone="green">LIVE</Badge> : undefined}>
         {standings.length === 0 ? (
-          <p className="text-sm text-muted">
+          <p className="guide-muted">
             {market ? "No fund has traded yet." : "The practice market opens with Round 1 (the first Finance page opened then prepares it)."}
           </p>
         ) : (
