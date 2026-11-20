@@ -275,6 +275,9 @@ describe("the hiring draw", () => {
       }
       const r = (await n.ok(n.team(D!.p_code), "post_raise", 10_000, "")).raise;
       await n.ok(n.team(fund.f_code), "fund_raise", r.id);
+      // Since migration 079 a raise before the reveal counts as crisis 1's (one raise per crisis): this test only needs
+      // D at its floor, so the first raise is filed under "before crisis 1" to allow the second.
+      if (fund === A) await n.q("update raises set k = 0 where id = $1", [r.id]);
     }
     expect(await retained(n, product(D!), D!.company_id)).toBe(40_000);
 
