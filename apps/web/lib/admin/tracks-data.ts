@@ -3,6 +3,7 @@
 
 import "server-only";
 import { supabaseServer } from "@/lib/supabase/server";
+import { admittedOnly, deskCheckInOn } from "./admitted";
 
 export interface SquadLine {
   id: string;
@@ -22,6 +23,7 @@ export interface TeamRow {
   cash_cents: number | string;
   collateral_cents: number | string;
   disqualified: boolean;
+  checked_in_at?: string | null;
 }
 
 export interface SubmissionRow {
@@ -36,14 +38,15 @@ export interface SubmissionRow {
 /** Every team of the event, and the squads (with their company and sector) once drawn. */
 export async function loadSquads(eventId: string): Promise<{ teams: TeamRow[]; squads: SquadLine[] }> {
   const sb = await supabaseServer();
-  const [teams, squads, companies] = await Promise.all([
-    sb.from("teams").select("id, code, name, track, cash_cents, collateral_cents, disqualified").eq("event_id", eventId).order("code"),
+  const [teams, squads, companies, deskOn] = await Promise.all([
+    sb.from("teams").select("id, code, name, track, cash_cents, collateral_cents, disqualified, checked_in_at").eq("event_id", eventId).order("code"),
     sb
       .from("squads")
       .select("id, number, product_team_id, consulting_team_id, finance_team_id, problem_cards!squads_chosen_card_id_fkey(sector)")
       .eq("event_id", eventId)
       .order("number"),
     sb.from("companies").select("id, ticker, name, squad_id, market_price").eq("event_id", eventId),
+    deskCheckInOn(sb, eventId),
   ]);
   const t = (teams.data ?? []) as TeamRow[];
   const byId = new Map(t.map((x) => [x.id, x]));
@@ -74,7 +77,8 @@ export async function loadSquads(eventId: string): Promise<{ teams: TeamRow[]; s
   });
   // Once the squads are drawn, only the teams in a squad are in the event (the rest were absent or left out): staff
   // pages list and count those only.
-  if (lines.length === 0) return { teams: t, squads: lines };
+  // Before the draw, with desk check-in on, only the teams the desk has checked in (the other cards are placeholders).
+  if (lines.length === 0) return { teams: admittedOnly(t, deskOn), squads: lines };
   const seated = new Set(lines.flatMap((l) => [l.product.id, l.consulting.id, l.finance.id]));
   return { teams: t.filter((x) => seated.has(x.id)), squads: lines };
 }

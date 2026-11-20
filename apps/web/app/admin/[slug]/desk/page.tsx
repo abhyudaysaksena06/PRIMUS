@@ -5,6 +5,7 @@ import { TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
 import { loadAdminEvent } from "@/lib/admin/event";
 import { MAX_LIST_BYTES } from "@/lib/admin/team-list";
+import { nextFreeCard } from "@/lib/admin/admitted";
 import { supabaseServer } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/fetch-all";
 import { Notice, Panel, Stat, inputClass } from "@/app/admin/guide-ui";
@@ -20,6 +21,7 @@ interface TeamRow {
   code: string;
   track: Track;
   checked_in_at: string | null;
+  disqualified: boolean;
 }
 
 interface RosterRow {
@@ -48,7 +50,7 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
   const registerUrl = `${host.startsWith("localhost") ? "http" : "https"}://${host}/register`;
   const [teams, roster, rule, reg] = await Promise.all([
     // Paged: PostgREST returns at most 1,000 rows a read (600 cards at 200 a track; the list can be longer).
-    fetchAll<TeamRow>((from, to) => sb.from("teams").select("id, code, track, checked_in_at").eq("event_id", event.id).order("code").order("id").range(from, to)).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
+    fetchAll<TeamRow>((from, to) => sb.from("teams").select("id, code, track, checked_in_at, disqualified").eq("event_id", event.id).order("code").order("id").range(from, to)).then((data) => ({ data, error: null }), (e: Error) => ({ data: null, error: { message: e.message } })),
     fetchAll<RosterRow>((from, to) =>
       sb
         .from("roster")
@@ -90,6 +92,8 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
     return { total: all.length, done: all.filter((t) => t.checked_in_at).length };
   };
   const admitted = cards.filter((t) => t.checked_in_at).length;
+  // "Next free card" at the desk: the lowest code of each track nobody is checked in on (only that code is shown).
+  const nextFree = Object.fromEntries(TRACKS.map((t) => [t, nextFreeCard(cards, t)])) as Record<Track, string | null>;
   const open = !event.drawn_at;
   // Online registration needs migration 049; without it the panel says so instead of breaking the page.
   const regReady = !reg.error;
@@ -184,7 +188,7 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
       ) : null}
 
       <DrawPreview eventId={event.id} />
-      <Desk eventId={event.id} list={list} editable={organiser} canCheckOut={organiser && open} />
+      <Desk eventId={event.id} list={list} nextFree={nextFree} editable={organiser} canCheckOut={organiser && open} />
     </div>
   );
 }

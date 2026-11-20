@@ -55,7 +55,7 @@ export default async function FairnessPage({
   const pick = (Array.isArray(sp.team) ? sp.team[0] : sp.team)?.trim().toUpperCase() ?? "";
   const sb = await supabaseServer();
   const [base, { flags, audit, staff }] = await Promise.all([loadLedgerBase(sb, event.id), loadFlags(sb, event.id)]);
-  const teams = new Map(base.teams.map((t) => [t.id, t]));
+  const teams = new Map(base.allTeams.map((t) => [t.id, t]));
   const companies = new Map(base.companies.map((c) => [c.id, c]));
   const staffMap = new Map(staff.map((s) => [s.user_id, s]));
   const views = flagViews(flags, { teams, companies, staff: staffMap });
@@ -64,7 +64,7 @@ export default async function FairnessPage({
   const drill = team ? await loadDrillDown(sb, team.id) : null;
   const phase = event.current_phase;
   const locked = reached(phase, "AWARDS");
-  const refs = ledgerRefs(base.teams, base.companies, base.rounds);
+  const refs = ledgerRefs(base.allTeams, base.companies, base.rounds);
 
   return (
     <div className="space-y-6">

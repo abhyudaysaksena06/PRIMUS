@@ -24,7 +24,7 @@ export default async function CorrectionsPage({ params }: { params: Promise<{ sl
   const sb = await supabaseServer();
   const [base, { corrections, staff }] = await Promise.all([loadLedgerBase(sb, event.id), loadCorrections(sb, event.id)]);
   const { pending, decided } = correctionViews(corrections, {
-    teams: new Map(base.teams.map((t) => [t.id, t])),
+    teams: new Map(base.allTeams.map((t) => [t.id, t])),
     companies: new Map(base.companies.map((c) => [c.id, c])),
     staff: new Map(staff.map((s) => [s.user_id, s])),
     viewer: { userId: viewer!.userId, role: viewer!.role },
