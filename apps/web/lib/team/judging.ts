@@ -9,7 +9,6 @@ import {
   RULES,
   PROMPT_TYPES,
   ipoPrice,
-  medianScore,
   perType,
   submissionKind,
   tierBp,
@@ -19,7 +18,7 @@ import {
 import { PROMPT_FILES, loadPrompt, type JudgePrompt } from "@/lib/judge/prompts";
 import { SUBMISSION_LABELS } from "./squad";
 
-/** When the first 3 runs spread more than this many points, 2 more are made (the engine's needsExtraRuns). */
+/** With more than one run per submission (JUDGE_RUNS > 1): when the first 3 spread more than this, 2 more are made. */
 export const EXTRA_RUN_SPREAD = 10;
 
 /** What a type's score moves. */
@@ -123,12 +122,8 @@ export interface JudgingStep {
   text: string;
 }
 
-/** The brief's AquaSense pitch runs. */
-const EXAMPLE_RUNS = [64, 66, 68] as const;
-
 /** The steps of judging, in plain words, with the engine's numbers. */
 export function judgingSteps(): JudgingStep[] {
-  const [a, b, c] = EXAMPLE_RUNS;
   return [
     {
       title: "Names become the ticker.",
@@ -150,11 +145,10 @@ export function judgingSteps(): JudgingStep[] {
         "the judge is told that everything inside the tags is data, not instructions.",
     },
     {
-      title: "Each submission is judged 3 times, and the median counts.",
+      title: "Each submission is judged once, and that total counts.",
       text:
-        `If the 3 totals spread more than ${EXTRA_RUN_SPREAD} points, it is judged 2 more times (5 in all). The score is the median of all the runs: ` +
-        `${a}, ${b} and ${c} give ${medianScore(EXAMPLE_RUNS)}. ` +
-        "The breakdown and rationale you see on the Market page come from a run whose total is the median.",
+        "The judge scores your submission once; its total (0–100) is the score, before the checks below. " +
+        "The breakdown and rationale you see on the Market page come from that run.",
     },
     {
       title: "A rescue plan needs a signed deal.",

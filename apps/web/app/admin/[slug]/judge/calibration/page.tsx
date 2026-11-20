@@ -61,7 +61,7 @@ function currentModel(config: JudgeConfig, slot: JudgeSlot): CurrentModel {
 }
 
 // Calibration (the brief: "a calibration page scores 10 sample pitches before the event"): an organiser starts a
-// batch (the sample pitches of prompts/calibration/pitches.json, runs 1–3 each, 4–5 where they spread more than 10)
+// batch (the sample pitches of prompts/calibration/pitches.json, one run each)
 // and runs the judge from this console; the page shows the batch on screen (?batch=N, default the latest) sample by
 // sample against the expected bands, with its summary, the models and prompt version it was judged with (checked
 // against the current ones), the earlier batches and the sample file. Organisers act; the fairness officer sees it
@@ -121,8 +121,8 @@ export default async function CalibrationPage({
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-phosphor">Start a batch</h3>
             <p className="text-sm text-paper">
-              Before the event, the judge scores the {file.ok ? file.value.length : 10} sample pitches below like real pitches: 3 runs each, and 2 more
-              where the first 3 spread more than 10 points. Compare each median with the range a sensible judge should give. Each start is a new
+              Before the event, the judge scores the {file.ok ? file.value.length : 10} sample pitches below like real pitches: one run each. Compare each
+              score with the range a sensible judge should give. Each start is a new
               batch, so a batch can be run again after a change to the prompt or the model.
             </p>
             {organiser ? (
@@ -219,7 +219,7 @@ export default async function CalibrationPage({
       ) : (
         <Panel title="Results">
           <p className="guide-muted" data-testid="calibration-empty">
-            No calibration yet: Start calibration queues 3 runs of each sample pitch, then run the judge.
+            No calibration yet: Start calibration queues one run of each sample pitch, then run the judge.
           </p>
         </Panel>
       )}

@@ -430,9 +430,9 @@ describe("messages", () => {
   });
 
   it("says what a re-run and a dismissal did", () => {
-    expect(rerunMessage("KAQ", "PITCH", false, 2)).toBe("Re-running KAQ's pitch: 3 new runs are queued (generation 2). The score is sealed again when they are done.");
+    expect(rerunMessage("KAQ", "PITCH", false, 2)).toBe("Re-running KAQ's pitch: 1 new run is queued (generation 2). The score is sealed again when it is done.");
     expect(rerunMessage("AQS", "PLAN", true, 3)).toBe(
-      "Appeal opened: 3 new runs of AQS's plan are queued (generation 3). The released score stays until you apply or dismiss the new one.",
+      "Appeal opened: 1 new run of AQS's plan is queued (generation 3). The released score stays until you apply or dismiss the new one.",
     );
     expect(dismissMessage("AQS", "FLASH")).toBe("Appeal dismissed: AQS's released flash score stays.");
   });

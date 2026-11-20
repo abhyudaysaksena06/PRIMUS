@@ -274,7 +274,7 @@ function JudgeControls({
         <div className="space-y-2 lg:col-span-2">
           <h3 className="text-sm font-semibold text-phosphor">Run the judge</h3>
           <p className="text-sm text-paper">
-            While it is on, this console works the judge queue: every queued run of every type, the extra runs, retries, re-runs and calibration. Several
+            While it is on, this console works the judge queue: every queued run of every type, retries, re-runs and calibration. Several
             consoles can run it at once, and so can <code className="font-mono text-xs">pnpm judge-worker --event {slug}</code> on a laptop.
           </p>
           {!settings.ok ? (
@@ -374,7 +374,7 @@ function Progress({ p }: { p: JudgeProgress }) {
       <p className="text-sm tabular-nums text-paper" data-testid="judge-progress-counts">
         {r.DONE} done · {r.RUNNING} running · {r.QUEUED} queued · <span className={r.FAILED > 0 ? "font-semibold text-danger-soft" : ""}>{r.FAILED} failed</span>
         {p.notStarted > 0 ? ` · ${plural(p.notStarted, "submission")} not started` : ""}
-        <span className="text-muted"> · runs needed: 3 per submission, plus runs 4–5 where the first 3 spread more than 10 points</span>
+        <span className="text-muted"> · runs needed: 1 per submission (one judge run per document)</span>
       </p>
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Stat label="Started" value={p.startedAt ? clock(p.startedAt, true) : "—"} hint={p.startedAt ? "The first run" : "Not started"} />
@@ -383,7 +383,7 @@ function Progress({ p }: { p: JudgeProgress }) {
         <Stat label="ETA" value={eta} hint={etaHint} />
       </div>
       <p className="text-sm text-paper" data-testid="judge-target">
-        Target (the brief): all submissions × 3 runs within 10 minutes.{" "}
+        Target (the brief): all submissions judged within 10 minutes.{" "}
         {p.target ? (
           <span className={`font-semibold ${TARGET_TEXT[TARGET_TONE[p.target.state]]}`}>{targetText(p.target)}</span>
         ) : (
@@ -497,10 +497,9 @@ function Rules({ type, deadlines }: { type: SubmissionType; deadlines: Partial<R
         </>
       )}
       <li>
-        Start judging queues runs 1–3 of every current submission. When the first 3 spread more than 10 points, runs 4 and 5 are added. A score is
-        sealed as soon as its runs are complete.
+        Start judging queues one run of every current submission. A score is sealed as soon as that run is done: the score is its total.
       </li>
-      <li>A second injection offence by the same squad costs 10 points (penalty). The final score is the median, capped, minus the penalty.</li>
+      <li>A second injection offence by the same squad costs 10 points (penalty). The final score is the run's total, capped, minus the penalty.</li>
     </ul>
   );
 }

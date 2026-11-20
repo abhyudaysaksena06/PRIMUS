@@ -348,7 +348,7 @@ describe("refresh and messages", () => {
   });
 
   it("start: the confirmation and the message", () => {
-    expect(startConfirm(3, 10)).toBe("Click again to start batch 3: 30 runs");
+    expect(startConfirm(3, 10)).toBe("Click again to start batch 3: 10 runs");
     expect(startCalibrationMessage(2, 30)).toBe("Batch 2: queued 30 runs.");
     expect(startCalibrationMessage(1, 1)).toBe("Batch 1: queued 1 run.");
   });

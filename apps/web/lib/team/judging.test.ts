@@ -98,12 +98,12 @@ describe("judgingSteps", () => {
   test("the spread that triggers 2 more runs is the engine's", () => {
     expect(needsExtraRuns([50, 50, 50 + EXTRA_RUN_SPREAD])).toBe(false);
     expect(needsExtraRuns([50, 50, 51 + EXTRA_RUN_SPREAD])).toBe(true);
-    expect(all()).toContain(`If the 3 totals spread more than ${EXTRA_RUN_SPREAD} points, it is judged 2 more times (5 in all).`);
+    expect(all()).toContain("Each submission is judged once, and that total counts.");
+    expect(all()).not.toContain("5 in all");
   });
 
   test("the median example, the plan cap, the injection penalty and late submissions match the engine", () => {
     expect(medianScore([64, 66, 68])).toBe(66);
-    expect(all()).toContain("64, 66 and 68 give 66.");
 
     expect(finalScore({ type: "PLAN", median: 78, dealSignedInTime: false }).final).toBe(50);
     expect(all()).toContain("A rescue plan without a fully signed deal by 03:00 is capped at 50.");
@@ -122,7 +122,7 @@ describe("judgingSteps", () => {
       "Names become the ticker.",
       "Lines aimed at the judge are removed.",
       "The judge reads the prompt and your submission.",
-      "Each submission is judged 3 times, and the median counts.",
+      "Each submission is judged once, and that total counts.",
       "A rescue plan needs a signed deal.",
       "Scores stay sealed until the organisers release them.",
       "Every run is stored.",

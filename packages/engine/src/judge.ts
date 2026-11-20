@@ -289,6 +289,22 @@ export function validateJudgeOutput(type: SubmissionType, raw: unknown): JudgeOu
 
 // ───────────────────────────── Runs and the final score ─────────────────────────────
 
+/**
+ * Runs queued per submission (and per calibration sample): 1 (organisers, 20 Nov: cost), as app.judge_runs(). The
+ * score is that one run's total. The rule below (3 runs, 2 more on a spread) applies only when this is above 1.
+ */
+export const JUDGE_RUNS: number = 1;
+
+/** Runs 4–5 are due: only when more than one run is queued per submission, and the first 3 spread over 10. */
+export function extraRunsDue(totals: readonly number[]): boolean {
+  return JUDGE_RUNS > 1 && needsExtraRuns(totals);
+}
+
+/** A generation is complete: its one run (JUDGE_RUNS = 1); a generation judged before (3 within 10 points, or 5) still reads complete. */
+export function judgeRunsComplete(totals: readonly number[]): boolean {
+  return totals.length === JUDGE_RUNS || runsComplete(totals);
+}
+
 /** Three runs; if they spread more than 10 points, two more. */
 export function needsExtraRuns(totals: readonly number[]): boolean {
   return totals.length === 3 && Math.max(...totals) - Math.min(...totals) > 10;

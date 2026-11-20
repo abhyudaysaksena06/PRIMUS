@@ -1,5 +1,5 @@
 // What the calibration page shows. Before the event the judge scores the sample pitches of
-// prompts/calibration/pitches.json like real pitches (runs 1–3, and 4–5 when the first 3 spread more than 10 points),
+// prompts/calibration/pitches.json like real pitches (one run each since the organisers' decision of 20 Nov, JUDGE_RUNS),
 // one batch per start. Worked out here from the stored rows: the batches so far; for one batch, per sample its runs,
 // its status, the median once the runs are complete (the engine's rules), the spread, the verdict against the
 // expected band, the run behind the median and the lines the judge never saw; the batch's summary (samples in band,
@@ -9,9 +9,10 @@
 
 import {
   medianScore,
-  needsExtraRuns,
+  JUDGE_RUNS,
+  extraRunsDue,
+  judgeRunsComplete,
   representativeRun,
-  runsComplete,
   stripInjections,
   wordCount,
   type InjectionHit,
@@ -138,7 +139,7 @@ export interface SampleView {
   spread: number | null;
   /** Runs 4–5 were added (the first 3 spread more than 10 points). */
   extraRuns: boolean;
-  /** 3 runs within 10 points, or 5 runs, and nothing in flight. */
+  /** Its one run done (JUDGE_RUNS = 1), and nothing in flight. */
   complete: boolean;
   median: number | null;
   /** The run behind the median: the first whose total equals it (as for a real score). */
@@ -160,7 +161,7 @@ function sampleStatus(runs: readonly CalibrationRunRow[], totals: readonly numbe
   if (runs.some(inFlight)) return { label: `Judging: ${done} of ${runs.length} runs done`, tone: "blue" };
   if (complete) return { label: "Judged", tone: "green" };
   if (runs.some((r) => r.status === "FAILED")) return { label: "Run failed", tone: "red" };
-  if (needsExtraRuns(totals)) return { label: "Spread over 10: needs 2 more runs", tone: "amber" };
+  if (extraRunsDue(totals)) return { label: "Spread over 10: needs 2 more runs", tone: "amber" };
   return { label: "Runs incomplete", tone: "amber" };
 }
 
@@ -170,7 +171,7 @@ export function sampleView(sample: CalibrationSampleRow, allRuns: readonly Calib
     .sort((a, b) => a.run_no - b.run_no);
   const doneRuns = runs.filter((r) => r.status === "DONE" && r.total !== null);
   const totals = doneRuns.map((r) => r.total!);
-  const complete = !runs.some(inFlight) && runsComplete(totals);
+  const complete = !runs.some(inFlight) && judgeRunsComplete(totals);
   const median = complete ? medianScore(totals) : null;
   const medianRun = complete ? doneRuns[representativeRun(totals)]! : null;
   const expected = { min: sample.expected_min, max: sample.expected_max };
@@ -187,7 +188,7 @@ export function sampleView(sample: CalibrationSampleRow, allRuns: readonly Calib
     runs,
     totals,
     spread: spread(totals),
-    extraRuns: runs.some((r) => r.run_no > 3),
+    extraRuns: runs.some((r) => r.run_no > Math.max(JUDGE_RUNS, 3)),
     complete,
     median,
     medianRun,
@@ -430,7 +431,7 @@ export function calibrationRefresh(runs: readonly Pick<CalibrationRunRow, "statu
 
 /** The start button's confirmation. */
 export function startConfirm(nextBatch: number, samples: number): string {
-  return `Click again to start batch ${nextBatch}: ${plural(3 * samples, "run")}`;
+  return `Click again to start batch ${nextBatch}: ${plural(JUDGE_RUNS * samples, "run")}`;
 }
 
 /** "Batch 2: queued 30 runs." */
