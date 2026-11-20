@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { money } from "@/lib/format";
-import type { CrisisReport } from "@/lib/team/report-data";
+import type { CrisisReport, Standing } from "@/lib/team/report-data";
 import { moveText, type ReportState } from "@/lib/team/report";
 import { ordinal } from "@/lib/team/crisis";
 import { BentoItem, BentoTitle } from "@/components/ui/terminal-bento-grid";
@@ -13,6 +13,11 @@ const DOT: Record<ReportState, { mark: string; cls: string; words: string }> = {
   later: { mark: "", cls: "border-line text-muted", words: "Still to come" },
 };
 const name = (k: number) => (k === 5 ? "Round 3" : `Crisis ${k}`);
+/** Round 3's leveller in words: the rise multiplier from this company's standing by score so far (migration 064). */
+export const standingText = (s: Standing) =>
+  s.of <= 1
+    ? "Your price rise counts in full (×1.00)."
+    : `Price rise ×${s.multiplier.toFixed(2)}: you are ${ordinal(s.place)} of ${s.of} by score so far (weakest ×1.25, strongest ×0.25).`;
 const starText = (n: number) => `${"★".repeat(Math.round(n))}${"☆".repeat(5 - Math.round(n))}`;
 
 // Home, PRIMUS Rounds 2 and 3: this team's own line for each crisis (never another team's: rankings wait for the awards).
@@ -55,9 +60,9 @@ export function CrisisReportCard({ report }: { report: CrisisReport }) {
                           {c.moveBp !== null ? <span className={c.moveBp < 0 ? "text-danger-soft" : "text-phosphor"}>price {moveText(c.moveBp)}</span> : null}
                         </p>
                       ) : null}
-                      {c.rank ? (
+                      {r.k === 5 && report.standing ? (
                         <p className="mt-1 text-xs font-semibold text-[var(--term-amber)]" data-testid="report-rank">
-                          {c.rank.of === 1 ? "Alone on your statement: the full move" : `${ordinal(c.rank.place)} of ${c.rank.of} on your statement`}
+                          {c.moveBp !== null && c.moveBp < 0 ? "A fall applies in full." : standingText(report.standing)}
                         </p>
                       ) : null}
                       {c.state !== "later" ? (

@@ -11,6 +11,7 @@ import {
   FIRM_CLIENTS_PER_SUBROUND,
   draftState,
   feeBand,
+  ordinal,
   hiringOpen,
   pastSubrounds,
   ratingOpen,
@@ -29,7 +30,9 @@ import { Countdown } from "@/components/ui/countdown";
 import { DoThis, HowItWorks } from "@/components/ui/how-it-works";
 import { Badge, Notice, inputClass } from "@/components/ui/ui";
 import { SubmissionEditor } from "../squad/submission";
+import { featureOn } from "@/lib/event-status";
 import { makeOffer, pickStatement, rateFirm } from "./actions";
+import { DraftWatch } from "./draft-watch";
 import { ProductRaisePanel } from "./raises";
 import { CardsOf, EngagementTable, OfferCard, OnTheClock, StatementCrowd, Step, TermsFields, companyLabel, type StepState } from "./parts";
 
@@ -47,6 +50,9 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   const sent = ws && planType ? currentSubmission(ws.submissions, planType) : null;
   const rateable = mine ? data.engagements.filter((e) => e.company_id === mine.id && ratingOpen(e.k, data.deadlines, nowMs, pause)) : [];
   const draft = draftState(data.picks, mine?.id ?? null);
+  // A missed pick: a random statement of the sector with room (switch draft_random_fallback), else the least crowded.
+  const randomDefault = featureOn(ctx.status, "draft_random_fallback");
+  const missed = randomDefault ? "a random statement of your sector that still has room" : "the statement with the fewest companies";
   const counts = statementCounts(data.picks);
   const myStatement = draft.mine?.statement_id ? data.statements.find((s) => s.id === draft.mine!.statement_id) : undefined;
   const band = k === 5 ? feeBand(ctx.team.cash) : null;
@@ -109,6 +115,9 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   return (
     <div className="space-y-4">
       {r3 ? (
+        <DraftWatch eventId={ctx.event.id} companyId={mine.id} active={draft.bySector && !draft.done && data.picks.length > 0} />
+      ) : null}
+      {r3 ? (
         <Step
           n={1}
           title="Pick your problem statement"
@@ -132,13 +141,15 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
             </Notice>
           ) : draft.myTurn ? (
             <Notice tone="amber">
-              It is your pick: choose a statement before <Countdown to={draft.current!.closes_at} className="font-semibold" /> runs out, or you get the
-              least-crowded one.
+              It is your pick: choose a statement before <Countdown to={draft.current!.closes_at} className="font-semibold" /> runs out, or you get{" "}
+              {missed}.
             </Notice>
           ) : draft.mine ? (
             <Notice>
-              You pick {draft.mine.pick_no === 1 ? "first" : `at number ${draft.mine.pick_no}`} (lowest score so far picks first). {draft.ahead} pick
-              {draft.ahead === 1 ? "" : "s"} before yours.
+              {draft.bySector
+                ? `You pick ${draft.place === 1 ? "first" : ordinal(draft.place ?? 1)} of ${draft.queueSize} in your sector (lowest score so far picks first). `
+                : `You pick ${draft.mine.pick_no === 1 ? "first" : `at number ${draft.mine.pick_no}`} (lowest score so far picks first). `}
+              {draft.ahead} pick{draft.ahead === 1 ? "" : "s"} before yours.
             </Notice>
           ) : (
             <Notice>The draft order appears when Round 3 starts.</Notice>
@@ -147,10 +158,15 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
             <OnTheClock data={data} />
           </div>
           <HowItWorks testId="draft-rules">
-            <p>Companies pick one at a time, the lowest score so far first, with 20 seconds each. No pick in time: you get the statement with the fewest companies.</p>
             <p>
-              Companies on the same statement compete: the best solution gets its full price move, the 2nd three quarters, the 3rd half, the others a quarter.
-              A statement you have to yourself gives you the full move.
+              {draft.bySector
+                ? "Each sector drafts its own statements, all sectors at the same time: in your sector companies pick one at a time, the lowest score so far first, with 20 seconds each."
+                : "Companies pick one at a time, the lowest score so far first, with 20 seconds each."}{" "}
+              No pick in time: you get {missed}.
+            </p>
+            <p>
+              Each company is judged on its own solution; sharing a statement does not change your price move. A rise is scaled by your score so far
+              across the event: ×1.25 for the weakest company down to ×0.25 for the strongest. A fall applies in full.
             </p>
           </HowItWorks>
           {data.mySector && data.statements.some((s) => s.sector) ? (

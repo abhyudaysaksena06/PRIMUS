@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   countersLeft,
   currentSubround,
+  draftHeads,
   draftState,
   feeBand,
   hiringOpen,
@@ -134,6 +135,25 @@ describe("the Round 3 draft", () => {
     expect(draftState(picks, "c")).toMatchObject({ myTurn: false, ahead: 1 });
     expect(draftState([pick("a", 1, "s1")], "a")).toMatchObject({ current: null, done: true });
     expect(statementCounts([pick("a", 1, "s1"), pick("b", 2, "s1"), pick("c", 3, "s2")])).toEqual(new Map([["s1", 2], ["s2", 1]]));
+  });
+  test("by sector: each queue has its own pick on the clock; the draft is done only when every queue is", () => {
+    const at = (p: DraftPickRow, sector: string) => ({ ...p, sector });
+    // Round by round: aviation 1, fmcg 1, luxury 1, aviation 2, fmcg 2, fmcg 3.
+    const picks = [
+      at(pick("a1", 1, "s1"), "aviation"), at(pick("f1", 2), "fmcg"), at(pick("l1", 3, "s6"), "luxury"),
+      at(pick("a2", 4), "aviation"), at(pick("f2", 5), "fmcg"), at(pick("f3", 6), "fmcg"),
+    ];
+    expect(draftState(picks, "a2")).toMatchObject({ myTurn: true, ahead: 0, place: 2, queueSize: 2, bySector: true, done: false });
+    expect(draftState(picks, "f1")).toMatchObject({ myTurn: true, place: 1, queueSize: 3 });
+    expect(draftState(picks, "f3")).toMatchObject({ myTurn: false, ahead: 2, place: 3 });
+    expect(draftState(picks, "l1")).toMatchObject({ current: null, myTurn: false, done: false });
+    expect(draftHeads(picks).map((h) => [h.queue, h.pick.company_id, h.place, h.size, h.left])).toEqual([
+      ["aviation", "a2", 2, 2, 1],
+      ["fmcg", "f1", 1, 3, 3],
+    ]);
+    // One queue (an older draft, or the switch off): the heads are the one first pick.
+    expect(draftHeads([pick("a", 1, "s1"), pick("b", 2)]).map((h) => [h.queue, h.pick.company_id, h.place])).toEqual([["", "b", 2]]);
+    expect(draftState([pick("a", 1, "s1"), pick("b", 2)], "b")).toMatchObject({ bySector: false, place: 2, queueSize: 2 });
   });
 });
 

@@ -60,6 +60,8 @@ export interface DraftPickRow {
   statement_id: string | null;
   picked_at: string | null;
   by_default: boolean;
+  /** The pick's queue when the draft runs by sector (migration 077: the company's sector, lower case); null: one queue. */
+  sector?: string | null;
 }
 
 export const MAX_COUNTERS = 3;
@@ -162,21 +164,55 @@ export function termsText(cash: string, shares: number): string {
 }
 
 export interface DraftState {
-  /** The pick on the clock (the first without a statement), or null when the draft is over or not started. */
+  /**
+   * The pick on the clock in my queue (my sector's when the draft runs by sector; without a company of my own, the
+   * first pick still to make), or null when that queue is done or the draft has not started.
+   */
   current: DraftPickRow | null;
   mine: DraftPickRow | null;
   myTurn: boolean;
-  /** Picks before mine still to be made. */
+  /** Picks before mine in my queue still to be made. */
   ahead: number;
+  /** Where I pick in my queue (1 = first), and how many companies the queue has. */
+  place: number | null;
+  queueSize: number;
+  /** The draft runs one queue per sector, all at the same time. */
+  bySector: boolean;
+  /** Every pick has been made (the whole draft, every sector). */
   done: boolean;
 }
 
+/** A pick's queue: its sector when the draft runs by sector, else the one queue (""). */
+const queueOf = (p: DraftPickRow) => p.sector ?? "";
+
 export function draftState(picks: readonly DraftPickRow[], myCompanyId: string | null): DraftState {
   const ordered = [...picks].sort((a, b) => a.pick_no - b.pick_no);
-  const current = ordered.find((p) => p.statement_id === null) ?? null;
+  const bySector = ordered.some((p) => p.sector !== null && p.sector !== undefined);
   const mine = myCompanyId ? (ordered.find((p) => p.company_id === myCompanyId) ?? null) : null;
-  const ahead = mine && mine.statement_id === null ? ordered.filter((p) => p.statement_id === null && p.pick_no < mine.pick_no).length : 0;
-  return { current, mine, myTurn: !!current && !!mine && current.company_id === mine.company_id, ahead, done: ordered.length > 0 && current === null };
+  const queue = mine ? ordered.filter((p) => queueOf(p) === queueOf(mine)) : ordered;
+  const current = queue.find((p) => p.statement_id === null) ?? null;
+  const ahead = mine && mine.statement_id === null ? queue.filter((p) => p.statement_id === null && p.pick_no < mine.pick_no).length : 0;
+  return {
+    current,
+    mine,
+    myTurn: !!current && !!mine && current.company_id === mine.company_id,
+    ahead,
+    place: mine ? queue.indexOf(mine) + 1 : null,
+    queueSize: queue.length,
+    bySector,
+    done: ordered.length > 0 && ordered.every((p) => p.statement_id !== null),
+  };
+}
+
+/** The pick on the clock in every queue (one per sector when the draft runs by sector), with its queue's size and picks left. */
+export function draftHeads(picks: readonly DraftPickRow[]): { pick: DraftPickRow; queue: string; place: number; size: number; left: number }[] {
+  const ordered = [...picks].sort((a, b) => a.pick_no - b.pick_no);
+  const queues = [...new Set(ordered.map(queueOf))].sort();
+  return queues.flatMap((q) => {
+    const all = ordered.filter((p) => queueOf(p) === q);
+    const head = all.find((p) => p.statement_id === null);
+    return head ? [{ pick: head, queue: q, place: all.indexOf(head) + 1, size: all.length, left: all.filter((p) => p.statement_id === null).length }] : [];
+  });
 }
 
 /**
