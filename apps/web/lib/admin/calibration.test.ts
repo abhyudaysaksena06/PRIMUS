@@ -136,10 +136,19 @@ describe("sampleView", () => {
     expect(done.verdict).toMatchObject({ kind: "BELOW", distance: 2, label: "2 below" });
   });
 
-  it("3 runs spread over 10 and no runs 4–5 (they are added in the same report): needs 2 more", () => {
+  it("3 earlier runs spread over 10 and no runs 4–5: no extra runs are asked for any more (migration 094)", () => {
     const v = sampleView(sample(1, 2), [run(1, 2, 1, 20), run(1, 2, 2, 35), run(1, 2, 3, 28)]);
-    expect(v.status).toEqual({ label: "Spread over 10: needs 2 more runs", tone: "amber" });
+    expect(v.status).toEqual({ label: "Runs incomplete", tone: "amber" });
     expect(v.median).toBeNull();
+  });
+
+  it("one run (migration 094): its total is the sample's score", () => {
+    const v = sampleView(sample(1, 2), [run(1, 2, 1, 50)]);
+    expect(v.complete).toBe(true);
+    expect(v.median).toBe(50);
+    expect(v.medianRun?.run_no).toBe(1);
+    expect(v.extraRuns).toBe(false);
+    expect(v.status).toEqual({ label: "Judged", tone: "green" });
   });
 
   it("a failed run leaves the sample without a median", () => {

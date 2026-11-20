@@ -170,6 +170,7 @@ describe("companyViews", () => {
       company("wide", "WIDE"),
       company("four", "FOUR"),
       company("done", "DONE"),
+      company("once", "ONCE"),
     ];
     const submissions = companies.filter((c) => c.id !== "none").map((c) => submission(`s-${c.id}`, c.id));
     const runs = [
@@ -189,6 +190,7 @@ describe("companyViews", () => {
       run("s-done", "done", 1, 64),
       run("s-done", "done", 2, 66),
       run("s-done", "done", 3, 68),
+      run("s-once", "once", 1, 57),
     ];
     const views = companyViews("PITCH", rows({ companies, submissions, runs }));
     const by = Object.fromEntries(views.map((v) => [v.company.id, v]));
@@ -196,7 +198,11 @@ describe("companyViews", () => {
     expect(by.fresh!.status).toEqual({ label: "Not judged", tone: "slate" });
     expect(by.busy!.status).toEqual({ label: "Judging: 2 of 3 runs done", tone: "blue" });
     expect(by.fail!.status).toEqual({ label: "Run failed", tone: "red" });
-    expect(by.wide!.status).toEqual({ label: "Spread over 10: needs 2 more runs", tone: "amber" });
+    // No runs 4–5 are queued any more (migration 094): a spread of 3 earlier runs is just incomplete.
+    expect(by.wide!.status).toEqual({ label: "Runs incomplete", tone: "amber" });
+    // One judge run per document: its total is the score.
+    expect(by.once!.status).toEqual({ label: "Judged, not sealed", tone: "slate" });
+    expect(by.once!.median).toEqual({ value: 57, sealed: false });
     expect(by.four!.status).toEqual({ label: "Runs incomplete", tone: "amber" });
     expect(by.done!.status).toEqual({ label: "Judged, not sealed", tone: "slate" });
 
@@ -448,97 +454,78 @@ describe("judgeProgress", () => {
   const submissions = ["a", "b", "c"].map((c) => submission(`s-${c}`, c));
   const done = (sub: string, c: string, no: number, total: number, finished: number) =>
     run(sub, c, no, total, { created_at: at(0), finished_at: at(finished) });
+  // One judge run per document (migration 094): a done, b running, c failed.
   const busy = [
     done("s-a", "a", 1, 64, 60),
-    done("s-a", "a", 2, 66, 70),
-    done("s-a", "a", 3, 68, 80),
-    done("s-b", "b", 1, 50, 85),
-    done("s-b", "b", 2, 70, 90),
-    done("s-b", "b", 3, 62, 95),
-    run("s-b", "b", 4, null, { status: "RUNNING", attempts: 1, created_at: at(95) }),
-    run("s-b", "b", 5, null, { created_at: at(95) }),
-    done("s-c", "c", 1, 60, 110),
-    run("s-c", "c", 2, null, { status: "RUNNING", attempts: 1, created_at: at(0) }),
-    run("s-c", "c", 3, null, { status: "FAILED", attempts: 5, error: "overloaded", created_at: at(0), finished_at: at(100) }),
+    run("s-b", "b", 1, null, { status: "RUNNING", attempts: 1, created_at: at(0) }),
+    run("s-c", "c", 1, null, { status: "FAILED", attempts: 5, error: "overloaded", created_at: at(0), finished_at: at(100) }),
   ];
   const scores = [score("a", { submission_id: "s-a" }), score("d", { median: null, missing: true, final_score: 0 })];
 
-  it("counts runs done of runs needed (3 per submission plus the extra runs), companies sealed, and the pace", () => {
+  it("counts runs done of runs needed (1 per submission), companies sealed, and the pace", () => {
     const data = rows({ companies, submissions, runs: busy, scores });
     const p = judgeProgress("PITCH", companyViews("PITCH", data), data.runs, T0 + 120_000);
     expect(p).toMatchObject({
       submissions: 3,
       sealed: 1, // the missing 0 of DDD is not a submission
       notStarted: 0,
-      needed: 11,
-      done: 7,
-      runs: { QUEUED: 1, RUNNING: 2, DONE: 7, FAILED: 1 },
-      remaining: 3,
+      needed: 3,
+      done: 1,
+      runs: { QUEUED: 0, RUNNING: 1, DONE: 1, FAILED: 1 },
+      remaining: 1,
       startedAt: at(0),
       finishedAt: null,
       elapsedMs: 120_000,
     });
-    expect(p.perMinute).toBeCloseTo(3.5); // 7 runs done in the last 2 minutes
-    expect(p.etaMs).toBeCloseTo((3 / 3.5) * 60_000);
-    // The first pass: 9 runs (3 per submission), 7 done; 2 more at 3.5/min end at 23:02:34, before 23:10:00.
-    expect(p.target).toMatchObject({ runs: 9, done: 7, startedAt: at(0), deadline: at(600), state: "ON_PACE", tookMs: null });
-    expect(targetText(p.target!)).toBe("On pace: done at about 23:02:34, before 23:10:00.");
+    expect(p.perMinute).toBeCloseTo(0.5); // 1 run done in the last 2 minutes
+    expect(p.etaMs).toBeCloseTo((1 / 0.5) * 60_000);
+    // The first pass: 3 runs (1 per submission), 1 done; 2 more at 0.5/min end at 23:06:00, before 23:10:00.
+    expect(p.target).toMatchObject({ runs: 3, done: 1, startedAt: at(0), deadline: at(600), state: "ON_PACE", tookMs: null });
+    expect(targetText(p.target!)).toBe("On pace: done at about 23:06:00, before 23:10:00.");
   });
 
-  it("before Start judging: every submission's 3 runs are still to do, with no timing", () => {
+  it("before Start judging: every submission's run is still to do, with no timing", () => {
     const data = rows({ companies, submissions });
     const p = judgeProgress("PITCH", companyViews("PITCH", data), data.runs, T0);
-    expect(p).toMatchObject({ submissions: 3, notStarted: 3, needed: 9, done: 0, remaining: 9, startedAt: null, elapsedMs: null, perMinute: null, etaMs: null, target: null });
+    expect(p).toMatchObject({ submissions: 3, notStarted: 3, needed: 3, done: 0, remaining: 3, startedAt: null, elapsedMs: null, perMinute: null, etaMs: null, target: null });
   });
 
   it("once everything is done the clock stops at the last run, and the target is met or missed", () => {
-    const all = [
-      ...busy.filter((r) => r.company_id === "a"),
-      done("s-b", "b", 1, 64, 200),
-      done("s-b", "b", 2, 66, 230),
-      done("s-b", "b", 3, 68, 250),
-      done("s-c", "c", 1, 60, 300),
-      done("s-c", "c", 2, 61, 400),
-      done("s-c", "c", 3, 62, 460),
-    ];
+    const all = [done("s-a", "a", 1, 64, 60), done("s-b", "b", 1, 66, 250), done("s-c", "c", 1, 60, 460)];
     const data = rows({ companies, submissions, runs: all });
     const p = judgeProgress("PITCH", companyViews("PITCH", data), data.runs, T0 + 3_600_000);
-    expect(p).toMatchObject({ needed: 9, done: 9, remaining: 0, finishedAt: at(460), elapsedMs: 460_000, etaMs: null });
-    expect(p.perMinute).toBeCloseTo(1); // 2 runs done in the 2 minutes before 23:07:40 (the last one)
+    expect(p).toMatchObject({ needed: 3, done: 3, remaining: 0, finishedAt: at(460), elapsedMs: 460_000, etaMs: null });
+    expect(p.perMinute).toBeCloseTo(0.5); // 1 run done in the 2 minutes before 23:07:40 (the last one)
     expect(p.target).toMatchObject({ state: "MET", tookMs: 460_000 });
-    expect(targetText(p.target!)).toBe("Met: 9 runs in 7 min 40 s.");
+    expect(targetText(p.target!)).toBe("Met: 3 runs in 7 min 40 s.");
 
-    const slow = rows({ companies, submissions, runs: all.map((r) => (r.run_no === 3 && r.company_id === "c" ? { ...r, finished_at: at(700) } : r)) });
+    const slow = rows({ companies, submissions, runs: all.map((r) => (r.company_id === "c" ? { ...r, finished_at: at(700) } : r)) });
     const q = judgeProgress("PITCH", companyViews("PITCH", slow), slow.runs, T0 + 3_600_000);
     expect(q.target).toMatchObject({ state: "MISSED", tookMs: 700_000 });
-    expect(targetText(q.target!)).toBe("Missed: 9 runs took 11 min 40 s.");
+    expect(targetText(q.target!)).toBe("Missed: 3 runs took 11 min 40 s.");
   });
 
-  it("the target is judged on runs 1–3 of the first generation: a later re-run does not move it", () => {
+  it("the target is judged on the first generation's runs: a later re-run does not move it", () => {
     const all = [
-      ...["a", "b", "c"].flatMap((c) => [1, 2, 3].map((no) => done(`s-${c}`, c, no, 60, 100 + no))),
-      ...[1, 2, 3].map((no) => run("s-a", "a", no, 61, { generation: 2, created_at: at(3000), finished_at: at(3030 + no) })),
+      ...["a", "b", "c"].map((c) => done(`s-${c}`, c, 1, 60, 101)),
+      run("s-a", "a", 1, 61, { generation: 2, created_at: at(3000), finished_at: at(3031) }),
     ];
     const data = rows({ companies, submissions, runs: all });
     const p = judgeProgress("PITCH", companyViews("PITCH", data), data.runs, T0 + 4000_000);
-    expect(p).toMatchObject({ needed: 9, done: 9, finishedAt: at(3033), elapsedMs: 3033_000 });
-    expect(p.target).toMatchObject({ runs: 9, done: 9, state: "MET", tookMs: 103_000 });
+    expect(p).toMatchObject({ needed: 3, done: 3, finishedAt: at(3031), elapsedMs: 3031_000 });
+    expect(p.target).toMatchObject({ runs: 3, done: 3, state: "MET", tookMs: 101_000 });
   });
 
   it("behind, missed while running, and no pace yet", () => {
-    const slow = [
-      done("s-a", "a", 1, 60, 300),
-      ...[2, 3].map((no) => run("s-a", "a", no, null, { created_at: at(0) })),
-      ...["b", "c"].flatMap((c) => [1, 2, 3].map((no) => run(`s-${c}`, c, no, null, { created_at: at(0) }))),
-    ];
+    const slow = [done("s-a", "a", 1, 60, 300), ...["b", "c"].map((c) => run(`s-${c}`, c, 1, null, { created_at: at(0) }))];
     const data = rows({ companies, submissions, runs: slow });
     const views = companyViews("PITCH", data);
-    // 1 run done in the last 2 minutes: 8 more take 16 minutes, past 23:10.
-    const behind = judgeProgress("PITCH", views, data.runs, T0 + 360_000);
+    // 1 run done in the last 2 minutes: 2 more take 4 minutes, past 23:10.
+    const behind = judgeProgress("PITCH", views, data.runs, T0 + 400_000);
     expect(behind.perMinute).toBeCloseTo(0.5);
-    expect(behind.target).toMatchObject({ state: "BEHIND", projectedAt: at(360 + 16 * 60) });
+    expect(behind.target).toMatchObject({ state: "BEHIND", projectedAt: at(400 + 4 * 60) });
     expect(targetText(behind.target!)).toBe(
-      "Behind: at this pace it ends at about 23:22:00, after 23:10:00. Run the judge on more consoles, or switch to the backup model.",
+      "Behind: at this pace it ends at about 23:10:40, after 23:10:00. Run the judge on more consoles, or switch to the backup model.",
     );
     const none = judgeProgress("PITCH", views, data.runs, T0 + 500_000);
     expect(none.perMinute).toBe(0);
@@ -547,7 +534,7 @@ describe("judgeProgress", () => {
     expect(targetText(none.target!)).toBe("No pace yet (no run has finished lately): the target is 23:10:00.");
     const missed = judgeProgress("PITCH", views, data.runs, T0 + 601_000);
     expect(missed.target).toMatchObject({ state: "MISSED", tookMs: null });
-    expect(targetText(missed.target!)).toBe("Missed: 10 minutes have passed with 8 of 9 runs still to do.");
+    expect(targetText(missed.target!)).toBe("Missed: 10 minutes have passed with 2 of 3 runs still to do.");
   });
 
   it("measures the pace over the last 2 minutes, or since the start (at least 15 s)", () => {

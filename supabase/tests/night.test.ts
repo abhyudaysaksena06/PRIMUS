@@ -579,12 +579,12 @@ describe("a scripted night", () => {
     const product = await n.one("select final_value_cents, details from results where team_id = $1", [n.teamId(c.p_code)]);
     const released = await n.one("select released_at from scores where company_id = $1 and type = 'PLAN'", [ccrt]);
 
-    // The re-run: a new generation of runs 1–3; the released score stays until the new one is applied.
+    // The re-run: a new generation of one run (migration 094); the released score stays until the new one is applied.
     expect(await n.org("rerun_judging", ccrt, "PLAN", "The judge's answer was cut off (max tokens).")).toMatchObject({ after_release: true, generation: 2 });
     const runs: { run_id: string; submission_id: string; generation: number; run_no: number }[] = await n.call(service, "claim_judge_runs", n.eventId, 10);
-    expect(runs.map((r) => [r.generation, r.run_no])).toEqual([[2, 1], [2, 2], [2, 3]]);
+    expect(runs.map((r) => [r.generation, r.run_no])).toEqual([[2, 1]]);
     await n.ok(service, "record_injections", runs[0]!.submission_id, "[]");
-    for (const [i, t] of [40, 40, 42].entries()) await n.ok(service, "finish_judge_run", runs[i]!.run_id, { ...judgeOutput("PLAN", t), attempt: 1 });
+    await n.ok(service, "finish_judge_run", runs[0]!.run_id, { ...judgeOutput("PLAN", 40), attempt: 1 });
     const appeal = await n.one("select id, status, new_score from appeals where company_id = $1 and type = 'PLAN'", [ccrt]);
     expect(appeal).toMatchObject({ status: "READY", new_score: { final: 40, median: 40, capped: true, tier_bp: -1000 } });
     expect(await n.one("select final_score from scores where company_id = $1 and type = 'PLAN'", [ccrt])).toEqual({ final_score: 50 });
@@ -626,7 +626,7 @@ describe("a scripted night", () => {
     const before = await n.one("select final_score, generation from scores where company_id = $1 and type = 'FLASH'", [aqs]);
     await n.org("rerun_judging", aqs, "FLASH", "A team says the judge misread the answer.");
     const runs: { run_id: string }[] = await n.call(service, "claim_judge_runs", n.eventId, 10);
-    expect(runs).toHaveLength(3);
+    expect(runs).toHaveLength(1);
     const appeal = await n.one("select id from appeals where company_id = $1 and type = 'FLASH' and status = 'JUDGING'", [aqs]);
     await expect(n.call(n.lead, "dismiss_appeal", appeal.id, "no")).rejects.toThrow(/reason/);
     await n.org("dismiss_appeal", appeal.id, "Re-read: the answer was judged correctly.");

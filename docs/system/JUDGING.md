@@ -1,9 +1,13 @@
 # The AI judge, end to end
 
 How a written submission becomes a released score: who queues the work, how workers share it, what one judging call
-sends and checks, how three runs become one score, and what staff do when something goes wrong. Written for the
+sends and checks, how one run becomes the score, and what staff do when something goes wrong. Written for the
 organisers and for the software specialist on duty. Every number below comes from the code; the file is named next
-to each rule. Scoring parameters (rubric weights, tiers, the Round 3 leveller) are in
+to each rule.
+
+> **One run per document (migration 094, organisers' decision of 20 Nov, to cut the API cost): the AI judge scores each submission once (`app.judge_runs()` = 1) and the score is that run's total; no runs 4–5 are queued. The human panel (AI-outage fallback) is unchanged: judges 1–3, 4–5 on a spread, median.** Where the text below speaks of 3 runs, runs 4–5 or a median, it describes the AI judge before migration 094, and the human panel today.
+
+Scoring parameters (rubric weights, tiers, the Round 3 leveller) are in
 [`docs/judge/PARAMETERS.md`](../judge/PARAMETERS.md); one file per rubric line is in
 [`docs/judge/parameters/`](../judge/parameters/).
 
@@ -17,13 +21,13 @@ merged.
 | # | Step | Who | Where in the code |
 | --- | --- | --- | --- |
 | 1 | The writing deadline passes; drafts that were never submitted are submitted as they were last saved | the heartbeat | `app.auto_submit_due_drafts` (migration 054) |
-| 2 | Runs are queued: 3 per submission | organiser button, or the heartbeat tonight | `public.start_judging` (020); tonight automatic (073, switch `judge_auto`) |
+| 2 | Runs are queued: `app.judge_runs()` per submission (1 since migration 094) | organiser button, or the heartbeat tonight | `public.start_judging` (020); tonight automatic (073, switch `judge_auto`) |
 | 3 | Workers claim runs in packets of up to 50 | judge workers (service role) | `public.claim_judge_runs` (022) |
 | 4 | Each run's request is built: lines aimed at the judge removed, names hidden, text wrapped as data | worker | `apps/web/lib/judge/request.ts`, `packages/engine/src/judge.ts` |
 | 5 | One Messages API call per run, checked against the rubric | worker | `apps/web/lib/judge/call.ts` |
 | 6 | The result is reported; failures go back to the queue with a backoff | worker → database | `public.finish_judge_run` (022), `app.judge_backoff` (020) |
-| 7 | Runs 4 and 5 are queued when runs 1–3 spread more than 10 points | database | `finish_judge_run`, `app.needs_extra_runs` |
-| 8 | The score is sealed: median, injection penalty, tier | database | `app.score_from_runs`, `app.seal_from` (020) |
+| 7 | Runs 4 and 5: only for the human panel (judges 1–3 spread more than 10 points); never for the AI since 094 | database | `finish_judge_run`, `app.needs_extra_runs` |
+| 8 | The score is sealed: the run's total (the panel: median), injection penalty, tier | database | `app.score_from_runs`, `app.seal_from` (020) |
 | 9 | Companies with nothing on time get a sealed 0 | organiser button, or the heartbeat tonight | `public.seal_missing_scores` (011); tonight automatic (073) |
 | 10 | Release: scores become visible and move prices | organiser, one click | `public.release_scores` (011, patched), `app.release_primus` (032) |
 | 11 | Appeals: a technical re-run, then apply or dismiss | organiser | `public.rerun_judging`, `public.apply_appeal`, `public.dismiss_appeal` (020) |

@@ -226,7 +226,7 @@ describe("the Round 3 investment thesis", () => {
     await n.ok(n.lead, "tick", n.eventId);
     expect(await n.one("select auto_submitted, word_count from submissions where company_id = $1 and type = 'THESIS'", [b!.company_id]))
       .toEqual({ auto_submitted: true, word_count: 200 });
-    expect(Number((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and type = 'THESIS'", [n.eventId])).c)).toBe(6);
+    expect(Number((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and type = 'THESIS'", [n.eventId])).c)).toBe(2);
 
     // The judge reads every Round 3 company (ticker, sector, statement), the same for every fund.
     const run = await n.one("select id from judge_runs where event_id = $1 and type = 'THESIS' and company_id = $2 and run_no = 1", [n.eventId, a!.company_id]);

@@ -60,7 +60,7 @@ describe("the crisis memo", () => {
     const companyB = (await n.one("select id from companies where squad_id = $1", [b.id])).id;
     const companyC = (await n.one("select id from companies where squad_id = $1", [c3.id])).id;
     const started = await n.org("start_judging", n.eventId, "MEMO");
-    expect(started).toMatchObject({ queued: 3, companies: 1 });
+    expect(started).toMatchObject({ queued: 1, companies: 1 });
     await n.q("delete from judge_runs where type = 'MEMO' and event_id = $1", [n.eventId]);
     expect(await n.judge(companyA, "MEMO", [70, 74, 72])).toMatchObject({ ok: true, final: 72 });
     await n.org("seal_missing_scores", n.eventId, "MEMO");

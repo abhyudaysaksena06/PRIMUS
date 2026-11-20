@@ -13,7 +13,7 @@ import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import type pg from "pg";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { needsExtraRuns, sha256Hex } from "@msim/engine";
+import { JUDGE_RUNS, sha256Hex } from "@msim/engine";
 import { JUDGE_DEFAULTS } from "../../apps/web/lib/judge/config";
 import { supabaseJudgeDb, type RpcClient } from "../../apps/web/lib/judge/db";
 import { FAKE_MODEL, fakeJudge } from "../../apps/web/lib/judge/fake";
@@ -25,8 +25,8 @@ import { Night } from "./night";
 import { createTestDb, ROOT } from "./pg";
 
 const SQUADS = 50;
-/** Runs 1–3 of every pitch; runs 4–5 come on top for a pitch whose first three spread more than 10 points. */
-const RUNS = SQUADS * 3;
+/** One run per pitch (migration 094: one judge run per document); no runs 4–5. */
+const RUNS = SQUADS * JUDGE_RUNS;
 /** The fake judge's time per call. */
 const LATENCY_MS = 1000;
 const CONSOLES = 2;
@@ -309,7 +309,7 @@ interface RunRow {
 }
 
 /**
- * Every company sealed from its DONE runs (runs 4–5 exactly where runs 1–3 spread more than 10), every run stored with
+ * Every company sealed from its one DONE run (migration 094), every run stored with
  * the fake model and the published prompt's SHA-256, the injection check recorded once per submission, no run handed
  * to two consoles at once, and no report the database refused or ignored. Returns the runs.
  */
@@ -337,8 +337,7 @@ async function expectAllSealed(n: Night, r: Judged): Promise<RunRow[]> {
   expect(scores.filter((s) => s.status !== "SEALED").map((s) => s.ticker)).toEqual([]);
   for (const s of scores) {
     const mine = runs.filter((x) => x.ticker === s.ticker);
-    const first = mine.slice(0, 3).map((x) => x.total!);
-    expect(mine.map((x) => x.run_no), s.ticker).toEqual(needsExtraRuns(first) ? [1, 2, 3, 4, 5] : [1, 2, 3]);
+    expect(mine.map((x) => x.run_no), s.ticker).toEqual([1]);
     expect(s.run_totals, s.ticker).toEqual(mine.map((x) => x.total));
   }
 

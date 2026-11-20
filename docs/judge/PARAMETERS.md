@@ -46,12 +46,12 @@ equals their sum and the rationale is not empty (`validateJudgeOutput`, engine; 
 
 | Parameter | Value | Code |
 | --- | --- | --- |
-| Runs per submission | 3 | `public.start_judging` (020) |
-| Extra runs | 2 more (5 in all) when the 3 totals spread more than 10 points (max − min > 10) | `app.needs_extra_runs`, `needsExtraRuns` |
-| Score | median of the run totals (the middle of 3 or of 5) | `app.median_score`, `medianScore` |
+| Runs per submission | 1 (migration 094, organisers' decision of 20 Nov: cost); the human panel: 3 | `app.judge_runs()`, `JUDGE_RUNS` |
+| Extra runs | none for the AI; the human panel: 2 more (5 in all) when its 3 totals spread more than 10 points (max − min > 10) | `app.needs_extra_runs`, `needsExtraRuns` |
+| Score | the one run's total; the human panel: median of its totals (the middle of 3 or of 5) | `app.median_score`, `medianScore` |
 | Published breakdown and rationale | the first run (by run number) whose total equals the median | `app.score_from_runs`, `representativeRun` |
 
-Example: runs of 62, 71 and 66 spread 9 points, so the median 66 stands. Runs of 58, 74 and 66 spread 16 points, so
+Example (the AI): one run of 66 scores 66. Example (the human panel): runs of 62, 71 and 66 spread 9 points, so the median 66 stands. Runs of 58, 74 and 66 spread 16 points, so
 runs 4 and 5 are made; with 69 and 61 the totals are 58, 61, 66, 69, 74 and the median is 66.
 
 ## 4. Penalty, clamping and missing work

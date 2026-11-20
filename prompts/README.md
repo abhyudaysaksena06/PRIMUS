@@ -27,9 +27,10 @@ can read how its PRD, crisis memo, rescue plan and flash answer will be scored.
 3. **Check the answer.** The judge replies with JSON: a score for each rubric line, the total and a three-sentence
    rationale. Every line must be a whole number within its maximum and the total must equal the sum; an invalid
    answer is asked for again, up to two more times.
-4. **Score three times.** Each submission is judged in 3 separate runs. If the totals spread more than 10 points,
-   2 more runs are made. The final score is the median of all runs. Every run is stored, with its breakdown,
-   rationale and model, and the published breakdown and rationale come from a run whose total equals the median.
+4. **Score once.** Each submission is judged in one run (migration 094; the organisers' decision of 20 Nov, to cut
+   the API cost). Its total is the score. The run is stored, with its breakdown, rationale and model, and its
+   breakdown and rationale are published. (The human panel fallback still uses judges 1–3, 4–5 on a spread, and
+   the median.)
    A rescue plan without a deal signed by 03:00 is then capped at 50.
 5. **One model for everyone.** All submissions are judged by the same model. If organisers switch to the backup
    model, the switch applies to everyone from then on.

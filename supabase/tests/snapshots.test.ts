@@ -156,7 +156,7 @@ describe("backups and resets", () => {
     expect(tables.map((t) => t.table)).toEqual(expect.arrayContaining(["teams", "orders", "ledger_entries", "judge_runs", "event_log", "practice_ticks"]));
     expect(tables.find((t) => t.table === "event_log")).toMatchObject({ restored: false });
     const runs = await as(db.pool, n.fairness, async (cl) => (await cl.query("select public.snapshot_data($1, 'judge_runs') as d", [open3.id])).rows[0].d);
-    expect(runs.rows).toHaveLength(9);
+    expect(runs.rows).toHaveLength(3);
     expect(runs.columns).not.toContain("request_text");
     expect(runs.rows[0]).not.toHaveProperty("raw_response");
     expect(runs.rows[0]).toHaveProperty("rationale");
@@ -169,7 +169,7 @@ describe("backups and resets", () => {
     await n.org("pause_event", n.eventId);
     await restore(n, round1);
     // The judge's texts stored now are kept for the runs written back.
-    expect((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and raw_response = 'the whole reply'", [n.eventId])).c).toBe(9);
+    expect((await n.one("select count(*)::int as c from judge_runs where event_id = $1 and raw_response = 'the whole reply'", [n.eventId])).c).toBe(3);
     // Round 2 is open again for the funds as of the backup: resume, and the game goes on from there.
     expect((await n.one("select status from rounds where event_id = $1 and number = 2", [n.eventId])).status).toBe("SCHEDULED");
     await n.org("resume_event", n.eventId);

@@ -118,7 +118,7 @@ describe("judging runs itself (judge_auto)", () => {
     await n.ok(n.lead, "tick", n.eventId);
     await n.ok(n.lead, "tick", n.eventId);
     expect(await n.q("select company_id, count(*)::int as runs, min(status::text) as status from judge_runs where event_id = $1 and type = 'PITCH' group by 1 order by 1", [n.eventId]))
-      .toEqual([a.company_id, b.company_id].sort().map((id) => ({ company_id: id, runs: 3, status: "QUEUED" })));
+      .toEqual([a.company_id, b.company_id].sort().map((id) => ({ company_id: id, runs: 1, status: "QUEUED" })));
     // No memo was written: nothing to judge, so every missing memo is sealed at once.
     expect(await runCount(n, "MEMO")).toBe(0);
     expect(await n.q("select missing, final_score, status from scores where event_id = $1 and type = 'MEMO'", [n.eventId])).toEqual(
@@ -128,8 +128,8 @@ describe("judging runs itself (judge_auto)", () => {
 
     // The worker finishes A's runs: C is still not sealed (B's runs are queued).
     const pitchTotal: Record<string, number> = { [a.company_id]: 82, [b.company_id]: 64 };
-    const r1 = await n.call(service, "claim_judge_runs", n.eventId, 3);
-    expect(r1.map((r: Claimed) => r.company_id)).toEqual([a.company_id, a.company_id, a.company_id]);
+    const r1 = await n.call(service, "claim_judge_runs", n.eventId, 1);
+    expect(r1.map((r: Claimed) => r.company_id)).toEqual([a.company_id]);
     await n.ok(service, "record_injections", r1[0].submission_id, "[]");
     for (const r of r1) await n.ok(service, "finish_judge_run", r.run_id, { attempt: r.claim_token, ...output("PITCH", 82) });
     await n.ok(n.lead, "tick", n.eventId);
@@ -142,14 +142,14 @@ describe("judging runs itself (judge_auto)", () => {
     expect(await scoreOf(n, c.company_id, "PITCH")).toMatchObject({ status: "SEALED", final_score: 0, missing: true });
     expect(await n.q("select type, submissions, runs, sealed_missing, sealed_at is not null as sealed from judge_auto where event_id = $1 order by type", [n.eventId]))
       .toEqual([
-        { type: "PITCH", submissions: 2, runs: 6, sealed_missing: 1, sealed: true },
+        { type: "PITCH", submissions: 2, runs: 2, sealed_missing: 1, sealed: true },
         { type: "MEMO", submissions: 0, runs: 0, sealed_missing: 3, sealed: true },
       ]);
     expect(await autoLog(n)).toEqual([
-      { what: "Judging started by itself for Pitch: 1 submission, 3 runs.", by_name: "Clock" },
+      { what: "Judging started by itself for Pitch: 1 submission, 1 run.", by_name: "Clock" },
       { what: "Judging started by itself for Crisis memo: no submissions to judge.", by_name: "Clock" },
       { what: "Missing scores sealed for Crisis memo: 0 for 3 companies with no submission.", by_name: "Clock" },
-      { what: "Judging started by itself for Pitch: 1 more submission, 3 runs.", by_name: "Clock" },
+      { what: "Judging started by itself for Pitch: 1 more submission, 1 run.", by_name: "Clock" },
       { what: "Missing scores sealed for Pitch: 0 for 1 company with no submission.", by_name: "Clock" },
     ]);
     // The release stays an organiser's click: nothing is released and no IPO price is set.
@@ -184,7 +184,7 @@ describe("judging runs itself (judge_auto)", () => {
     await n.ok(n.lead, "tick", n.eventId);
     await n.ok(n.lead, "tick", n.eventId);
     expect(await n.q("select type::text, count(*)::int as runs from judge_runs where event_id = $1 and type in ('CRISIS_1', 'ADVICE_1') group by 1 order by 1", [n.eventId]))
-      .toEqual([{ type: "ADVICE_1", runs: 3 }, { type: "CRISIS_1", runs: 6 }]);
+      .toEqual([{ type: "ADVICE_1", runs: 1 }, { type: "CRISIS_1", runs: 2 }]);
     const r2: Record<string, number> = { [`CRISIS_1 ${a.company_id}`]: 85, [`CRISIS_1 ${c.company_id}`]: 45, [`ADVICE_1 ${a.company_id}`]: 70 };
     await work(n, (r) => r2[`${r.type} ${r.company_id}`]!);
     await n.ok(n.lead, "tick", n.eventId);
@@ -196,8 +196,8 @@ describe("judging runs itself (judge_auto)", () => {
       ].sort((x, y) => x.id.localeCompare(y.id)));
     expect((await n.q("select company_id from scores where event_id = $1 and type = 'ADVICE_1' and missing", [n.eventId])).length).toBe(2);
     expect((await autoLog(n)).slice(5).map((l) => l.what)).toEqual([
-      "Judging started by itself for Crisis 1 response plan: 2 submissions, 6 runs.",
-      "Judging started by itself for Advice memo (Crisis 1): 1 submission, 3 runs.",
+      "Judging started by itself for Crisis 1 response plan: 2 submissions, 2 runs.",
+      "Judging started by itself for Advice memo (Crisis 1): 1 submission, 1 run.",
       "Missing scores sealed for Crisis 1 response plan: 0 for 1 company with no submission.",
       "Missing scores sealed for Advice memo (Crisis 1): 0 for 2 companies with no submission.",
     ]);
@@ -278,14 +278,14 @@ describe("judging runs itself (judge_auto)", () => {
     }
     await n.deadlinePassed("DUE_5");
     await n.ok(n.lead, "tick", n.eventId);
-    expect(await runCount(n, "SOLUTION")).toBe(6);
+    expect(await runCount(n, "SOLUTION")).toBe(2);
     expect(await runCount(n, "ADVICE_5")).toBe(0);
     const r3: Record<string, number> = { [a.company_id]: 92, [b.company_id]: 85 };
     await work(n, (r) => r3[r.company_id]!);
     await n.ok(n.lead, "tick", n.eventId);
     expect(await scoreOf(n, c.company_id, "SOLUTION")).toMatchObject({ status: "SEALED", final_score: 0, missing: true });
     expect((await autoLog(n)).slice(9).map((l) => l.what)).toEqual([
-      "Judging started by itself for Round 3 solution: 2 submissions, 6 runs.",
+      "Judging started by itself for Round 3 solution: 2 submissions, 2 runs.",
       "Judging started by itself for Advice memo (Round 3): no submissions to judge.",
       "Missing scores sealed for Advice memo (Round 3): 0 for 3 companies with no submission.",
       // The funds' investment theses (migration 089, switch finance_thesis on by default): none written here.
@@ -384,10 +384,10 @@ describe("judging runs itself (judge_auto)", () => {
     // Turned on mid-night: the next tick queues what is due and seals what is missing (here: every memo).
     await n.org("set_feature", n.eventId, "judge_auto", true);
     await n.ok(n.lead, "tick", n.eventId);
-    expect(await runCount(n, "PITCH")).toBe(6);
+    expect(await runCount(n, "PITCH")).toBe(2);
     expect(await n.q("select type::text, submissions, runs, sealed_missing from judge_auto where event_id = $1 order by type", [n.eventId])).toEqual([
       { type: "MEMO", submissions: 0, runs: 0, sealed_missing: 3 },
-      { type: "PITCH", submissions: 2, runs: 6, sealed_missing: null },
+      { type: "PITCH", submissions: 2, runs: 2, sealed_missing: null },
     ]);
     // Turned off again while runs are in flight: nothing more happens by itself.
     await n.org("set_feature", n.eventId, "judge_auto", false);
@@ -404,7 +404,7 @@ describe("judging runs itself (judge_auto)", () => {
     expect(await n.one("select sealed_missing, sealed_at is not null as sealed from judge_auto where event_id = $1 and type = 'PITCH'", [n.eventId]))
       .toEqual({ sealed_missing: 0, sealed: true });
     expect((await autoLog(n)).filter((l) => l.what.includes("Pitch"))).toEqual([
-      { what: "Judging started by itself for Pitch: 2 submissions, 6 runs.", by_name: "Clock" },
+      { what: "Judging started by itself for Pitch: 2 submissions, 2 runs.", by_name: "Clock" },
     ]);
   });
 });
