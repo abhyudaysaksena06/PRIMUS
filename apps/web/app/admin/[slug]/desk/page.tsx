@@ -5,7 +5,7 @@ import { TRACKS, TRACK_LABELS, type Track } from "@msim/engine";
 import { currentViewer } from "@/lib/auth/viewer";
 import { loadAdminEvent } from "@/lib/admin/event";
 import { MAX_LIST_BYTES } from "@/lib/admin/team-list";
-import { PARTICIPANT_CAP, TRACK_CAP, nextFreeCard } from "@/lib/admin/admitted";
+import { PARTICIPANT_CAP, TEAM_CAP, TRACK_CAP, nextFreeCard } from "@/lib/admin/admitted";
 import { supabaseServer } from "@/lib/supabase/server";
 import { fetchAll } from "@/lib/fetch-all";
 import { Notice, Panel, Stat, inputClass } from "@/app/admin/guide-ui";
@@ -126,7 +126,7 @@ export default async function DeskPage({ params }: PageProps<"/admin/[slug]/desk
           <Stat
             label="Participants"
             value={`${participants} / ${PARTICIPANT_CAP}`}
-            hint={`${Math.max(0, PARTICIPANT_CAP - participants)} places left · ${admitted} teams admitted · ${list.length} in the list`}
+            hint={`${Math.max(0, PARTICIPANT_CAP - participants)} places left · teams ${admitted} / ${TEAM_CAP}${admitted >= TEAM_CAP ? " (full)" : ""} · ${list.length} in the list`}
           />
           {TRACKS.map((track) => {
             const c = count(track);

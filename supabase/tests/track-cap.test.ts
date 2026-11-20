@@ -14,8 +14,9 @@ afterAll(async () => {
 const one = (name: string) => JSON.stringify([{ full_name: name, roll_number: null }]);
 
 describe("the desk's cap per track", () => {
-  test("the cap is 90 by default", async () => {
-    expect((await db.pool.query("select app.track_cap() as c")).rows[0].c).toBe(90);
+  test("the caps are 70 per track and 210 teams by default (098)", async () => {
+    expect((await db.pool.query("select app.track_cap() as c")).rows[0].c).toBe(70);
+    expect((await db.pool.query("select app.team_cap() as c")).rows[0].c).toBe(210);
   });
 
   test("a third Product team is refused at a cap of 2; edits still work; a check-out frees a place; other tracks unaffected", async () => {
@@ -39,7 +40,7 @@ describe("the desk's cap per track", () => {
       await n.ok(n.lead, "desk_check_out", n.eventId, id);
       await n.ok(n.lead, "desk_check_in", n.eventId, "PRODUCT", p3, "Three", one("C"));
     } finally {
-      await n.q("create or replace function app.track_cap() returns int language sql immutable set search_path = '' as $$ select 90 $$");
+      await n.q("create or replace function app.track_cap() returns int language sql immutable set search_path = '' as $$ select 70 $$");
     }
   });
 });
@@ -71,6 +72,25 @@ describe("the desk's cap on participants (096)", () => {
       await n.ok(n.lead, "desk_check_in", n.eventId, "CONSULTING", codes("CONSULTING")[1], "C2", two("d"));
     } finally {
       await n.q("create or replace function app.participant_cap() returns int language sql immutable set search_path = '' as $$ select 675 $$");
+    }
+  });
+});
+
+describe("the desk's cap on teams in all (098)", () => {
+  test("a team past the total cap is refused, whatever its track; a check-out frees a place", async () => {
+    const n = await Night.create(db.pool, 3);
+    await n.q("create or replace function app.team_cap() returns int language sql immutable set search_path = '' as $$ select 2 $$");
+    try {
+      await n.ok(n.lead, "set_desk_check_in", n.eventId, true);
+      const codes = (track: string) => n.ev.plan.teams.filter((t) => t.track === track).map((t) => t.code).sort();
+      await n.ok(n.lead, "desk_check_in", n.eventId, "PRODUCT", codes("PRODUCT")[0], "P", one("a"));
+      await n.ok(n.lead, "desk_check_in", n.eventId, "CONSULTING", codes("CONSULTING")[0], "C", one("b"));
+      expect((await n.call(n.lead, "desk_check_in", n.eventId, "FINANCE", codes("FINANCE")[0], "F", one("c"))).code).toBe("TEAMS_FULL");
+      const id = (await n.one("select id from teams where event_id = $1 and code = $2", [n.eventId, codes("PRODUCT")[0]])).id;
+      await n.ok(n.lead, "desk_check_out", n.eventId, id);
+      await n.ok(n.lead, "desk_check_in", n.eventId, "FINANCE", codes("FINANCE")[0], "F", one("c"));
+    } finally {
+      await n.q("create or replace function app.team_cap() returns int language sql immutable set search_path = '' as $$ select 210 $$");
     }
   });
 });
