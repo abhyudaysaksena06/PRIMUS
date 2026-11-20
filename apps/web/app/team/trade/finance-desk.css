@@ -152,12 +152,19 @@
   --chart-tag-text: #071316;
 }
 
-/* Laptop screens: the desk uses the window's width (up to 1700 px), not the team pages' reading column. A margin, not a
-   transform, so nothing inside loses its fixed positioning. */
+/* Wide screens: the desk grows past the team pages' reading column (up to 1700 px) while it stays clear of the team's
+   side rail (232 px from 900 px up, team.css) on both sides, since the column is centred on the window. Never narrower
+   than the column. A margin, not a transform, so nothing inside loses its fixed positioning. */
+@media (min-width: 900px) {
+  .fin-bleed {
+    --fin-rail: 232px;
+  }
+}
 @media (min-width: 1024px) {
   .fin-bleed {
-    width: min(100vw - 3rem, 1700px);
-    margin-left: calc(50% - min(50vw - 1.5rem, 850px));
+    --fin-width: max(100%, min(100vw - 2 * (var(--fin-rail, 0px) + 1.5rem), 1700px));
+    width: var(--fin-width);
+    margin-left: calc((100% - var(--fin-width)) / 2);
   }
 }
 
