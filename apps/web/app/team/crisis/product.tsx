@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { RULES, planOf, type SubmissionType } from "@msim/engine";
+import { featureOn } from "@/lib/event-status";
 import { clock, money } from "@/lib/format";
 import type { TeamContext } from "@/lib/team/context";
 import type { CrisisRoomData } from "@/lib/team/crisis-data";
@@ -22,6 +23,7 @@ import {
   subroundTitle,
   termsText,
 } from "@/lib/team/crisis";
+import { assignedToCompany, minBidText, openFirms, rateShares, rateText } from "@/lib/team/hire-lists";
 import { currentSubmission, submissionWindow } from "@/lib/team/squad";
 import { loadSquadWorkspace, pauseOf, windowInput } from "@/lib/team/squad-data";
 import { ActionButton, ActionForm } from "@/components/ui/action";
@@ -53,7 +55,11 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   // Round 3: start the offer at the smallest stake (in steps of 0.01%) worth at least the band's minimum.
   const r3StartShares =
     band && mine?.market_price ? Math.min(Math.ceil(band.min / mine.market_price / 10) * 10, Math.floor(band.max / mine.market_price)) : 0;
-  const clientsThisRound = (firmId: string) => data.engagements.filter((e) => e.firm_team_id === firmId && e.k === k).length;
+  // Tonight's hiring rules (migration 071): a firm's minimum bid, and the draw for a company with no firm.
+  const minBidOn = featureOn(ctx.status, "hire_min_bid");
+  const drawOn = featureOn(ctx.status, "hire_base_rate");
+  // Locked = gone: a full firm is not listed (the hire_locked message makes this page re-read as soon as one fills).
+  const listed = openFirms(data.firms, data.engagements, k);
   if (k === null || !mine) return null;
   const tickerOf = new Map(data.companies.map((c) => [c.id, c.ticker ?? "—"]));
   const groups = new Map(statementGroups(data.statements, data.picks, (id) => tickerOf.get(id) ?? "—", mine.id).map((g) => [g.id, g]));
@@ -63,13 +69,16 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
   const dueAt = clock(stepAt(data.deadlines, "DUE", k));
   const rateAt = clock(stepAt(data.deadlines, "RATE", k));
   const firmCode = engaged ? (firmById.get(engaged.firm_team_id)?.code ?? "a firm") : null;
+  // A company that had not hired when hiring closed was given a firm: say so, and by what rule.
+  const assignedNote =
+    engaged && firmCode ? assignedToCompany(engaged, firmCode, money(engaged.cash_cents), firmById.get(engaged.firm_team_id)?.base_rate_bp ?? null, drawOn) : null;
   const myTurn = myOffers.filter((o) => o.status === "OPEN" && o.turn === "COMPANY").length;
   const waiting = myOffers.filter((o) => o.status === "OPEN" && o.turn === "FIRM").length;
 
   // Step 2: hiring.
   const hireState: StepState = engaged ? "done" : hiring ? "now" : r3 && !draft.done ? "later" : "closed";
   const hireSummary = engaged
-    ? `You hired ${firmCode} for ${termsText(money(engaged.cash_cents), engaged.shares)}.`
+    ? (assignedNote ?? `You hired ${firmCode} for ${termsText(money(engaged.cash_cents), engaged.shares)}.`)
     : hiring
       ? myTurn
         ? "A firm answered your offer: it is your turn."
@@ -200,7 +209,13 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
       <Step n={2} title="Hire a consulting firm" state={hireState} summary={hireSummary} testId="step-hire" open={hireState === "now" || hireState === "done"}>
         {engaged ? (
           <Notice tone="green">
-            You hired <strong>{firmCode}</strong> for {termsText(money(engaged.cash_cents), engaged.shares)}.{" "}
+            {assignedNote ? (
+              <span data-testid="hire-assigned">{assignedNote}</span>
+            ) : (
+              <>
+                You hired <strong>{firmCode}</strong> for {termsText(money(engaged.cash_cents), engaged.shares)}.
+              </>
+            )}{" "}
             {engaged.escrow === "HELD"
               ? `The fee is kept safe until ${dueAt}: the firm gets it only if it sends its memo; otherwise you get it back.`
               : engaged.escrow === "RELEASED"
@@ -221,17 +236,35 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                 A firm takes at most {FIRM_CLIENTS_PER_SUBROUND} clients per {r3 ? "round" : "crisis"}, and you hire one firm. Once an offer is accepted it is final.
               </p>
               <p>Your cash fee is kept safe (in escrow) until the due time. The firm is paid only if it sends its memo; otherwise you get it back.</p>
+              {minBidOn ? (
+                <p>Each firm has a minimum bid: its base rate, 1% to 4% of your company, set by its Round 1 memo score. An offer worth less is refused.</p>
+              ) : null}
+              {drawOn ? (
+                <p>
+                  No firm by {hireAt}? The draw gives you a random firm with room, at that firm&apos;s base rate in shares (in cash if your company is at its
+                  40,000-share floor).
+                </p>
+              ) : null}
               {band ? (
                 <p>
                   In Round 3 the fee must be worth {money(band.min)} to {money(band.max)} (5–20% of your cash).
                 </p>
               ) : null}
             </HowItWorks>
+            {listed.length === 0 ? (
+              <Notice tone="amber">Every firm has {FIRM_CLIENTS_PER_SUBROUND} clients for this {r3 ? "round" : "crisis"}: there is no firm left to offer.</Notice>
+            ) : null}
+            {data.firms.length > listed.length ? (
+              <p className="mt-2 text-xs text-muted" data-testid="full-firms-hidden">
+                {data.firms.length - listed.length === 1 ? "1 firm is" : `${data.firms.length - listed.length} firms are`} full for this {r3 ? "round" : "crisis"} and
+                not shown.
+              </p>
+            ) : null}
             <ul className="mt-3 grid gap-3 md:grid-cols-2" aria-label="Firm directory">
-              {data.firms.map((f) => {
+              {listed.map((f) => {
                 const p = data.profiles.get(f.team_id);
-                const full = clientsThisRound(f.team_id) >= FIRM_CLIENTS_PER_SUBROUND;
                 const open = myOffers.some((o) => o.firm_team_id === f.team_id && o.status === "OPEN");
+                const minShares = minBidOn && f.base_rate_bp !== null ? rateShares(f.base_rate_bp) : 0;
                 return (
                   <li key={f.team_id} className="border border-line bg-panel p-3" data-testid={`firm-${f.code}`}>
                     <div className="flex flex-wrap items-center gap-2">
@@ -240,25 +273,31 @@ export async function ProductRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; d
                       </Link>
                       <span className="text-paper">{f.name}</span>
                       {f.avg_rating !== null ? <Badge tone="slate">★ {f.avg_rating.toFixed(1)}</Badge> : null}
-                      {full ? <Badge tone="red">Full</Badge> : null}
                     </div>
                     {p?.headline ? <p className="mt-1 text-sm font-semibold text-paper">{p.headline}</p> : null}
                     {p?.specialities.length ? <p className="mt-1 text-xs text-[var(--term-cyan)]">{p.specialities.join(" · ")}</p> : null}
                     {p?.rate_card ? <p className="mt-1 whitespace-pre-wrap text-xs text-muted">{p.rate_card}</p> : null}
+                    {f.base_rate_bp !== null && (minBidOn || drawOn) ? (
+                      <p className="mt-1 text-xs text-[var(--term-amber)]" data-testid={`firm-rate-${f.code}`}>
+                        {minBidOn
+                          ? `Minimum bid: ${minBidText(f.base_rate_bp, mine.market_price)}.`
+                          : `Base rate: ${rateText(f.base_rate_bp)} (the fee if the draw gives you this firm).`}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-xs text-muted">
                       Asks for {p && p.asking_cents > 0 ? money(p.asking_cents) : "—"} ·{" "}
                       <Link href={`/team/firms/${encodeURIComponent(f.code)}`} className="text-[var(--term-amber)] hover:underline">
                         Full profile
                       </Link>
                     </p>
-                    {!full && !open ? (
+                    {!open ? (
                       <details className="mt-2">
                         <summary className="cursor-pointer text-sm font-semibold text-[var(--term-amber)]">Make an offer</summary>
                         <ActionForm action={makeOffer.bind(null, f.team_id, f.code)} submit="Send offer" className="mt-2" resetOnSuccess>
                           {/* In Round 3 the fee must be worth 5–20% of the company's cash: start inside that band. */}
                           <TermsFields
                             cash={0}
-                            shares={r3StartShares}
+                            shares={Math.max(r3StartShares, minShares)}
                             priceCents={mine.market_price}
                             hint={
                               band

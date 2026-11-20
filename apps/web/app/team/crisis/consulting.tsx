@@ -4,11 +4,13 @@
 
 import Link from "next/link";
 import { RULES, adviceOf, planOf, type SubmissionType } from "@msim/engine";
+import { featureOn } from "@/lib/event-status";
 import { clock, money } from "@/lib/format";
 import type { TeamContext } from "@/lib/team/context";
 import { draftOf, type CrisisRoomData } from "@/lib/team/crisis-data";
-import { FIRM_CLIENTS_PER_SUBROUND, hiringOpen, stepAt, subroundTitle, termsText } from "@/lib/team/crisis";
+import { FIRM_CLIENTS_PER_SUBROUND, hiringOpen, stepAt, termsText } from "@/lib/team/crisis";
 import { backupKey, toSnapshot } from "@/lib/team/editor";
+import { assignedToFirm, minBidText, pitchableCompanies, rateShares, rateText } from "@/lib/team/hire-lists";
 import { submissionWindow } from "@/lib/team/squad";
 import { pauseOf } from "@/lib/team/squad-data";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
@@ -31,6 +33,12 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
   const company = new Map(data.companies.map((c) => [c.id, c]));
   const offers = k === null ? [] : data.offers.filter((o) => o.firm_team_id === me && o.k === k);
   const clients = k === null ? [] : data.engagements.filter((e) => e.firm_team_id === me && e.k === k);
+  // Tonight's hiring rules (migration 071): this firm's base rate is its minimum bid and what a drawn client pays.
+  const minBidOn = featureOn(ctx.status, "hire_min_bid");
+  const drawOn = featureOn(ctx.status, "hire_base_rate");
+  const myRate = data.firms.find((f) => f.team_id === me)?.base_rate_bp ?? null;
+  // Locked = gone: a company that has hired is not listed to pitch (hire_locked makes this page re-read at once).
+  const pitchable = k === null ? [] : pitchableCompanies(data.companies, data.engagements, data.offers, k, me);
   const winInput = {
     ...pause,
     phase: ctx.status.phase,
@@ -86,6 +94,14 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
         summary={profileDone ? `“${profile!.headline}” · asking ${profile!.asking_cents > 0 ? money(profile!.asking_cents) : "—"}. Tap to edit.` : "Companies read it to choose a firm. Fill it in first."}
       >
         <DoThis testId="profile-todo">Say what your firm is good at and what it asks for, then press Save profile.</DoThis>
+        {myRate !== null && (minBidOn || drawOn) ? (
+          <p className="mt-2 text-sm text-paper" data-testid="my-base-rate">
+            Your base rate: <strong className="text-[var(--term-amber)]">{rateText(myRate)}</strong> of a company ({rateShares(myRate).toLocaleString("en-US")}{" "}
+            shares), set by your Round 1 memo score.
+            {minBidOn ? " It is your minimum bid: no offer for less can be made or accepted." : ""}
+            {drawOn ? " A company the draw gives you pays it." : ""}
+          </p>
+        ) : null}
         <p className="mb-3 mt-1 text-sm text-paper">
           Every Product team sees this in the firm directory.{" "}
           <Link href={`/team/firms/${encodeURIComponent(ctx.team.code)}`} className="text-[var(--term-amber)] hover:underline">
@@ -134,27 +150,35 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
             <p className="mt-2 text-sm text-paper">
               You do not have to wait to be asked. Write to a company to talk terms, or send it an offer and it answers first.
             </p>
+            {pitchable.length === 0 ? <p className="mt-2 text-sm text-muted">Every company has a firm or an offer from you.</p> : null}
             <ul className="mt-2 max-h-72 space-y-3 overflow-y-auto">
-              {data.companies
-                .filter((co) => !data.engagements.some((e) => e.company_id === co.id && e.k === k))
-                .filter((co) => !offers.some((o) => o.company_id === co.id && o.status === "OPEN"))
-                .map((co) => (
-                  <li key={co.id} className="border-b border-line pb-3 last:border-b-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono font-semibold text-[var(--term-amber)]">{companyLabel(co)}</span>
-                      <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[var(--term-amber)] hover:underline">
-                        Talk to them →
-                      </Link>
-                    </div>
-                    <ActionForm action={makeOfferTo.bind(null, co.id, companyLabel(co))} submit="Send pitch" resetOnSuccess className="mt-2">
-                      <TermsFields cash={0} priceCents={co.market_price} hint="Ask for a stake in the company (equity %): its value is shares × the company's share price." />
-                      <label className="mt-2 block text-sm">
-                        <span className="font-semibold text-paper">Note (optional)</span>
-                        <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`${inputClass} mt-1`} />
-                      </label>
-                    </ActionForm>
-                  </li>
-                ))}
+              {pitchable.map((co) => (
+                <li key={co.id} className="border-b border-line pb-3 last:border-b-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono font-semibold text-[var(--term-amber)]">{companyLabel(co)}</span>
+                    <Link href={`/team/messages?c=${co.id}&f=${me}`} className="ml-auto text-sm text-[var(--term-amber)] hover:underline">
+                      Talk to them →
+                    </Link>
+                  </div>
+                  {minBidOn && myRate !== null ? (
+                    <p className="mt-1 text-xs text-[var(--term-amber)]" data-testid={`pitch-min-bid-${co.ticker ?? co.id}`}>
+                      Your minimum bid: {minBidText(myRate, co.market_price)}.
+                    </p>
+                  ) : null}
+                  <ActionForm action={makeOfferTo.bind(null, co.id, companyLabel(co))} submit="Send pitch" resetOnSuccess className="mt-2">
+                    <TermsFields
+                      cash={0}
+                      shares={minBidOn && myRate !== null ? rateShares(myRate) : 0}
+                      priceCents={co.market_price}
+                      hint="Ask for a stake in the company (equity %): its value is shares × the company's share price."
+                    />
+                    <label className="mt-2 block text-sm">
+                      <span className="font-semibold text-paper">Note (optional)</span>
+                      <input name="note" maxLength={300} placeholder="Why you are the right firm" className={`${inputClass} mt-1`} />
+                    </label>
+                  </ActionForm>
+                </li>
+              ))}
             </ul>
           </details>
         ) : null}
@@ -164,6 +188,8 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
             You take at most {FIRM_CLIENTS_PER_SUBROUND} clients per {r3 ? "round" : "crisis"}. Accepting is final.
           </p>
           <p>The cash is kept safe (in escrow) and paid to you at the due time, but only if your memo for that client is submitted.</p>
+          {minBidOn ? <p>Your minimum bid is your base rate: neither side can propose or accept less.</p> : null}
+          {drawOn ? <p>When hiring closes, each company with no firm is drawn at random to a firm with room, and pays that firm&apos;s base rate.</p> : null}
         </HowItWorks>
       </Step>
 
@@ -193,6 +219,11 @@ export function ConsultingRoom({ ctx, data, k, nowMs }: { ctx: TeamContext; data
                       Chat with this client →
                     </Link>
                   </div>
+                  {e.assigned ? (
+                    <p className="mt-1 text-sm text-[var(--term-cyan)]" data-testid="client-assigned">
+                      {assignedToFirm(e, c?.ticker ?? label, myRate, drawOn)} Write its memo like any client&apos;s: the fee is paid only if it is in by {dueAt}.
+                    </p>
+                  ) : null}
                   {r3 ? null : (
                     <div className="mt-3">
                       <CardsOf data={data} k={k} only={[e.company_id]} />

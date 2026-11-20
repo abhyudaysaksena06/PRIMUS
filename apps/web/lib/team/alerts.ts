@@ -3,6 +3,7 @@
 
 import type { Track } from "@msim/engine";
 import type { HomePlan, HomeTask } from "./home";
+import { rateText } from "./hire-lists";
 
 /** The one thing to do next: the open task of this team that closes first (the plan lists them in closing order). */
 export function nextAction(plan: HomePlan): HomeTask | null {
@@ -92,6 +93,21 @@ export function eventToast(kind: string, payload: Record<string, unknown>, track
         return track === "PRODUCT"
           ? { text: "Deal! You have hired a firm.", tone: "good", href: "/team/crisis", loud: true }
           : { text: "Deal! You have a new client: write its memo.", tone: "good", href: "/team/crisis", loud: true };
+      }
+      // Placed when hiring closed (app.assign_default_firms), not an offer. The draw's message names both sides.
+      if (payload.assigned === true) {
+        const draw = payload.draw === true;
+        const firm = typeof payload.firm_code === "string" ? payload.firm_code : null;
+        const ticker = typeof payload.ticker === "string" ? payload.ticker : null;
+        const bp = typeof payload.base_rate_bp === "number" ? payload.base_rate_bp : null;
+        return track === "PRODUCT"
+          ? {
+              text: draw && firm ? `Assigned by the draw: ${firm}${bp === null ? "" : ` at ${rateText(bp)} (its base rate)`}.` : "Hiring closed: you were given a firm.",
+              tone: "info",
+              href: "/team/crisis",
+              loud: true,
+            }
+          : { text: `You were assigned ${ticker ?? "a client"}${draw ? " by the draw" : ""}: write its memo.`, tone: "good", href: "/team/crisis", loud: true };
       }
       if (typeof payload.offer !== "string") return track === "CONSULTING" ? { text: "A company sent you an offer.", tone: "good", href: "/team/crisis", loud: true } : null;
       return { text: "One of your offers changed: have a look.", tone: "info", href: "/team/crisis", loud: false };
