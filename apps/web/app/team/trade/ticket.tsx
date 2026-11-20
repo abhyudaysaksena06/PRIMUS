@@ -97,7 +97,7 @@ export function OrderTicket({
       }}
     >
       <label className="block">
-        <span className="text-xs font-medium text-paper">Company</span>
+        <span className="mb-1 block font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">Company</span>
         <select
           name="company"
           required
@@ -122,13 +122,13 @@ export function OrderTicket({
       <input type="hidden" name="ticker" value={company?.ticker ?? ""} />
 
       <fieldset>
-        <legend className="text-xs font-medium text-paper">Order type</legend>
-        <div className="mt-1 grid grid-cols-4 gap-1">
+        <legend className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">Order type</legend>
+        <div className="grid grid-cols-4 gap-1 rounded border border-[#2d2a1d] bg-[#11110d] p-1">
           {ORDER_TYPES.map((t) => (
             <label
               key={t}
-              className={`flex cursor-pointer items-center justify-center rounded-md px-2 py-2 text-sm font-semibold ring-1 ring-inset has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-phosphor ${
-                type === t ? TYPE_ON[t] : "bg-panel text-paper ring-line hover:bg-raised"
+              className={`flex h-9 cursor-pointer items-center justify-center rounded-sm px-2 font-mono text-xs font-semibold uppercase ring-1 ring-inset transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[color:var(--desk-accent)] ${
+                type === t ? TYPE_ON[t] : "text-[#87948D] ring-transparent hover:text-[#F2F5F3]"
               }`}
             >
               <input
@@ -146,14 +146,14 @@ export function OrderTicket({
             </label>
           ))}
         </div>
-        <p className="mt-1 text-xs text-muted">{ORDER_TYPE_INFO[type].hint}</p>
+        <p className="mt-1.5 text-xs text-[#BACBB9]">{ORDER_TYPE_INFO[type].hint}</p>
       </fieldset>
 
       <div>
-        <label htmlFor="order-qty" className="text-xs font-medium text-paper">
+        <label htmlFor="order-qty" className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#87948D]">
           Quantity (shares)
         </label>
-        <div className="mt-0.5 flex gap-2">
+        <div className="mt-1 flex gap-2">
           <input
             id="order-qty"
             name="qty"
@@ -173,7 +173,7 @@ export function OrderTicket({
             <button
               key={n}
               type="button"
-              className="rounded-md bg-raised px-3 py-1.5 font-mono text-sm font-semibold text-phosphor ring-1 ring-inset ring-line hover:bg-phosphor-deep"
+              className="rounded-sm border border-[#2d2a1d] bg-[#11110d] px-2.5 py-1 font-mono text-xs text-[#BACBB9] hover:border-[color:var(--desk-accent-line)] hover:text-[#F2F5F3]"
               onClick={() => {
                 setQty(String(n));
                 setMaxNote(null);
@@ -204,7 +204,7 @@ export function OrderTicket({
       </div>
 
       {company && pos ? (
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md bg-raised px-3 py-2 text-xs sm:grid-cols-4" aria-label={`Your position in ${company.ticker}`}>
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded border border-[#2d2a1d] bg-[#11110d] px-3 py-2 text-xs" aria-label={`Your position in ${company.ticker}`}>
           <Fact label="Price now" value={money(pos.price)} />
           <Fact label="You hold (exchange lot)" value={`${count(pos.exchangeQty)}${pos.pending.SELL ? ` · selling ${count(pos.pending.SELL)}` : ""}`} />
           <Fact label="You are short" value={`${count(pos.shortQty)}${pos.pending.COVER ? ` · covering ${count(pos.pending.COVER)}` : ""}`} />
@@ -221,7 +221,7 @@ export function OrderTicket({
       ) : null}
 
       <div>
-        <button type="submit" disabled={pending || closed || placeLabel === null} className={buttonClass.primary}>
+        <button type="submit" disabled={pending || closed || placeLabel === null} className={`${buttonClass.primary} h-10 w-full`}>
           {pending ? "Placing…" : (placeLabel ?? "Place order")}
         </button>
       </div>
@@ -232,10 +232,10 @@ export function OrderTicket({
 
 /** Each order type's colour when chosen: buying green, selling red, shorting orange, covering blue. */
 const TYPE_ON: Record<OrderType, string> = {
-  BUY: "bg-emerald-600 text-ink ring-phosphor",
-  SELL: "bg-danger text-ink ring-danger",
-  SHORT: "bg-warn text-ink ring-warn",
-  COVER: "bg-paper text-ink ring-paper",
+  BUY: "bg-[#00D68F] text-[#070909] ring-[#00D68F]",
+  SELL: "bg-[#FF5364] text-[#070909] ring-[#FF5364]",
+  SHORT: "bg-[#ff9b45] text-[#070909] ring-[#ff9b45]",
+  COVER: "bg-[#63a8ff] text-[#070909] ring-[#63a8ff]",
 };
 
 function roomLabel(type: OrderType): string {
@@ -249,8 +249,8 @@ function roomOf(type: OrderType, pos: ReturnType<typeof companyPosition>): numbe
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-muted">{label}</dt>
-      <dd className="font-mono font-semibold tabular-nums text-phosphor">{value}</dd>
+      <dt className="text-[#87948D]">{label}</dt>
+      <dd className="font-mono font-semibold tabular-nums text-[#F2F5F3]">{value}</dd>
     </div>
   );
 }

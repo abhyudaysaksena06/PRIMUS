@@ -7,7 +7,8 @@ import { fundSummary, openOrders, openOrdersState, tradingNotice, type TradingNo
 import { clock, money } from "@/lib/format";
 import { AutoRefresh } from "@/lib/live/auto-refresh";
 import { RefreshAt } from "@/lib/live/refresh-at";
-import { Notice, Panel } from "@/components/ui/ui";
+import { Notice } from "@/components/ui/ui";
+import { DeskPanel, DeskStatus, deskLabel } from "./desk-ui";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Countdown } from "@/components/ui/countdown";
 import { tradeGate } from "./gate";
@@ -41,7 +42,7 @@ export default async function TradePage() {
 
   if (!phaseReached(status.phase, "READING")) {
     return (
-      <Panel title="Trading">
+      <DeskPanel title="Trading">
         <p className="text-sm text-paper" data-testid="trading-notice">
           Trading starts with round 1{at("ROUNDS_1_4") ? ` at ${at("ROUNDS_1_4")}` : ""}. The companies are listed at Reading
           {at("READING") ? ` (${at("READING")})` : ""}, and IPO bids open with the IPO{at("IPO") ? ` at ${at("IPO")}` : ""}.
@@ -49,13 +50,13 @@ export default async function TradePage() {
         {status.phase === "BUILD" ? (
           <p className="mt-2 text-sm text-paper">
             Until then, trade the{" "}
-            <Link href="/team/trade/practice" className="font-semibold text-phosphor underline">
+            <Link href="/team/trade/practice" className="font-semibold text-[color:var(--desk-accent)] underline">
               practice market
             </Link>
             : the 3 funds worth the most when Round 1 ends each win $50,000 in real cash before the IPO.
           </p>
         ) : null}
-      </Panel>
+      </DeskPanel>
     );
   }
 
@@ -90,6 +91,11 @@ export default async function TradePage() {
       <RefreshAt at={accepting ? status.open_round!.closes_at : (notice?.next?.opensAt ?? null)} />
       <AutoRefresh everyMs={10_000} active={accepting} />
 
+      <DeskStatus live={accepting}>
+        {accepting ? <>Live trading · round {status.open_round!.number} · closes in <Countdown to={status.open_round!.closes_at} passed="now" className="text-[color:var(--desk-accent)]" /></> : "Trading closed"}
+        <span aria-hidden>·</span> {open.length} open {open.length === 1 ? "order" : "orders"} <span aria-hidden>·</span> {tradable.length} listed
+      </DeskStatus>
+
       {notice ? <ClosedNotice notice={notice} nowMs={nowMs} ipo={status.phase === "IPO"} /> : null}
 
       {cooling.length > 0 ? (
@@ -110,6 +116,32 @@ export default async function TradePage() {
         </Notice>
       ) : null}
 
+      <section aria-labelledby="cash-and-limits" className="space-y-2">
+        <h2 id="cash-and-limits" className="sr-only">
+          Cash and limits
+        </h2>
+        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-5">
+          {/* What a fund can spend now comes first. */}
+          <Fact label="Available to spend" value={money(summary.available)} hint="Cash − collateral − reserves" testId="available" accent />
+          <Fact label="Cash" value={money(summary.cash)} />
+          <Fact label="Reserved by open orders" value={money(summary.reserved)} testId="reserved" />
+          <Fact label="Collateral locked" value={money(summary.collateral)} hint="150% of your shorts' value" />
+          <Fact
+            label="Short exposure"
+            value={money(summary.shortExposureWithPending)}
+            hint={`of ${money(RULES.SHORT_EXPOSURE_LIMIT)}, pending shorts included`}
+            testId="exposure"
+          />
+        </dl>
+        <p className="text-xs text-[#87948D]">
+          Holdings, profit and loss and the limits per company are under{" "}
+          <Link href="/team/trade/positions" className="underline">
+            Positions
+          </Link>
+          .
+        </p>
+      </section>
+
       {tradable.length > 0 ? (
         <TradeDesk
           companies={tradable}
@@ -127,71 +159,48 @@ export default async function TradePage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="contents">
-          {shownRound && (accepting || open.length > 0) ? (
-            <Panel
-              title={`Open orders · round ${shownRound.number}`}
-              actions={
-                ordersState === "EDITABLE" ? (
-                  <span className="text-sm text-paper">
-                    editable for <Countdown to={shownRound.closes_at} passed="—" className="font-semibold text-phosphor" />
-                  </span>
-                ) : ordersState === "PAUSED" ? (
-                  <span className="text-sm text-warn" data-testid="open-orders-state">
-                    paused: no changes until the event resumes
-                  </span>
-                ) : (
-                  <span className="text-sm text-warn" data-testid="open-orders-state">
-                    closed at {clock(shownRound.closes_at, true)}: clearing
-                  </span>
-                )
-              }
-            >
-              {open.length === 0 ? (
-                <p className="text-sm text-muted">No open orders in round {shownRound.number}.</p>
+        {shownRound && (accepting || open.length > 0) ? (
+          <DeskPanel
+            title={`Open orders · round ${shownRound.number}`}
+            sub={`Order blotter · ${open.length} open`}
+            actions={
+              ordersState === "EDITABLE" ? (
+                <span className="font-mono text-[#BACBB9]">
+                  editable for <Countdown to={shownRound.closes_at} passed="—" className="font-semibold text-[color:var(--desk-accent)]" />
+                </span>
+              ) : ordersState === "PAUSED" ? (
+                <span className="font-mono text-warn" data-testid="open-orders-state">
+                  paused: no changes until the event resumes
+                </span>
               ) : (
-                <OpenOrders
-                  ctx={fctx}
-                  closesAt={shownRound.closes_at}
-                  accepting={accepting}
-                  items={open.map((line) => ({ line, edit: editOrder.bind(null, line.id), cancel: cancelOrder.bind(null, line.id) }))}
-                />
-              )}
-              <p className="mt-3 text-xs text-muted">
-                Every valid order fills at its company&apos;s new price when the round clears. Past rounds and their fill prices are under{" "}
-                <Link href="/team/trade/history" className="underline">
-                  History
-                </Link>
-                .
-              </p>
-            </Panel>
-          ) : null}
-
-          <Panel title="Cash and limits">
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-              {/* What a fund can spend now comes first. */}
-              <Fact label="Available to spend" value={money(summary.available)} hint="Cash − collateral − reserves" testId="available" />
-              <Fact label="Cash" value={money(summary.cash)} />
-              <Fact label="Reserved by open orders" value={money(summary.reserved)} testId="reserved" />
-              <Fact label="Collateral locked" value={money(summary.collateral)} hint="150% of your shorts' value" />
-              <Fact
-                label="Short exposure"
-                value={money(summary.shortExposureWithPending)}
-                hint={`of ${money(RULES.SHORT_EXPOSURE_LIMIT)}, pending shorts included`}
-                testId="exposure"
+                <span className="font-mono text-warn" data-testid="open-orders-state">
+                  closed at {clock(shownRound.closes_at, true)}: clearing
+                </span>
+              )
+            }
+            bodyClassName="px-4 pb-4"
+          >
+            {open.length === 0 ? (
+              <p className="py-6 text-center font-mono text-xs text-[#87948D]">No open orders in round {shownRound.number}.</p>
+            ) : (
+              <OpenOrders
+                ctx={fctx}
+                closesAt={shownRound.closes_at}
+                accepting={accepting}
+                items={open.map((line) => ({ line, edit: editOrder.bind(null, line.id), cancel: cancelOrder.bind(null, line.id) }))}
               />
-            </dl>
-            <p className="mt-3 text-xs text-muted">
-              Holdings, profit and loss and the limits per company are under{" "}
-              <Link href="/team/trade/positions" className="underline">
-                Positions
+            )}
+            <p className="mt-3 text-xs text-[#87948D]">
+              Every valid order fills at its company&apos;s new price when the round clears. Past rounds and their fill prices are under{" "}
+              <Link href="/team/trade/history" className="underline">
+                History
               </Link>
               .
             </p>
-          </Panel>
-        </div>
+          </DeskPanel>
+        ) : null}
+        <WireFeed items={wire} />
       </div>
-      <WireFeed items={wire} />
     </div>
   );
 }
@@ -222,14 +231,14 @@ function ClosedNotice({ notice, nowMs, ipo }: { notice: TradingNotice; nowMs: nu
   );
 }
 
-function Fact({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId?: string }) {
+function Fact({ label, value, hint, testId, accent = false }: { label: string; value: string; hint?: string; testId?: string; accent?: boolean }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="font-mono font-semibold tabular-nums text-phosphor" data-testid={testId}>
+    <div className="flex min-w-0 flex-col justify-between gap-1.5 rounded-lg border border-white/[0.07] bg-[#171610] p-3 sm:p-4">
+      <dt className={deskLabel}>{label}</dt>
+      <dd className={`break-words font-mono text-lg font-semibold tabular-nums sm:text-xl ${accent ? "text-[color:var(--desk-accent)]" : "text-[#F2F5F3]"}`} data-testid={testId}>
         {value}
       </dd>
-      {hint ? <dd className="text-xs text-muted">{hint}</dd> : null}
+      {hint ? <dd className="text-[11px] text-[#87948D]">{hint}</dd> : null}
     </div>
   );
 }

@@ -18,6 +18,9 @@ import { buttonClass, inputClass } from "@/components/ui/ui";
 
 const narrowInput = inputClass.replace("w-full", "w-28");
 
+/** The blotter's side colours: buys and covers green, sells and shorts red (the desk's up and down). */
+const SIDE = { BUY: "text-[#00D68F]", COVER: "text-[#00D68F]", SELL: "text-[#FF5364]", SHORT: "text-[#FF5364]" } as const;
+
 export interface OpenOrderItem {
   line: OrderLine;
   edit: (prev: ActionResult | null, form: FormData) => Promise<ActionResult>;
@@ -28,14 +31,14 @@ export function OpenOrders({ ctx, items, closesAt, accepting }: { ctx: OrderCont
   const now = useServerNow(1000);
   const open = accepting && now < new Date(closesAt).getTime();
   return (
-    <ul className="divide-y divide-line" aria-label="Open orders">
+    <ul className="divide-y divide-[#2d2a1d]" aria-label="Open orders">
       {items.map(({ line, edit, cancel }) => {
         const label = orderLabel(line.type, line.qty, line.ticker);
         return (
           <li key={line.id} className="py-3" data-testid="open-order">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className="font-mono font-semibold">{label}</span>
-              <span className="text-xs text-muted">
+              <span className={`font-mono text-sm font-semibold ${SIDE[line.type]}`}>{label}</span>
+              <span className="font-mono text-[11px] tabular-nums text-[#87948D]">
                 placed {clock(line.createdAt, true)} at {money(line.entryPrice)}
                 {line.reserve > 0 ? ` · ${line.type === "SHORT" ? "collateral" : "cash"} reserved ${money(line.reserve)}` : ""}
               </span>

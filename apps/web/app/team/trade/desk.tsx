@@ -2,7 +2,8 @@
 
 // The order screen's chart, beside the ticket: pick a company (the ticket follows the pick), read its candles (each
 // trading round's real high and low, crisis and score moves marked as their own candles), the candlestick patterns,
-// and, while a round is open, its live indicative candle, read every 5 seconds.
+// and, while a round is open, its live indicative candle, read every 5 seconds. Drawn as the desk's screener (one
+// tinted tile per company), the instrument panel over its candles and the ticket beside it.
 
 import { useEffect, useMemo, useState } from "react";
 import type { OrderContext } from "@msim/engine";
@@ -13,8 +14,8 @@ import { supabaseBrowser } from "@/lib/supabase/browser";
 import { money } from "@/lib/format";
 import { TradingChart } from "@/components/ui/trading-chart";
 import { Countdown } from "@/components/ui/countdown";
-import { Panel } from "@/components/ui/ui";
 import { OrderTicket } from "./ticket";
+import "./finance-desk.css";
 
 /** How often an open round's price ranges are re-read (each desk adds ±1 s of its own). */
 const RANGE_POLL_MS = 5000;
@@ -94,80 +95,174 @@ export function TradeDesk({
   if (!company) return null;
   const now = live ? live.close : company.price;
   const move = now - company.price;
+  const movePct = (Math.abs(move) / company.price) * 100;
+
+  const chart = (
+    <div className="fin-candles rounded border border-white/10 bg-[#0a141a] p-2 sm:p-3">
+      <TradingChart candles={shown} label={`${company.ticker} price`} testId="trade-chart" live={!!live} average={3} note="One candle per price step: each trading round, the IPO, crises and score moves" />
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <section className="min-w-0" data-testid="trade-chart-panel">
+        <label className="mb-3 flex flex-wrap items-center gap-2 text-sm text-paper">
+          Company chart
+          <select value={company.id} onChange={(event) => setPicked(event.target.value)}
+            className="max-w-full rounded border border-line px-2 py-1 font-mono text-sm">
+            {companies.map((c) => <option key={c.id} value={c.id}>{c.ticker} · {c.name}</option>)}
+          </select>
+        </label>
+        <Quote company={company} live={live} now={now} move={move} movePct={movePct} roundNumber={openRound?.number ?? null} />
+        {chart}
+      </section>
+    );
+  }
 
   return (
-    // Laptop screens: the chart and the ticket use the full width of the window, not the team pages' reading column.
-    <div
-      className={`${embedded ? "min-w-0" : "relative left-1/2 w-[calc(100vw-3rem)] max-w-[1700px] -translate-x-1/2"} ${ticket ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]" : ""}`}
-    >
-      <section className={embedded ? "min-w-0" : "min-w-0 rounded-md bg-panel p-3 ring-1 ring-inset ring-line"} data-testid="trade-chart-panel">
-        {embedded ? (
-          <label className="mb-3 flex flex-wrap items-center gap-2 text-sm text-paper">
-            Company chart
-            <select value={company.id} onChange={(event) => setPicked(event.target.value)}
-              className="max-w-full rounded border border-line px-2 py-1 font-mono text-sm">
-              {companies.map((c) => <option key={c.id} value={c.id}>{c.ticker} · {c.name}</option>)}
-            </select>
-          </label>
-        ) : <div className="mb-2 flex flex-wrap gap-1" role="tablist" aria-label="Company chart">
+    <div className="space-y-4">
+      {/* The screener: one tile per company, tinted by its move this round; picking one moves the chart and the ticket. */}
+      <section className="min-w-0 overflow-hidden rounded-lg border border-white/[0.07] bg-[#171610]" data-testid="trade-chart-panel">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[#2d2a1d] px-4 py-3">
+          <div>
+            <h2 className="text-base font-semibold text-[#F2F5F3]">Market screener</h2>
+            <p className="mt-0.5 text-xs text-[#BACBB9]">
+              {companies.length} {companies.length === 1 ? "company" : "companies"}
+              {openRound ? ` · live prices for round ${openRound.number}` : " · last cleared prices"}
+            </p>
+          </div>
+          {openRound ? (
+            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[#00D68F]">
+              <span className="fin-live-dot inline-block size-1.5 rounded-full bg-[#00D68F]" aria-hidden />
+              Live
+            </span>
+          ) : null}
+        </header>
+        <div className="grid grid-cols-2 gap-1.5 p-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6" role="tablist" aria-label="Company chart">
           {companies.map((c) => {
             const ind = indicative(c.id);
             const d = ind !== null ? ind - c.price : 0;
+            const on = c.id === company.id;
             return (
               <button
                 key={c.id}
                 type="button"
                 role="tab"
-                aria-selected={c.id === company.id}
+                aria-selected={on}
                 onClick={() => setPicked(c.id)}
                 data-testid={`chart-pick-${c.ticker}`}
-                className={`rounded px-2 py-1 font-mono text-xs ring-1 ring-inset ${c.id === company.id ? "bg-phosphor-deep text-phosphor ring-phosphor-dim" : "text-paper ring-line hover:bg-raised"}`}
+                className={`min-w-0 rounded border px-2.5 py-2 text-left font-mono text-xs transition-colors ${tileTone(d, c.price)} ${
+                  on ? "outline-2 outline-offset-1 outline-[color:var(--desk-accent)] outline" : "hover:brightness-125"
+                }`}
               >
-                {c.ticker} {money(ind ?? c.price)}
-                {d !== 0 ? <span className={d > 0 ? "text-phosphor" : "text-danger-soft"}> {d > 0 ? "▲" : "▼"}</span> : null}
+                <span className="block truncate text-[13px] font-semibold text-[#F2F5F3]">{c.ticker}</span>
+                <span className="block tabular-nums text-[#F2F5F3]">
+                  {money(ind ?? c.price)}
+                  {d !== 0 ? <span className={d > 0 ? "text-[#7ef0c4]" : "text-[#ffb3bb]"}> {d > 0 ? "▲" : "▼"}</span> : null}
+                </span>
+                {c.name ? <span className="block truncate font-sans text-[11px] text-[#BACBB9]">{c.name}</span> : null}
               </button>
             );
           })}
-        </div>}
-        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-mono text-base font-semibold text-paper">
-            {company.ticker} <span className="text-sm font-normal text-muted">{company.name}</span>
-          </h2>
-          {live ? (
-            <span className="text-sm" data-testid="indicative-price">
-              <span className="text-muted">Round {openRound!.number} would clear at </span>
-              <b className="font-mono text-phosphor">{money(now)}</b>
-              <span className={move > 0 ? "text-phosphor" : move < 0 ? "text-danger-soft" : "text-muted"}>
-                {" "}
-                ({move >= 0 ? "+" : "−"}
-                {((Math.abs(move) / company.price) * 100).toFixed(1)}%)
-              </span>
-              <span className="text-muted"> if no other order came</span>
-            </span>
-          ) : (
-            <span className="font-mono text-sm text-phosphor">{money(company.price)}</span>
-          )}
         </div>
-        <TradingChart candles={shown} label={`${company.ticker} price`} testId="trade-chart" live={!!live} average={3} note="One candle per price step: each trading round, the IPO, crises and score moves" />
       </section>
-      {ticket ? (
-        <Panel
-          className="lg:self-start"
-          title={`Order ticket · round ${ticket.round.number}`}
-          actions={
-            <span className="text-sm text-paper">
-              closes in <Countdown to={ticket.round.closesAt} passed="now" className="font-semibold text-phosphor" />
-            </span>
-          }
-        >
-          <OrderTicket ctx={ticket.ctx} companies={companies} round={ticket.round} action={ticket.action} picked={company.id} onPick={setPicked} />
-          {ticket.ownTicker ? (
-            <p className="mt-3 text-xs text-muted">
-              Your squad&apos;s company, {ticket.ownTicker}, is not listed: a fund never trades its own squad&apos;s company.
-            </p>
-          ) : null}
-        </Panel>
+
+      <div className={ticket ? "grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]" : ""}>
+        <section className="min-w-0 rounded-lg border border-white/10 bg-[#171610] p-4" aria-label="Instrument analysis">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-mono text-base font-semibold text-[#F2F5F3]">{company.ticker}</h2>
+              {company.name ? <p className="text-xs text-[#BACBB9]">{company.name}</p> : null}
+            </div>
+            {ticket ? (
+              <a href="#order-ticket" className="rounded border border-[color:var(--desk-accent-line)] px-3 py-2 text-sm font-semibold text-[color:var(--desk-accent)] xl:hidden">
+                Trade {company.ticker} ↓
+              </a>
+            ) : null}
+          </div>
+          <Quote company={company} live={live} now={now} move={move} movePct={movePct} roundNumber={openRound?.number ?? null} />
+          {chart}
+        </section>
+        {ticket ? (
+          <section id="order-ticket" className="min-w-0 scroll-mt-4 overflow-hidden rounded-lg border border-white/[0.07] bg-[#171610] xl:self-start">
+            <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2d2a1d] px-4 py-3">
+              <h2 className="text-sm font-semibold text-[#F2F5F3]">Order ticket · round {ticket.round.number}</h2>
+              <span className="font-mono text-[11px] text-[#87948D] tabular-nums">
+                closes in <Countdown to={ticket.round.closesAt} passed="now" className="font-semibold text-[color:var(--desk-accent)]" />
+              </span>
+            </header>
+            <div className="p-4">
+              <OrderTicket ctx={ticket.ctx} companies={companies} round={ticket.round} action={ticket.action} picked={company.id} onPick={setPicked} />
+              {ticket.ownTicker ? (
+                <p className="mt-3 text-xs text-[#87948D]">
+                  Your squad&apos;s company, {ticket.ownTicker}, is not listed: a fund never trades its own squad&apos;s company.
+                </p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** A tile's tint: green when the round would lift it, red when it would sink it, graphite when flat. */
+function tileTone(d: number, price: number): string {
+  const pct = price > 0 ? (d / price) * 100 : 0;
+  if (pct > 5) return "border-[#53d6b4] bg-[#08604c]";
+  if (pct >= 2) return "border-[#49ae91] bg-[#145340]";
+  if (pct > 0) return "border-[#378073] bg-[#153f36]";
+  if (pct === 0) return "border-[#423c28] bg-[#11110d]";
+  if (pct > -2) return "border-[#b66b73] bg-[#543039]";
+  return pct >= -5 ? "border-[#d47183] bg-[#682b38]" : "border-[#f08799] bg-[#7f2538]";
+}
+
+/** The picked company's figures over the chart: the price, and while a round is open what it would clear at. */
+function Quote({
+  company,
+  live,
+  now,
+  move,
+  movePct,
+  roundNumber,
+}: {
+  company: DeskCompany;
+  live: Candle | null;
+  now: number;
+  move: number;
+  movePct: number;
+  roundNumber: number | null;
+}) {
+  const tone = move > 0 ? "text-[#00D68F]" : move < 0 ? "text-[#FF5364]" : "text-[#87948D]";
+  return (
+    <div className="my-3 space-y-2">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <QuoteFact label="Market price" value={money(company.price)} />
+        <QuoteFact label={live ? `Round ${roundNumber} indicative` : "Last price"} value={money(now)} />
+        <QuoteFact label="Move" value={`${move >= 0 ? "+" : "−"}${movePct.toFixed(1)}%`} tone={tone} />
+        <QuoteFact label="Status" value={live ? "Round open" : "Closed"} tone={live ? "text-[#00D68F]" : "text-[#87948D]"} />
+      </dl>
+      {live ? (
+        <p className="text-sm" data-testid="indicative-price">
+          <span className="text-[#BACBB9]">Round {roundNumber} would clear at </span>
+          <b className="font-mono text-[color:var(--desk-accent)]">{money(now)}</b>
+          <span className={tone}>
+            {" "}
+            ({move >= 0 ? "+" : "−"}
+            {movePct.toFixed(1)}%)
+          </span>
+          <span className="text-[#BACBB9]"> if no other order came</span>
+        </p>
       ) : null}
+    </div>
+  );
+}
+
+function QuoteFact({ label, value, tone = "text-[#F2F5F3]" }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="min-w-0 rounded border border-white/10 bg-[#11110d] p-2">
+      <dt className="text-xs text-[#BACBB9]">{label}</dt>
+      <dd className={`mt-1 break-words font-mono text-xs font-semibold tabular-nums ${tone}`}>{value}</dd>
     </div>
   );
 }
